@@ -1,0 +1,14 @@
+{
+  "name": "kovacs-bot-discord",
+  "version": "1.0.0",
+  "description": "Bot para Arcadia RPG",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js" 
+  },
+  "dependencies": {
+    "discord.js": "^14.7.1", 
+    "mongodb": "^5.0.0", 
+    "dotenv": "^16.0.0" 
+  }
+}
