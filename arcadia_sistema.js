@@ -176,6 +176,58 @@ const ITENS_BASE_ARCADIA = {
         // Não precisa de "quantidade" aqui, pois a quantidade será gerenciada no inventário do jogador.
     },
 
+// ... (outros itens) ...
+    "mapa_parcial_rotas_comerciais": { 
+        itemNome: "Mapa Parcial das Rotas Comerciais", 
+        tipo: "Utilitário", 
+        descricao: "Um mapa com algumas rotas seguras e perigosas entre Valdoria e Elarion.", 
+        usavel: false, 
+        equipavel: false 
+    },
+    "hidromel_especial_do_borin": {
+        itemNome: "Hidromel Solar Especial do Borin",
+        tipo: "Consumível",
+        descricao: "Um hidromel incrivelmente saboroso e dourado, feito por Borin com Cogumelos Solares. Restaura uma boa quantidade de PV e PM, e deixa um calor agradável.",
+        usavel: true,
+        efeito: { tipoEfeito: "CURA_HP_PM", valorHP: 40, valorPM: 20, mensagemAoUsar: "Você bebe o Hidromel Solar e sente uma energia vibrante e um calor reconfortante!" },
+        cooldownSegundos: 120
+    },
+    "luvas_de_herbalista_simples": {
+        itemNome: "Luvas de Herbalista Simples",
+        tipo: "Equipamento Leve", // Ou "Vestimenta", "Acessório"
+        slot: "maos", // Você precisaria adicionar "maos" aos slots de equipamento na fichaModeloArcadia
+        descricao: "Luvas de couro macio e tingido de verde, que parecem ajudar a identificar e coletar ervas com mais facilidade.",
+        usavel: false,
+        equipavel: true,
+        efeitoEquipamento: { 
+            bonusPericia: { nome: "Herbalismo", valor: 5 }, // Exemplo de um futuro sistema de perícias
+            bonusAtributos: { intelecto: 1 } // Ou um bônus de atributo direto
+        }
+    },
+    "pétala de luar sombrio": { // Item de Quest
+        itemNome: "Pétala de Luar Sombrio",
+        tipo: "Item de Missão",
+        descricao: "Uma pétala de uma flor rara que brilha com uma suave luminescência azul-escura. Parece pulsar com uma energia fria e estranha.",
+        usavel: false,
+        equipavel: false
+    },
+    "erva brilhante de elarion": { // Item que Faelan vende
+        itemNome: "Erva Brilhante de Elarion",
+        tipo: "Ingrediente Alquímico",
+        descricao: "Uma erva comum nas clareiras de Elarion, suas folhas emitem um brilho suave. Usada em poções de iluminação e para aguçar a visão.",
+        usavel: false,
+        equipavel: false
+    },
+    "hidromel comum": { // Item que Borin vende
+        itemNome: "Hidromel Comum",
+        tipo: "Consumível",
+        descricao: "Um hidromel simples, mas que aquece o corpo e a alma em noites frias.",
+        usavel: true,
+        efeito: { "tipoEfeito": "CURA_HP", "valor": 5, "mensagemAoUsar": "Você bebe o hidromel e sente um leve calor." },
+        cooldownSegundos: 60
+    }
+    // ... (outros itens) ...
+    
     // ... (o restante dos seus itens) ...
     
     // Equipamentos Básicos
