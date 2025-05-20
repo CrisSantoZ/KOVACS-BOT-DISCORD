@@ -165,6 +165,19 @@ const ITENS_BASE_ARCADIA = {
     "bomba de fumaça": { itemNome: "Bomba de Fumaça", tipo: "Consumível", descricao: "Cria uma nuvem de fumaça densa, útil para fugas ou reposicionamento (efeito em combate a implementar).", usavel: true, efeito: { tipoEfeito: "UTILIDADE_COMBATE", efeitoNome: "CortinaDeFumaca", mensagemAoUsar: "Você arremessa a bomba de fumaça, criando uma densa cortina!" }, cooldownSegundos: 180 },
     "pergaminho de teleporte para a cidade": { itemNome: "Pergaminho de Teleporte para a Cidade", tipo: "Consumível", descricao: "Um pergaminho mágico que teleporta o usuário para a capital do reino atual (se aplicável e fora de combate).", usavel: true, efeito: { tipoEfeito: "TELEPORTE", destino: "CapitalDoReino", mensagemAoUsar: "Você lê as palavras do pergaminho e é envolvido por uma luz azulada..." }, cooldownSegundos: 600 }, // Cooldown alto
 
+    // ... (outros itens que já existem no seu ITENS_BASE_ARCADIA) ...
+
+    "pacote selado de elara": { 
+        itemNome: "Pacote Selado de Elara", 
+        tipo: "Item de Missão", 
+        descricao: "Um pequeno pacote cuidadosamente selado por Elara. Seu conteúdo é desconhecido para o portador.", 
+        usavel: false, 
+        equipavel: false 
+        // Não precisa de "quantidade" aqui, pois a quantidade será gerenciada no inventário do jogador.
+    },
+
+    // ... (o restante dos seus itens) ...
+    
     // Equipamentos Básicos
     "adaga simples": { itemNome: "Adaga Simples", tipo: "Arma Leve", descricao: "Uma adaga básica de bronze.", usavel: false, equipavel: true, slot: "maoDireita", // Ou maoEsquerda
         efeitoEquipamento: { bonusAtributos: { ataqueBase: 1 } } },
