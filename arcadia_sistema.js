@@ -4052,36 +4052,62 @@ async function processarAdminCriarFicha(client, idAlvoDiscord, nomePersonagem, r
 }
 
 async function processarAdminAddXP(idAlvoDiscord, valorXP, adminNome) {
+async function processarAdminAddXP(idAlvoDiscord, valorXP, adminNome) {
     const ficha = await getFichaOuCarregar(idAlvoDiscord);
     if (!ficha) return gerarEmbedErro("Erro Admin", `Ficha não encontrada para ID ${idAlvoDiscord}.`);
     if (isNaN(valorXP)) return gerarEmbedErro("Erro Admin", "Valor de XP inválido.");
 
     const xpAntes = ficha.xpAtual || 0;
-    ficha.xpAtual = xpAntes + valorXP;
-    let msgsLevelUp = [];
-    let subiuNivel = false;
+    const nivelOriginal = ficha.nivel || 1; // Guarda o nível original
+    let pontosAtributoGanhosTotal = 0;
+    let pontosFeiticoGanhosTotal = 0;
 
-    while (ficha.xpAtual >= ficha.xpProximoNivel && (ficha.xpProximoNivel || 0) > 0) {
+    ficha.xpAtual = xpAntes + valorXP;
+    let msgsLevelUpIndividuaisParaLog = []; // Para log detalhado no console do bot
+    let subiuNivel = false;
+    let ultimoNivelAlcancado = nivelOriginal;
+
+    while (ficha.xpAtual >= ficha.xpProximoNivel && (ficha.xpProximoNivel || 0) > 0 && ficha.nivel < 200) { // Adicionado limite de nível 200 para segurança
         subiuNivel = true;
         ficha.xpAtual -= ficha.xpProximoNivel;
-        const nivelAntigo = ficha.nivel || 0;
-        ficha.nivel = nivelAntigo + 1;
+        const nivelAntigoLoop = ficha.nivel || 0; 
+        ficha.nivel = nivelAntigoLoop + 1;
+        ultimoNivelAlcancado = ficha.nivel;
     
-       const pfGanhosEsteNivel = calcularPFGanhosNoNivel(ficha.nivel); // Usa o NOVO nível
-    ficha.pontosDeFeitico = (ficha.pontosDeFeitico || 0) + pfGanhosEsteNivel; 
-        ficha.atributos.pontosParaDistribuir = (ficha.atributos.pontosParaDistribuir || 0) + 2;
-        msgsLevelUp.push(`🎉 **${ficha.nomePersonagem}** alcançou o Nível **${ficha.nivel}**! Ganhou 2 pontos de atributo e **${pfGanhosEsteNivel}** Pontos de Feitiço.`);
+        const pfGanhosEsteNivel = calcularPFGanhosNoNivel(ficha.nivel);
+        const paGanhosEsteNivel = 2; 
 
-            ficha.xpProximoNivel = calcularXpProximoNivel(ficha.nivel);
+        ficha.pontosDeFeitico = (ficha.pontosDeFeitico || 0) + pfGanhosEsteNivel;
+        pontosFeiticoGanhosTotal += pfGanhosEsteNivel;
+
+        if (!ficha.atributos) ficha.atributos = JSON.parse(JSON.stringify(fichaModeloArcadia.atributos));
+        ficha.atributos.pontosParaDistribuir = (ficha.atributos.pontosParaDistribuir || 0) + paGanhosEsteNivel;
+        pontosAtributoGanhosTotal += paGanhosEsteNivel;
+        
+        msgsLevelUpIndividuaisParaLog.push(`- Nível ${ficha.nivel}: +${paGanhosEsteNivel} PA, +${pfGanhosEsteNivel} PF.`);
+        ficha.xpProximoNivel = calcularXpProximoNivel(ficha.nivel);
     }
 
     await atualizarFichaNoCacheEDb(idAlvoDiscord, ficha);
 
-    let desc = `XP de **${ficha.nomePersonagem}** (ID: ${idAlvoDiscord}) alterado de ${xpAntes} para ${ficha.xpAtual}/${ficha.xpProximoNivel} por ${adminNome}.`;
+    let descEmbed;
     if (subiuNivel) {
-        desc = msgsLevelUp.join("\n") + "\n\n" + desc;
+        descEmbed = `🎉 **${ficha.nomePersonagem}** subiu do Nível **${nivelOriginal}** para o Nível **${ultimoNivelAlcancado}**!\n`;
+        descEmbed += `✨ Ganhou no total: **${pontosAtributoGanhosTotal}** Pontos de Atributo e **${pontosFeiticoGanhosTotal}** Pontos de Feitiço.\n\n`;
+        descEmbed += `XP atual: ${ficha.xpAtual}/${ficha.xpProximoNivel}. (Adicionado por ${adminNome}).`;
+        
+        // Log detalhado no console do servidor, não para o Discord diretamente
+        console.log(`[LEVEL UP DETALHADO] Jogador ${ficha.nomePersonagem} (ID: ${idAlvoDiscord}):\n${msgsLevelUpIndividuaisParaLog.join("\n")}`);
+    } else {
+        descEmbed = `XP de **${ficha.nomePersonagem}** (ID: ${idAlvoDiscord}) alterado de ${xpAntes} para ${ficha.xpAtual}/${ficha.xpProximoNivel} por ${adminNome}. Nenhum nível ganho.`;
     }
-    return gerarEmbedSucesso("XP Adicionado (Admin)", desc).setTimestamp();
+    
+    // Segurança extra para o comprimento da descrição do embed
+    if (descEmbed.length > 4000) { 
+        descEmbed = `Muitos níveis foram ganhos! ${ficha.nomePersonagem} subiu do Nível ${nivelOriginal} para o Nível ${ultimoNivelAlcancado}. Detalhes extensos foram logados no console do bot. XP atual: ${ficha.xpAtual}/${ficha.xpProximoNivel}. (Admin: ${adminNome})`;
+    }
+
+    return gerarEmbedSucesso("XP Adicionado (Admin)", descEmbed).setTimestamp();
 }
 
 async function processarAdminSetNivel(idAlvoDiscord, novoNivel, adminNome) {
