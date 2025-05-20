@@ -224,7 +224,7 @@ const ITENS_BASE_ARCADIA = {
         usavel: true,
         efeito: { "tipoEfeito": "CURA_HP", "valor": 5, "mensagemAoUsar": "Você bebe o hidromel e sente um leve calor." },
         cooldownSegundos: 60
-    }
+    },
         
     // ... (o restante dos seus itens) ...
     
