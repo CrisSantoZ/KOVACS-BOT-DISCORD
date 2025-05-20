@@ -4052,7 +4052,6 @@ async function processarAdminCriarFicha(client, idAlvoDiscord, nomePersonagem, r
 }
 
 async function processarAdminAddXP(idAlvoDiscord, valorXP, adminNome) {
-async function processarAdminAddXP(idAlvoDiscord, valorXP, adminNome) {
     const ficha = await getFichaOuCarregar(idAlvoDiscord);
     if (!ficha) return gerarEmbedErro("Erro Admin", `Ficha não encontrada para ID ${idAlvoDiscord}.`);
     if (isNaN(valorXP)) return gerarEmbedErro("Erro Admin", "Valor de XP inválido.");
