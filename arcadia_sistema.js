@@ -175,8 +175,7 @@ const ITENS_BASE_ARCADIA = {
         equipavel: false 
         // Não precisa de "quantidade" aqui, pois a quantidade será gerenciada no inventário do jogador.
     },
-
-// ... (outros itens) ...
+    
     "mapa_parcial_rotas_comerciais": { 
         itemNome: "Mapa Parcial das Rotas Comerciais", 
         tipo: "Utilitário", 
@@ -226,8 +225,7 @@ const ITENS_BASE_ARCADIA = {
         efeito: { "tipoEfeito": "CURA_HP", "valor": 5, "mensagemAoUsar": "Você bebe o hidromel e sente um leve calor." },
         cooldownSegundos: 60
     }
-    // ... (outros itens) ...
-    
+        
     // ... (o restante dos seus itens) ...
     
     // Equipamentos Básicos
