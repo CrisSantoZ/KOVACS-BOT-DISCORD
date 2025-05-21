@@ -2967,25 +2967,13 @@ const fichaModeloArcadia = {
 // ... outras require e constantes ...
 let dbClient;
 let fichasCollection;
-let npcsCollection; // ADICIONE ESTA LINHA se não existir
-let todasAsFichas = {};
+let npcsCollection; // Declarada aqui, no escopo do módulo
+let missoesCollection; // Adicionando para futuras missões
+let todasAsFichas = {}; // Cache local das fichas
 
 
 
-async function carregarFichasDoDB() {
-    if (!fichasCollection) {
-        console.error("Coleção de fichas não inicializada. Tentando reconectar ao DB...");
-        await conectarMongoDB();
-        if (!fichasCollection) {
-            console.error("Falha ao reconectar e inicializar coleção. Carregamento de fichas abortado.");
-            return;
-        }
-    }
-    console.log("Carregando fichas do DB para cache...");
-    try {
-let todasAsFichas = {};
 
-async function conectarMongoDB() {
     if (dbClient && dbClient.topology && dbClient.topology.isConnected()) {
         console.log("MongoDB já conectado.");
         return;
@@ -3000,31 +2988,31 @@ async function conectarMongoDB() {
         await dbClient.connect();
         const db = dbClient.db(MONGODB_DB_NAME);
         fichasCollection = db.collection(MONGODB_FICHAS_COLLECTION);
-        npcsCollection = db.collection("npcs_arcadia"); // GARANTA QUE ESTA LINHA ESTEJA AQUI E ATIVA
+        npcsCollection = db.collection("npcs_arcadia"); // Inicializa npcsCollection
+        missoesCollection = db.collection("missoes_arcadia"); // Inicializa missoesCollection
 
-        // Log atualizado para mostrar ambas as coleções
-        console.log("Conectado com sucesso ao MongoDB Atlas e às coleções:", MONGODB_FICHAS_COLLECTION, "e npcs_arcadia"); 
+        console.log("Conectado com sucesso ao MongoDB Atlas e às coleções:", MONGODB_FICHAS_COLLECTION, ", npcs_arcadia, e missoes_arcadia"); 
 
     } catch (error) {
         console.error("ERRO CRÍTICO ao conectar ao MongoDB:", error);
         throw error;
     }
 }
-        
+
 async function carregarFichasDoDB() {
-    if (!fichasCollection) { // 1. Checa se fichasCollection existe
+    if (!fichasCollection) {
         console.error("Coleção de fichas não inicializada. Tentando reconectar ao DB...");
-        await conectarMongoDB();
+        await conectarMongoDB(); // Garante que npcsCollection também será inicializada se a conexão cair
         if (!fichasCollection) {
-            console.error("Falha ao reconectar e inicializar coleção. Carregamento de fichas abortado.");
+            console.error("Falha ao reconectar e inicializar coleção de fichas. Carregamento de fichas abortado.");
             return;
         }
     }
     console.log("Carregando fichas do DB para cache...");
-    try { // 2. Bloco try para a operação com o banco de dados
+    try {
         const fichasDoDB = await fichasCollection.find({}).toArray();
         todasAsFichas = {}; // Limpa o cache antes de carregar
-        fichasDoDB.forEach(fichaDB => { // 3. Itera sobre as fichas do DB
+        fichasDoDB.forEach(fichaDB => {
             const idJogador = String(fichaDB._id);
             todasAsFichas[idJogador] = {
                 ...JSON.parse(JSON.stringify(fichaModeloArcadia)),
@@ -3034,11 +3022,12 @@ async function carregarFichasDoDB() {
                 inventario: fichaDB.inventario && Array.isArray(fichaDB.inventario) ? fichaDB.inventario : [],
                 magiasConhecidas: fichaDB.magiasConhecidas && Array.isArray(fichaDB.magiasConhecidas) ? fichaDB.magiasConhecidas : [],
                 cooldownsFeiticos: fichaDB.cooldownsFeiticos || {},
-                cooldownsItens: fichaDB.cooldownsItens || {}
-            }; // Fim do objeto que é atribuído a todasAsFichas[idJogador]
-        }); // Fim do forEach
-        console.log(`${Object.keys(todasAsFichas).length} fichas carregadas para o cache.`); // Esta linha estava causando o erro de sintaxe antes se algo estivesse errado ANTES dela
-    } catch (error) { // 4. Bloco catch para erros do try
+                cooldownsItens: fichaDB.cooldownsItens || {},
+                logMissoes: fichaDB.logMissoes && Array.isArray(fichaDB.logMissoes) ? fichaDB.logMissoes : [] // Garante que logMissoes exista
+            };
+        });
+        console.log(`${Object.keys(todasAsFichas).length} fichas carregadas para o cache.`);
+    } catch (error) {
         console.error("Erro ao carregar fichas do MongoDB para o cache:", error);
     }
 }
@@ -4090,6 +4079,52 @@ async function adicionarItemAoInventario(ficha, nomeItem, quantidade) {
         const novoItem = JSON.parse(JSON.stringify(itemBase));
         novoItem.quantidade = quantidade;
         ficha.inventario.push(novoItem);
+    }
+}
+
+async function processarInteracaoComNPC(nomeNPCInput, fichaJogador) {
+    if (!npcsCollection) {
+        console.error("Coleção de NPCs não inicializada! Tentando reconectar ao DB...");
+        await conectarMongoDB(); // Tenta reconectar se necessário
+        if (!npcsCollection){
+             return { erro: "Erro interno: A coleção de NPCs não está pronta. Tente novamente em alguns instantes." };
+        }
+    }
+
+    try {
+        const npcData = await npcsCollection.findOne({ nome: new RegExp(`^${nomeNPCInput}$`, 'i') });
+
+        if (!npcData) {
+            return { erro: `NPC "${nomeNPCInput}" não encontrado em Arcádia.` };
+        }
+
+        // Lógica de seleção de diálogo (simplificada por agora, expandiremos depois)
+        let dialogoParaMostrar = null;
+
+        // Exemplo: Priorizar diálogo de "fim_missao" se aplicável
+        if (npcData.dialogos && npcData.dialogos.length > 0) {
+            // Adicionar lógica complexa de condições aqui depois
+            // Por agora, pegar o primeiro diálogo do tipo "saudacao_padrao" ou o primeiro da lista como fallback
+            dialogoParaMostrar = npcData.dialogos.find(d => d.tipo === "saudacao_padrao") || 
+                                npcData.dialogos.find(d => d.idDialogo && d.idDialogo.includes("saudacao_inicial")) ||
+                                npcData.dialogos[0];
+        }
+
+        if (!dialogoParaMostrar) {
+            return { erro: `NPC "${npcData.nome}" não possui diálogos configurados corretamente.` };
+        }
+
+        return {
+            npcId: npcData._id,
+            nomeNPC: npcData.nome,
+            tituloNPC: npcData.titulo,
+            descricaoVisualNPC: npcData.descricaoVisual,
+            dialogoAtual: dialogoParaMostrar 
+        };
+
+    } catch (error) {
+        console.error(`Erro ao processar interação com NPC ${nomeNPCInput}:`, error);
+        return { erro: "Ocorreu um erro ao buscar informações do NPC no banco de dados." };
     }
 }
 
