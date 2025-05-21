@@ -2974,6 +2974,7 @@ let todasAsFichas = {}; // Cache local das fichas
 
 
 
+    async function conectarMongoDB() { // <-- Certifique-se que 'async' está aqui
     if (dbClient && dbClient.topology && dbClient.topology.isConnected()) {
         console.log("MongoDB já conectado.");
         return;
@@ -2985,11 +2986,11 @@ let todasAsFichas = {}; // Cache local das fichas
     try {
         console.log("Tentando conectar ao MongoDB Atlas...");
         dbClient = new MongoClient(MONGODB_URI);
-        await dbClient.connect();
+        await dbClient.connect(); // <-- 'await' está dentro de uma função async
         const db = dbClient.db(MONGODB_DB_NAME);
         fichasCollection = db.collection(MONGODB_FICHAS_COLLECTION);
-        npcsCollection = db.collection("npcs_arcadia"); // Inicializa npcsCollection
-        missoesCollection = db.collection("missoes_arcadia"); // Inicializa missoesCollection
+        npcsCollection = db.collection("npcs_arcadia"); 
+        missoesCollection = db.collection("missoes_arcadia");
 
         console.log("Conectado com sucesso ao MongoDB Atlas e às coleções:", MONGODB_FICHAS_COLLECTION, ", npcs_arcadia, e missoes_arcadia"); 
 
