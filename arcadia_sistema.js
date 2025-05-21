@@ -2964,9 +2964,27 @@ const fichaModeloArcadia = {
 // =====================================================================================
 // CONEXÃO COM BANCO DE DADOS E CACHE DE FICHAS
 // =====================================================================================
+// ... outras require e constantes ...
 let dbClient;
 let fichasCollection;
-let todasAsFichas = {}; // Cache local das fichas
+let npcsCollection; // ADICIONE ESTA LINHA se não existir
+let todasAsFichas = {};
+
+
+
+async function carregarFichasDoDB() {
+    if (!fichasCollection) {
+        console.error("Coleção de fichas não inicializada. Tentando reconectar ao DB...");
+        await conectarMongoDB();
+        if (!fichasCollection) {
+            console.error("Falha ao reconectar e inicializar coleção. Carregamento de fichas abortado.");
+            return;
+        }
+    }
+    console.log("Carregando fichas do DB para cache...");
+    try {
+    ADICIONE ESTA LINHA se não existir
+let todasAsFichas = {};
 
 async function conectarMongoDB() {
     if (dbClient && dbClient.topology && dbClient.topology.isConnected()) {
@@ -2983,27 +3001,19 @@ async function conectarMongoDB() {
         await dbClient.connect();
         const db = dbClient.db(MONGODB_DB_NAME);
         fichasCollection = db.collection(MONGODB_FICHAS_COLLECTION);
-        console.log("Conectado com sucesso ao MongoDB Atlas e à coleção:", MONGODB_FICHAS_COLLECTION);
+        npcsCollection = db.collection("npcs_arcadia"); // GARANTA QUE ESTA LINHA ESTEJA AQUI E ATIVA
+
+        // Log atualizado para mostrar ambas as coleções
+        console.log("Conectado com sucesso ao MongoDB Atlas e às coleções:", MONGODB_FICHAS_COLLECTION, "e npcs_arcadia"); 
+
     } catch (error) {
         console.error("ERRO CRÍTICO ao conectar ao MongoDB:", error);
         throw error;
     }
 }
-
+        
 async function carregarFichasDoDB() {
-    if (!fichasCollection) {
-        console.error("Coleção de fichas não inicializada. Tentando reconectar ao DB...");
-        await conectarMongoDB();
-        if (!fichasCollection) {
-            console.error("Falha ao reconectar e inicializar coleção. Carregamento de fichas abortado.");
-            return;
-        }
-    }
-    console.log("Carregando fichas do DB para cache...");
-    try {
-        const fichasDoDB = await fichasCollection.find({}).toArray();
-        todasAsFichas = {};
-        fichasDoDB.forEach(fichaDB => {
+    if (!fichasColle.forEach(fichaDB => {
             const idJogador = String(fichaDB._id);
             todasAsFichas[idJogador] = {
                 ...JSON.parse(JSON.stringify(fichaModeloArcadia)),
@@ -4462,6 +4472,111 @@ async function getTodosFeiticosBaseParaAutocomplete() {
 }
 
 
+// No final do arquivo arcadia_sistema.js, antes do module.exports
+
+let npcsCollection;
+
+async function processarInteracaoComNPC(nomeNPCInput, fichaJogador) {
+    if (!npcsCollection) {
+        console.error("Coleção de NPCs não inicializada!");
+        return { erro: "Erro interno: A coleção de NPCs não está pronta." };
+    }
+
+    try {
+        // Busca o NPC pelo nome (case-insensitive)
+        const npcData = await npcsCollection.findOne({ nome: new RegExp(`^<span class="math-inline">\{nomeNPCInput\}</span>`, 'i') });
+
+        if (!npcData) {
+            return { erro: `NPC "${nomeNPCInput}" não encontrado em Arcádia.` };
+        }
+
+        // Lógica para selecionar o diálogo (começando simples)
+        // Esta lógica precisará ser MUITO expandida para considerar o estado do jogador, missões, etc.
+        let dialogoParaMostrar = null;
+        let dialogoEncontrado = false;
+
+        // Tenta encontrar um diálogo de "fim_missao" se o jogador tiver um objetivo completo
+        for (const diag of npcData.dialogos) {
+            if (diag.tipo === "fim_missao" && diag.condicoesParaMostrar && diag.condicoesParaMostrar.missaoAtiva && diag.condicoesParaMostrar.objetivoMissaoCompleto) {
+                const missaoAtiva = fichaJogador.logMissoes && fichaJogador.logMissoes.find(m => m.idMissao === diag.condicoesParaMostrar.missaoAtiva && m.status === "aceita");
+                // Aqui precisaria de uma forma de verificar se o objetivo específico está completo na ficha do jogador
+                // Por agora, vamos simplificar e assumir que se a missão está ativa, ele pode tentar finalizar.
+                // Em uma implementação real, você armazenaria o progresso dos objetivos na ficha do jogador.
+                if (missaoAtiva /* && objetivoCompletoNaLogicaDaFicha */) {
+                    dialogoParaMostrar = diag;
+                    dialogoEncontrado = true;
+                    break;
+                }
+            }
+        }
+
+        // Se não encontrou um de fim de missão, tenta um de "durante_missao"
+        if (!dialogoEncontrado) {
+            for (const diag of npcData.dialogos) {
+                if (diag.tipo === "durante_missao" && diag.condicoesParaMostrar && diag.condicoesParaMostrar.missaoAtiva) {
+                     const missaoAtiva = fichaJogador.logMissoes && fichaJogador.logMissoes.find(m => m.idMissao === diag.condicoesParaMostrar.missaoAtiva && m.status === "aceita");
+                     if (missaoAtiva) {
+                        dialogoParaMostrar = diag;
+                        dialogoEncontrado = true;
+                        break;
+                     }
+                }
+            }
+        }
+
+        // Se não, tenta um de "inicio_missao" (se as condições forem atendidas)
+        if (!dialogoEncontrado) {
+            for (const diag of npcData.dialogos) {
+                if (diag.tipo === "inicio_missao" && diag.ofereceMissao) {
+                    let condicoesOK = true;
+                    if (diag.condicoesParaMostrar) {
+                        if (diag.condicoesParaMostrar.nivelMinJogador && fichaJogador.nivel < diag.condicoesParaMostrar.nivelMinJogador.$numberInt) {
+                            condicoesOK = false;
+                        }
+                        if (diag.condicoesParaMostrar.missaoNaoIniciada) {
+                            if (fichaJogador.logMissoes && fichaJogador.logMissoes.some(m => m.idMissao === diag.condicoesParaMostrar.missaoNaoIniciada)) {
+                                condicoesOK = false; // Já iniciou ou completou
+                            }
+                        }
+                        // Adicionar outras checagens de condição aqui
+                    }
+                    if (condicoesOK) {
+                        dialogoParaMostrar = diag;
+                        dialogoEncontrado = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Se ainda não encontrou, pega uma saudação padrão
+        if (!dialogoEncontrado) {
+            dialogoParaMostrar = npcData.dialogos.find(d => d.tipo === "saudacao_padrao" || d.idDialogo.includes("saudacao"));
+        }
+
+        // Fallback final para o primeiro diálogo, se absolutamente nada mais for encontrado
+        if (!dialogoParaMostrar && npcData.dialogos && npcData.dialogos.length > 0) {
+            dialogoParaMostrar = npcData.dialogos[0];
+        }
+
+        if (!dialogoParaMostrar) {
+            return { erro: `NPC "${npcData.nome}" não tem um diálogo inicial configurado.` };
+        }
+
+        return {
+            npcId: npcData._id,
+            nomeNPC: npcData.nome,
+            tituloNPC: npcData.titulo,
+            descricaoVisualNPC: npcData.descricaoVisual,
+            dialogoAtual: dialogoParaMostrar // Retorna o objeto de diálogo inteiro
+        };
+
+    } catch (error) {
+        console.error(`Erro ao processar interação com NPC ${nomeNPCInput}:`, error);
+        return { erro: "Ocorreu um erro ao buscar informações do NPC." };
+    }
+}
+
 // =====================================================================================
 // EXPORTS DO MÓDULO
 // =====================================================================================
@@ -4481,7 +4596,7 @@ module.exports = {
     // Funções de Banco de Dados e Cache
     conectarMongoDB, carregarFichasDoDB, getFichaOuCarregar,
     atualizarFichaNoCacheEDb, calcularXpProximoNivel,
-    calcularPFGanhosNoNivel,
+    calcularPFGanhosNoNivel,npcsCollection,
 
     // Funções de Geração de Embeds Genéricas
     gerarEmbedErro, gerarEmbedSucesso, gerarEmbedAviso,
@@ -4499,7 +4614,7 @@ module.exports = {
     processarAdminCriarFicha, processarAdminAddXP, processarAdminSetNivel,
     processarAdminAddMoedas, processarAdminAddItem, processarAdminDelItem,
     processarAdminSetAtributo, processarAdminAddPontosAtributo, processarAdminExcluirFicha,
-    processarUparFeitico,
+    processarUparFeitico,processarInteracaoComNPC, 
 
     // Novas Funções de Autocomplete
     getMagiasConhecidasParaAutocomplete, // Mantida e ajustada
