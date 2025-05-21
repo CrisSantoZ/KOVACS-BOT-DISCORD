@@ -4598,6 +4598,20 @@ async function getTodosFeiticosBaseParaAutocomplete() {
         .filter(feitico => feitico.name && feitico.value);
 }
 
+async function getTodosNPCsParaAutocomplete() {
+    if (!npcsCollection) {
+        console.warn("[Autocomplete NPCs] npcsCollection não inicializada.");
+        return [];
+    }
+    try {
+        const npcs = await npcsCollection.find({}, { projection: { nome: 1 } }).toArray();
+        return npcs.map(npc => ({ name: npc.nome, value: npc.nome })); // value deve ser o nome exato
+    } catch (error) {
+        console.error("Erro ao buscar NPCs para autocomplete:", error);
+        return [];
+    }
+}
+
 
 // =====================================================================================
 // EXPORTS DO MÓDULO
@@ -4645,4 +4659,5 @@ module.exports = {
     getFeiticosDisponiveisParaAprender,
     getFeiticosUparaveisParaAutocomplete,
     getTodosFeiticosBaseParaAutocomplete,
+    getTodosNPCsParaAutocomplete,
 };
