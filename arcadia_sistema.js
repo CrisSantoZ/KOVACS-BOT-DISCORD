@@ -2983,7 +2983,6 @@ async function carregarFichasDoDB() {
     }
     console.log("Carregando fichas do DB para cache...");
     try {
-    ADICIONE ESTA LINHA se não existir
 let todasAsFichas = {};
 
 async function conectarMongoDB() {
