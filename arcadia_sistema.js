@@ -3024,7 +3024,7 @@ async function carregarFichasDoDB() {
                 cooldownsFeiticos: fichaDB.cooldownsFeiticos || {},
                 cooldownsItens: fichaDB.cooldownsItens || {}
             };
-        });
+        })
         console.log(`${Object.keys(todasAsFichas).length} fichas carregadas para o cache.`);
     } catch (error) {
         console.error("Erro ao carregar fichas do MongoDB para o cache:", error);
