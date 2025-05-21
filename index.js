@@ -1,6 +1,6 @@
-// index.js - Bot Principal do Discord para Arcádia RPG (V5 Final)
+// index.js
 
-const { Client, GatewayIntentBits, Partials, ActivityType } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, ActivityType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const express = require('express');
 require('dotenv').config();
 const Arcadia = require('./arcadia_sistema.js');
@@ -74,14 +74,14 @@ client.on('guildMemberAdd', async member => {
     }
 });
 
-// --- Evento: Interação (Slash Commands, Autocomplete) ---
+// --- Evento: Interação (Slash Commands, Autocomplete, Buttons) ---
 client.on('interactionCreate', async interaction => {
     // --- BLOCO DE AUTOCOMPLETE ---
     if (interaction.isAutocomplete()) {
         const commandName = interaction.commandName;
         const focusedOption = interaction.options.getFocused(true);
         let choices = [];
-        const jogadorId = interaction.user.id; // Para buscar dados específicos do jogador
+        const jogadorId = interaction.user.id;
 
         try {
             if (commandName === 'usarfeitico' && focusedOption.name === 'feitico') {
@@ -89,23 +89,23 @@ client.on('interactionCreate', async interaction => {
                 if (magiasConhecidas) {
                     choices = magiasConhecidas
                         .filter(magia => magia.name.toLowerCase().includes(focusedOption.value.toLowerCase()))
-                        .map(magia => ({ name: magia.name, value: magia.value })); // { name: "Nome Feitiço", value: "id_feitico" }
+                        .map(magia => ({ name: magia.name, value: magia.value }));
                 }
             } else if (commandName === 'aprenderfeitico' && focusedOption.name === 'feitico') {
                 const feiticosDisponiveis = await Arcadia.getFeiticosDisponiveisParaAprender(jogadorId);
                 if (feiticosDisponiveis) {
                     choices = feiticosDisponiveis
                         .filter(feitico => feitico.name.toLowerCase().includes(focusedOption.value.toLowerCase()))
-                        .map(feitico => ({ name: feitico.name, value: feitico.value })); // { name: "Nome Feitiço (Origem)", value: "id_feitico" }
+                        .map(feitico => ({ name: feitico.name, value: feitico.value }));
                 }
             } else if (commandName === 'usaritem' && focusedOption.name === 'item') {
                 const itensInventario = await Arcadia.getInventarioParaAutocomplete(jogadorId);
                 if (itensInventario) {
                     choices = itensInventario
                         .filter(item => item.name.toLowerCase().includes(focusedOption.value.toLowerCase()))
-                        .map(item => ({ name: item.name, value: item.value })); // { name: "Nome Item (xQtd)", value: "Nome Item" }
+                        .map(item => ({ name: item.name, value: item.value }));
                 }
-} else if (commandName === 'uparfeitico' && focusedOption.name === 'feitico') {
+            } else if (commandName === 'uparfeitico' && focusedOption.name === 'feitico') {
                 const feiticosUparaveis = await Arcadia.getFeiticosUparaveisParaAutocomplete(jogadorId);
                 choices = [];
                 if (feiticosUparaveis) {
@@ -113,13 +113,12 @@ client.on('interactionCreate', async interaction => {
                         .filter(f => f.name.toLowerCase().includes(focusedOption.value.toLowerCase()))
                         .slice(0, 25);
                 }
-                
             } else if (commandName === 'adminadditem' && focusedOption.name === 'item') {
                 const itensBase = await Arcadia.getItensBaseParaAutocomplete();
                 if (itensBase) {
                     choices = itensBase
                         .filter(item => item.name.toLowerCase().includes(focusedOption.value.toLowerCase()))
-                        .map(item => ({ name: item.name, value: item.value })); // { name: "Nome Item Base", value: "Nome Item Base" }
+                        .map(item => ({ name: item.name, value: item.value }));
                 }
             } else if (commandName === 'admindelitem' && focusedOption.name === 'item') {
                 const alvoId = interaction.options.getUser('jogador')?.id;
@@ -134,201 +133,227 @@ client.on('interactionCreate', async interaction => {
                      choices.push({name: `(Primeiro selecione o jogador alvo)`, value: focusedOption.value || "placeholder_no_alvo"});
                 }
             }
-            await interaction.respond(choices.slice(0, 25));
+             // Garante que a resposta do autocomplete é um array, mesmo que vazio, e limita a 25 escolhas.
+            await interaction.respond(choices.slice(0, 25) || []);
         } catch (error) {
             console.error(`[AUTOCOMPLETE] Erro ao processar autocomplete para /${commandName}, opção ${focusedOption.name}:`, error);
             try { await interaction.respond([]); } catch (respondError) { /* ignore */ }
         }
-        return;
+        return; // Importante para sair após o autocomplete
     }
 
     // --- TRATAMENTO DE COMANDOS SLASH ---
-    if (!interaction.isChatInputCommand()) return;
+    if (interaction.isChatInputCommand()) {
+        const { commandName, channelId, user, options, member } = interaction;
+        const senderId = user.id;
+        const senderUsername = user.username;
+        const isOwner = senderId === OWNER_ID_DISCORD;
+        console.log(`[Slash CMD] /${commandName} | by ${senderUsername} (${senderId})`);
+        let respostaParaEnviar;
+        let podeProcessar = true;
 
-    const { commandName, channelId, user, options, member } = interaction;
-    const senderId = user.id;
-    const senderUsername = user.username;
-    const isOwner = senderId === OWNER_ID_DISCORD;
-    console.log(`[Slash CMD] /${commandName} | by ${senderUsername} (${senderId})`);
-    let respostaParaEnviar;
-    let podeProcessar = true;
-
-    // --- LÓGICA DE RESTRIÇÃO DE CANAL ---
-    if (channelId === Arcadia.ID_CANAL_BOAS_VINDAS_RPG) {
-        if (!COMANDOS_CANAL_BEMVINDO.includes(commandName)) podeProcessar = false;
-    } else if (channelId === Arcadia.ID_CANAL_RECRUTAMENTO) {
-        if (!COMANDOS_CANAL_RECRUTAMENTO.includes(commandName)) podeProcessar = false;
-    } else if (channelId === Arcadia.ID_CANAL_ATUALIZACAO_FICHAS) {
-        if (!COMANDOS_CANAL_ATUALIZACAO_FICHAS.includes(commandName)) podeProcessar = false;
-    } else {
-        const comandosBloqueadosEmOutrosCanais = [
-            ...COMANDOS_CANAL_BEMVINDO.filter(cmd => !COMANDOS_GERAIS_PERMITIDOS_EM_OUTROS_CANAIS.includes(cmd)),
-            ...COMANDOS_CANAL_RECRUTAMENTO.filter(cmd => !COMANDOS_GERAIS_PERMITIDOS_EM_OUTROS_CANAIS.includes(cmd))
-        ].filter((value, index, self) => self.indexOf(value) === index);
-        if (comandosBloqueadosEmOutrosCanais.includes(commandName)) {
-            podeProcessar = false;
-        }
-    }
-
-    if (!podeProcessar && !isOwner) {
-        await interaction.reply({
-            embeds: [Arcadia.gerarEmbedAviso("Comando Inválido Neste Canal", "Este comando não pode ser utilizado aqui.")],
-            ephemeral: true
-        });
-        return;
-    }
-
-    try {
-        const comandosAdmin = [
-            'admincriar', 'adminaddxp', 'adminsetnivel', 'adminaddflorins',
-            'adminaddessencia', 'adminadditem', 'admindelitem',
-            'adminsetattr', 'adminaddpontosattr', 'adminexcluirficha'
-        ];
-        if (comandosAdmin.includes(commandName) && !isOwner) {
-            respostaParaEnviar = Arcadia.gerarEmbedErro("Acesso Negado", "Este comando é apenas para administradores do bot.");
+        // --- LÓGICA DE RESTRIÇÃO DE CANAL ---
+        if (channelId === Arcadia.ID_CANAL_BOAS_VINDAS_RPG) {
+            if (!COMANDOS_CANAL_BEMVINDO.includes(commandName)) podeProcessar = false;
+        } else if (channelId === Arcadia.ID_CANAL_RECRUTAMENTO) {
+            if (!COMANDOS_CANAL_RECRUTAMENTO.includes(commandName)) podeProcessar = false;
+        } else if (channelId === Arcadia.ID_CANAL_ATUALIZACAO_FICHAS) {
+            if (!COMANDOS_CANAL_ATUALIZACAO_FICHAS.includes(commandName)) podeProcessar = false;
         } else {
-            switch (commandName) {
-                case 'ping': respostaParaEnviar = 'Pong!'; break;
-                case 'oi': case 'arcadia': case 'bemvindo': respostaParaEnviar = Arcadia.gerarMensagemBoasVindas(senderUsername); break;
-                case 'comandos': case 'help': respostaParaEnviar = Arcadia.gerarListaComandos(isOwner); break;
-            case 'meusfeiticos':
-    respostaParaEnviar = await Arcadia.processarMeusFeiticos(senderId);
-    break;  
+            const comandosBloqueadosEmOutrosCanais = [
+                ...COMANDOS_CANAL_BEMVINDO.filter(cmd => !COMANDOS_GERAIS_PERMITIDOS_EM_OUTROS_CANAIS.includes(cmd)),
+                ...COMANDOS_CANAL_RECRUTAMENTO.filter(cmd => !COMANDOS_GERAIS_PERMITIDOS_EM_OUTROS_CANAIS.includes(cmd))
+            ].filter((value, index, self) => self.indexOf(value) === index); // Remove duplicatas
+            if (comandosBloqueadosEmOutrosCanais.includes(commandName)) {
+                podeProcessar = false;
+            }
+        }
+
+        if (!podeProcessar && !isOwner) {
+            await interaction.reply({
+                embeds: [Arcadia.gerarEmbedAviso("Comando Inválido Neste Canal", "Este comando não pode ser utilizado aqui.")],
+                ephemeral: true
+            });
+            return;
+        }
+        // Fim da lógica de restrição de canal
+
+        try { // INÍCIO DO TRY/CATCH PRINCIPAL PARA COMANDOS SLASH
+            const comandosAdmin = [
+                'admincriar', 'adminaddxp', 'adminsetnivel', 'adminaddflorins',
+                'adminaddessencia', 'adminadditem', 'admindelitem',
+                'adminsetattr', 'adminaddpontosattr', 'adminexcluirficha'
+            ];
+            if (comandosAdmin.includes(commandName) && !isOwner) {
+                respostaParaEnviar = Arcadia.gerarEmbedErro("Acesso Negado", "Este comando é apenas para administradores do bot.");
+            } else {
+                switch (commandName) {
+                    case 'ping': 
+                        respostaParaEnviar = 'Pong!'; 
+                        break;
+                    case 'oi': 
+                    case 'arcadia': 
+                    case 'bemvindo': 
+                        respostaParaEnviar = Arcadia.gerarMensagemBoasVindas(senderUsername); 
+                        break;
+                    case 'comandos': 
+                    case 'help': 
+                        respostaParaEnviar = Arcadia.gerarListaComandos(isOwner); 
+                        break;
+                    case 'meusfeiticos':
+                        respostaParaEnviar = await Arcadia.processarMeusFeiticos(senderId);
+                        break;  
                     case 'uparfeitico': {
-                    const idFeiticoParaUpar = options.getString('feitico'); 
-                    if (!idFeiticoParaUpar || idFeiticoParaUpar === "sem_feiticos_upar" || idFeiticoParaUpar === "max_nivel_todos") {
-                        let msgAviso = "Nenhum feitiço válido selecionado ou disponível para evoluir.";
-                        if (idFeiticoParaUpar === "sem_feiticos_upar") msgAviso = "Você não parece conhecer feitiços que podem ser evoluídos no momento.";
-                        if (idFeiticoParaUpar === "max_nivel_todos") msgAviso = "Todos os seus feitiços conhecidos já estão no nível máximo!";
-                        respostaParaEnviar = Arcadia.gerarEmbedAviso("Evoluir Feitiço", msgAviso);
-                    } else {
-                        respostaParaEnviar = await Arcadia.processarUparFeitico(senderId, idFeiticoParaUpar);
+                        const idFeiticoParaUpar = options.getString('feitico'); 
+                        if (!idFeiticoParaUpar || idFeiticoParaUpar === "sem_feiticos_upar" || idFeiticoParaUpar === "max_nivel_todos") {
+                            let msgAviso = "Nenhum feitiço válido selecionado ou disponível para evoluir.";
+                            if (idFeiticoParaUpar === "sem_feiticos_upar") msgAviso = "Você não parece conhecer feitiços que podem ser evoluídos no momento.";
+                            if (idFeiticoParaUpar === "max_nivel_todos") msgAviso = "Todos os seus feitiços conhecidos já estão no nível máximo!";
+                            respostaParaEnviar = Arcadia.gerarEmbedAviso("Evoluir Feitiço", msgAviso);
+                        } else {
+                            respostaParaEnviar = await Arcadia.processarUparFeitico(senderId, idFeiticoParaUpar);
+                        }
+                        break;
                     }
-                    break;
-                    }
-                case 'listaracas': respostaParaEnviar = Arcadia.gerarListaRacasEmbed(); break;
-                case 'listaclasses': respostaParaEnviar = Arcadia.gerarListaClassesEmbed(); break;
-                case 'listareinos': respostaParaEnviar = Arcadia.gerarListaReinosEmbed(); break;
-                case 'historia': respostaParaEnviar = Arcadia.gerarEmbedHistoria(); break;
-                case 'criar': {
-                    const nomePersonagem = options.getString('nome');
-                    const racaNomeInput = options.getString('raca');
-                    const classeNomeInput = options.getString('classe');
-                    const reinoNomeInput = options.getString('reino');
-                    respostaParaEnviar = await Arcadia.processarCriarFichaSlash(senderId, senderUsername, nomePersonagem, racaNomeInput, classeNomeInput, reinoNomeInput);
+                    case 'listaracas': 
+                        respostaParaEnviar = Arcadia.gerarListaRacasEmbed(); 
+                        break;
+                    case 'listaclasses': 
+                        respostaParaEnviar = Arcadia.gerarListaClassesEmbed(); 
+                        break;
+                    case 'listareinos': 
+                        respostaParaEnviar = Arcadia.gerarListaReinosEmbed(); 
+                        break;
+                    case 'historia': 
+                        respostaParaEnviar = Arcadia.gerarEmbedHistoria(); 
+                        break;
+                    case 'criar': {
+                        const nomePersonagem = options.getString('nome');
+                        const racaNomeInput = options.getString('raca');
+                        const classeNomeInput = options.getString('classe');
+                        const reinoNomeInput = options.getString('reino');
+                        const resultadoCriacao = await Arcadia.processarCriarFichaSlash(senderId, senderUsername, nomePersonagem, racaNomeInput, classeNomeInput, reinoNomeInput);
 
-                    if (respostaParaEnviar && typeof respostaParaEnviar.setTitle === 'function' && respostaParaEnviar.data && respostaParaEnviar.data.title && respostaParaEnviar.data.title.includes("🎉 Personagem Criado! 🎉")) {
-                        if (member) { // 'member' é o GuildMember da interação
-                            const fichaCriada = await Arcadia.getFichaOuCarregar(senderId); // Pega a ficha recém-criada para nomes canônicos
-                            if (fichaCriada) {
-                                let cargosAdicionadosMsgs = [];
-                                let cargosNaoEncontradosMsgs = [];
-                                let cargosRemovidosMsgs = [];
+                        // Lógica de cargos após criação
+                        if (resultadoCriacao && typeof resultadoCriacao.setTitle === 'function' && resultadoCriacao.data && resultadoCriacao.data.title && resultadoCriacao.data.title.includes("🎉 Personagem Criado! 🎉")) {
+                            if (member) { 
+                                const fichaCriada = await Arcadia.getFichaOuCarregar(senderId); 
+                                if (fichaCriada) {
+                                    let cargosAdicionadosMsgs = [];
+                                    let cargosNaoEncontradosMsgs = [];
+                                    let cargosRemovidosMsgs = [];
 
-                                // 1. Remover cargo "Visitante"
-                                const cargoVisitante = member.guild.roles.cache.find(role => role.name === Arcadia.NOME_CARGO_VISITANTE);
-                                if (cargoVisitante && member.roles.cache.has(cargoVisitante.id)) {
-                                    try { await member.roles.remove(cargoVisitante); cargosRemovidosMsgs.push(Arcadia.NOME_CARGO_VISITANTE); }
-                                    catch (e) { console.error(`Erro ao REMOVER ${Arcadia.NOME_CARGO_VISITANTE} de ${senderUsername}:`, e); }
-                                }
+                                    const cargoVisitante = member.guild.roles.cache.find(role => role.name === Arcadia.NOME_CARGO_VISITANTE);
+                                    if (cargoVisitante && member.roles.cache.has(cargoVisitante.id)) {
+                                        try { await member.roles.remove(cargoVisitante); cargosRemovidosMsgs.push(Arcadia.NOME_CARGO_VISITANTE); }
+                                        catch (e) { console.error(`Erro ao REMOVER ${Arcadia.NOME_CARGO_VISITANTE} de ${senderUsername}:`, e); }
+                                    }
 
-                                // Nomes dos cargos a serem adicionados
-                                const nomesCargosParaAdicionar = [
-                                    Arcadia.NOME_CARGO_AVENTUREIRO,
-                                    Arcadia.MAPA_CARGOS_RACAS[fichaCriada.raca],       // Ex: "Raça: Eldari"
-                                    Arcadia.MAPA_CARGOS_CLASSES[fichaCriada.classe],   // Ex: "Classe: Arcanista"
-                                    Arcadia.MAPA_CARGOS_REINOS[fichaCriada.origemReino] // Ex: "Reino: Valdoria"
-                                ].filter(Boolean); // Remove undefined/null se algum mapa não encontrar o cargo
+                                    const nomesCargosParaAdicionar = [
+                                        Arcadia.NOME_CARGO_AVENTUREIRO,
+                                        Arcadia.MAPA_CARGOS_RACAS[fichaCriada.raca],
+                                        Arcadia.MAPA_CARGOS_CLASSES[fichaCriada.classe],
+                                        Arcadia.MAPA_CARGOS_REINOS[fichaCriada.origemReino]
+                                    ].filter(Boolean);
 
-                                for (const nomeCargo of nomesCargosParaAdicionar) {
-                                    const cargoObj = member.guild.roles.cache.find(role => role.name === nomeCargo);
-                                    if (cargoObj) {
-                                        try { 
-                                            if (!member.roles.cache.has(cargoObj.id)) { // Adiciona apenas se não tiver
-                                                await member.roles.add(cargoObj); 
-                                                cargosAdicionadosMsgs.push(nomeCargo); 
+                                    for (const nomeCargo of nomesCargosParaAdicionar) {
+                                        const cargoObj = member.guild.roles.cache.find(role => role.name === nomeCargo);
+                                        if (cargoObj) {
+                                            try { 
+                                                if (!member.roles.cache.has(cargoObj.id)) {
+                                                    await member.roles.add(cargoObj); 
+                                                    cargosAdicionadosMsgs.push(nomeCargo); 
+                                                }
+                                            } catch (e) { 
+                                                console.error(`Erro ao ADICIONAR cargo ${nomeCargo} para ${senderUsername}:`, e); 
+                                                cargosNaoEncontradosMsgs.push(`${nomeCargo} (erro ao adicionar)`); 
                                             }
-                                        } catch (e) { 
-                                            console.error(`Erro ao ADICIONAR cargo ${nomeCargo} para ${senderUsername}:`, e); 
-                                            cargosNaoEncontradosMsgs.push(`${nomeCargo} (erro ao adicionar)`); 
+                                        } else { 
+                                            cargosNaoEncontradosMsgs.push(`${nomeCargo} (não encontrado no servidor)`); 
                                         }
-                                    } else { 
-                                        cargosNaoEncontradosMsgs.push(`${nomeCargo} (não encontrado no servidor)`); 
+                                    }
+                                    if (resultadoCriacao.addFields) { // Adiciona os campos ao embed original
+                                        if (cargosRemovidosMsgs.length > 0) resultadoCriacao.addFields({ name: '🚪 Cargo Removido', value: cargosRemovidosMsgs.join(', '), inline: false });
+                                        if (cargosAdicionadosMsgs.length > 0) resultadoCriacao.addFields({ name: '✅ Cargos Adicionados', value: cargosAdicionadosMsgs.join(', '), inline: false });
+                                        if (cargosNaoEncontradosMsgs.length > 0) resultadoCriacao.addFields({ name: '⚠️ Cargos Não Atribuídos/Erro', value: cargosNaoEncontradosMsgs.join(', '), inline: false });
                                     }
                                 }
-
-                                // Adiciona feedback sobre os cargos no embed de sucesso
-                                if (respostaParaEnviar.addFields) {
-                                    if (cargosRemovidosMsgs.length > 0) respostaParaEnviar.addFields({ name: '🚪 Cargo Removido', value: cargosRemovidosMsgs.join(', '), inline: false });
-                                    if (cargosAdicionadosMsgs.length > 0) respostaParaEnviar.addFields({ name: '✅ Cargos Adicionados', value: cargosAdicionadosMsgs.join(', '), inline: false });
-                                    if (cargosNaoEncontradosMsgs.length > 0) respostaParaEnviar.addFields({ name: '⚠️ Cargos Não Atribuídos/Erro', value: cargosNaoEncontradosMsgs.join(', '), inline: false });
-                                }
+                            } else {
+                                console.warn(`[CARGOS PÓS-CRIAÇÃO] Objeto 'member' não disponível para ${senderUsername}.`);
                             }
+                        }
+                        // 'resultadoCriacao' já é um EmbedBuilder, então será tratado pela lógica de envio genérica
+                        respostaParaEnviar = resultadoCriacao;
+                        break;
+                    }
+                    case 'ficha': {
+                        const jogadorAlvoFichaOpt = options.getUser('jogador');
+                        let idAlvoFicha = senderId;
+                        if (jogadorAlvoFichaOpt) {
+                            if (!isOwner) { 
+                                respostaParaEnviar = Arcadia.gerarEmbedErro("🚫 Acesso Negado", "Apenas administradores podem ver a ficha de outros jogadores."); 
+                            } else { 
+                                idAlvoFicha = jogadorAlvoFichaOpt.id; 
+                            }
+                        }
+                        if (!respostaParaEnviar) { // Só processa se não houve erro de permissão
+                            respostaParaEnviar = await Arcadia.processarVerFichaEmbed(idAlvoFicha, isOwner && !!jogadorAlvoFichaOpt, senderId, senderUsername);
+                        }
+                        break;
+                    }
+                    case 'aprenderfeitico': {
+                        const idFeitico = options.getString('feitico');
+                        const resultado = await Arcadia.aprenderFeitico(senderId, idFeitico);
+                        respostaParaEnviar = resultado.erro 
+                            ? Arcadia.gerarEmbedErro("Falha ao Aprender", resultado.erro)
+                            : Arcadia.gerarEmbedSucesso("Feitiço Aprendido", resultado.sucesso);
+                        break;
+                    }
+                    case 'usarfeitico': {
+                        const idFeitico = options.getString('feitico');
+                        const alvo = options.getUser('alvo');
+                        const resultado = await Arcadia.usarFeitico(senderId, idFeitico, alvo?.id);
+                        if (resultado.erro) {
+                            respostaParaEnviar = Arcadia.gerarEmbedErro("Falha ao Usar Feitiço", resultado.erro);
                         } else {
-                            console.warn(`[CARGOS PÓS-CRIAÇÃO] Objeto 'member' não disponível para ${senderUsername}. Cargos não gerenciados.`);
+                            // usarFeitico retorna { embeds: [embed] } ou { erro: "..." }
+                            // A lógica de envio genérica tratará { embeds: [embed] } corretamente
+                            respostaParaEnviar = resultado; 
                         }
+                        break;
                     }
-                    break;
-                }
-                case 'ficha': {
-                    const jogadorAlvoFichaOpt = options.getUser('jogador');
-                    let idAlvoFicha = senderId;
-                    if (jogadorAlvoFichaOpt) {
-                        if (!isOwner) { respostaParaEnviar = Arcadia.gerarEmbedErro("🚫 Acesso Negado", "Apenas administradores podem ver a ficha de outros jogadores."); }
-                        else { idAlvoFicha = jogadorAlvoFichaOpt.id; }
+                    case 'distribuirpontos': {
+                        const atrArgsDist = {};
+                        Arcadia.atributosValidos.forEach(atr => {
+                            const val = options.getInteger(atr.toLowerCase().replace('base', ''));
+                            if (val !== null && val !== undefined) {
+                                const atrKeyNaOpcao = atr.toLowerCase().replace('base', '');
+                                const atrKeyNaFicha = atrKeyNaOpcao === 'manabase' ? 'manaBase' : atrKeyNaOpcao;
+                                atrArgsDist[atrKeyNaFicha] = val;
+                            }
+                        });
+                        respostaParaEnviar = await Arcadia.processarDistribuirPontosSlash(senderId, atrArgsDist);
+                        break;
                     }
-                    if (!respostaParaEnviar) { // Só processa se não houve erro de permissão
-                        respostaParaEnviar = await Arcadia.processarVerFichaEmbed(idAlvoFicha, isOwner && !!jogadorAlvoFichaOpt, senderId, senderUsername);
+                    case 'jackpot':
+                        respostaParaEnviar = await Arcadia.processarJackpot(senderId, [String(options.getInteger('giros') || 1)]);
+                        break;
+                    case 'usaritem': {
+                        const nomeItem = options.getString('item');
+                        const quantidade = options.getInteger('quantidade') || 1;
+                        respostaParaEnviar = await Arcadia.processarUsarItem(senderId, nomeItem, quantidade);
+                        break;
                     }
-                    break;
-                }
-                case 'aprenderfeitico': {
-                    const idFeitico = options.getString('feitico'); // ID do feitiço do autocomplete
-                    const resultado = await Arcadia.aprenderFeitico(senderId, idFeitico);
-                    respostaParaEnviar = resultado.erro 
-                        ? Arcadia.gerarEmbedErro("Falha ao Aprender", resultado.erro)
-                        : Arcadia.gerarEmbedSucesso("Feitiço Aprendido", resultado.sucesso);
-                    break;
-                }
-                case 'usarfeitico': {
-                    const idFeitico = options.getString('feitico'); // ID do feitiço do autocomplete
-                    const alvo = options.getUser('alvo');
-                    const resultado = await Arcadia.usarFeitico(senderId, idFeitico, alvo?.id);
-                    respostaParaEnviar = resultado.erro ? Arcadia.gerarEmbedErro("Falha ao Usar Feitiço", resultado.erro) : { embeds: [resultado.embed] };
-                    break;
-                }
-                case 'distribuirpontos': {
-                    const atrArgsDist = {};
-                    Arcadia.atributosValidos.forEach(atr => { // Usa atributosValidos importado
-                        const val = options.getInteger(atr.toLowerCase().replace('base', '')); // Remove 'base' se presente
-                        if (val !== null && val !== undefined) { // Garante que apenas valores fornecidos sejam processados
-                            // Ajusta 'manabase' para 'manaBase' se necessário, para corresponder à ficha
-                            const atrKeyNaOpcao = atr.toLowerCase().replace('base', '');
-                            const atrKeyNaFicha = atrKeyNaOpcao === 'manabase' ? 'manaBase' : atrKeyNaOpcao;
-                            atrArgsDist[atrKeyNaFicha] = val;
-                        }
-                    });
-                    respostaParaEnviar = await Arcadia.processarDistribuirPontosSlash(senderId, atrArgsDist);
-                    break;
-                }
-                 case 'jackpot':
-                    respostaParaEnviar = await Arcadia.processarJackpot(senderId, [String(options.getInteger('giros') || 1)]);
-                    break;
-                case 'usaritem': {
-                    const nomeItem = options.getString('item'); // Nome do item do autocomplete
-                    const quantidade = options.getInteger('quantidade') || 1;
-                    respostaParaEnviar = await Arcadia.processarUsarItem(senderId, nomeItem, quantidade); // Passa nomeItem e quantidade
-                    break;
-                }
 
                     case 'interagir': {
-                        await interaction.deferReply({ ephemeral: false }); // Adia a resposta para dar tempo de processar
+                        // Este case agora responde diretamente com editReply, então não define `respostaParaEnviar`
+                        await interaction.deferReply({ ephemeral: false }); 
                         const nomeNPCInput = options.getString('npc');
                         const fichaJogador = await Arcadia.getFichaOuCarregar(senderId);
 
                         if (!fichaJogador || fichaJogador.nomePersonagem === "N/A") {
                             await interaction.editReply({ embeds: [Arcadia.gerarEmbedErro("Ficha não encontrada", "Você precisa criar uma ficha primeiro com `/criar`.")] });
-                            break;
+                            break; 
                         }
 
                         const resultadoInteracao = await Arcadia.processarInteracaoComNPC(nomeNPCInput, fichaJogador);
@@ -337,7 +362,7 @@ client.on('interactionCreate', async interaction => {
                             await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Interação Falhou", resultadoInteracao.erro)] });
                         } else {
                             const embedNPC = new EmbedBuilder()
-                                .setColor(0x7289DA) // Cor para NPCs
+                                .setColor(0x7289DA) 
                                 .setTitle(`🗣️ ${resultadoInteracao.tituloNPC || resultadoInteracao.nomeNPC}`)
                                 .setAuthor({ name: resultadoInteracao.nomeNPC });
 
@@ -350,25 +375,22 @@ client.on('interactionCreate', async interaction => {
                             const actionRow = new ActionRowBuilder();
                             let temOpcoes = false;
 
-                            // Adicionar botões para opções de resposta
                             if (resultadoInteracao.dialogoAtual.opcoesDeResposta && resultadoInteracao.dialogoAtual.opcoesDeResposta.length > 0) {
-                                resultadoInteracao.dialogoAtual.opcoesDeResposta.slice(0, 5).forEach(opcao => { // Limite de 5 botões por ActionRow
+                                resultadoInteracao.dialogoAtual.opcoesDeResposta.slice(0, 5).forEach(opcao => { 
                                     actionRow.addComponents(
                                         new ButtonBuilder()
                                             .setCustomId(`dialogo_${resultadoInteracao.npcId}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}`)
-                                            .setLabel(opcao.texto.substring(0, 80)) // Limite de 80 caracteres para label de botão
+                                            .setLabel(opcao.texto.substring(0, 80)) 
                                             .setStyle(ButtonStyle.Primary)
                                     );
                                     temOpcoes = true;
                                 });
                             }
 
-                            // Adicionar botão para aceitar missão, se oferecida
                             if (resultadoInteracao.dialogoAtual.ofereceMissao) {
-                                // Você precisará buscar os detalhes da missão aqui para mostrar o título
-                                // const detalhesMissao = await Arcadia.getDetalhesMissao(resultadoInteracao.dialogoAtual.ofereceMissao); 
+                                // const detalhesMissao = await Arcadia.getDetalhesMissao(resultadoInteracao.dialogoAtual.ofereceMissao);
                                 // if(detalhesMissao) { embedNPC.addFields({ name: "📜 Missão Oferecida!", value: `**${detalhesMissao.titulo}**`}); }
-                                
+
                                 actionRow.addComponents(
                                     new ButtonBuilder()
                                         .setCustomId(`missao_aceitar_${resultadoInteracao.npcId}_${resultadoInteracao.dialogoAtual.ofereceMissao}`)
@@ -377,8 +399,7 @@ client.on('interactionCreate', async interaction => {
                                 );
                                 temOpcoes = true;
                             }
-                            
-                            // Botão genérico para "Encerrar conversa" se não houver outras opções diretas
+
                             if (!temOpcoes && resultadoInteracao.dialogoAtual.encerraDialogo) {
                                 actionRow.addComponents(
                                     new ButtonBuilder()
@@ -389,186 +410,181 @@ client.on('interactionCreate', async interaction => {
                                 temOpcoes = true;
                             }
 
-
                             if (temOpcoes) {
                                 await interaction.editReply({ embeds: [embedNPC], components: [actionRow] });
                             } else {
                                 await interaction.editReply({ embeds: [embedNPC] });
                             }
                         }
+                        break; 
+                    }
+
+                    // --- Comandos de Admin ---
+                    case 'admincriar':
+                        respostaParaEnviar = await Arcadia.processarAdminCriarFicha(client, options.getUser('jogador').id, options.getString('nome'), options.getString('raca'), options.getString('classe'), options.getString('reino'), senderUsername);
                         break;
-                    }
-                // --- Comandos de Admin ---
-                case 'admincriar':
-                    respostaParaEnviar = await Arcadia.processarAdminCriarFicha(client, options.getUser('jogador').id, options.getString('nome'), options.getString('raca'), options.getString('classe'), options.getString('reino'), senderUsername);
-                    break;
-                case 'adminaddxp':
-                    respostaParaEnviar = await Arcadia.processarAdminAddXP(options.getUser('jogador').id, options.getInteger('xp'), senderUsername);
-                    break;
-                case 'adminsetnivel':
-                    respostaParaEnviar = await Arcadia.processarAdminSetNivel(options.getUser('jogador').id, options.getInteger('nivel'), senderUsername);
-                    break;
-                case 'adminaddflorins':
-                    respostaParaEnviar = await Arcadia.processarAdminAddMoedas(options.getUser('jogador').id, options.getInteger('quantidade'), 'florinsDeOuro', senderUsername);
-                    break;
-                case 'adminaddessencia':
-                    respostaParaEnviar = await Arcadia.processarAdminAddMoedas(options.getUser('jogador').id, options.getInteger('quantidade'), 'essenciaDeArcadia', senderUsername);
-                    break;
-                case 'adminadditem':
-                    respostaParaEnviar = await Arcadia.processarAdminAddItem(options.getUser('jogador').id, options.getString('item'), options.getInteger('quantidade') || 1, options.getString('tipo'), options.getString('descricao'), senderUsername);
-                    break;
-                case 'admindelitem':
-                    respostaParaEnviar = await Arcadia.processarAdminDelItem(options.getUser('jogador').id, options.getString('item'), options.getInteger('quantidade') || 1, senderUsername);
-                    break;
-                case 'adminsetattr':
-                    respostaParaEnviar = await Arcadia.processarAdminSetAtributo(options.getUser('jogador').id, options.getString('atributo'), options.getInteger('valor'), senderUsername);
-                    break;
-                case 'adminaddpontosattr':
-                    respostaParaEnviar = await Arcadia.processarAdminAddPontosAtributo(options.getUser('jogador').id, options.getInteger('quantidade'), senderUsername);
-                    break;
-                case 'adminexcluirficha':
-                    const alvoExcluir = options.getUser('jogador');
-                    const membroAlvo = interaction.guild ? interaction.guild.members.cache.get(alvoExcluir.id) : null; // Pega o objeto GuildMember
-                    respostaParaEnviar = await Arcadia.processarAdminExcluirFicha(alvoExcluir.id, options.getString('confirmacao'), senderUsername, membroAlvo);
-                    break;
-                default:
-                    if (commandName) { 
-                        respostaParaEnviar = Arcadia.gerarEmbedAviso("Comando Desconhecido", `O comando \`/${commandName}\` não foi reconhecido ou não está implementado no switch principal.`);
-                    } else {
-                        respostaParaEnviar = Arcadia.gerarEmbedErro("Erro Interno", "Nome do comando não recebido.");
-                    }
-                    break;
-            }
-        }
+                    case 'adminaddxp':
+                        respostaParaEnviar = await Arcadia.processarAdminAddXP(options.getUser('jogador').id, options.getInteger('xp'), senderUsername);
+                        break;
+                    case 'adminsetnivel':
+                        respostaParaEnviar = await Arcadia.processarAdminSetNivel(options.getUser('jogador').id, options.getInteger('nivel'), senderUsername);
+                        break;
+                    case 'adminaddflorins':
+                        respostaParaEnviar = await Arcadia.processarAdminAddMoedas(options.getUser('jogador').id, options.getInteger('quantidade'), 'florinsDeOuro', senderUsername);
+                        break;
+                    case 'adminaddessencia':
+                        respostaParaEnviar = await Arcadia.processarAdminAddMoedas(options.getUser('jogador').id, options.getInteger('quantidade'), 'essenciaDeArcadia', senderUsername);
+                        break;
+                    case 'adminadditem':
+                        respostaParaEnviar = await Arcadia.processarAdminAddItem(options.getUser('jogador').id, options.getString('item'), options.getInteger('quantidade') || 1, options.getString('tipo'), options.getString('descricao'), senderUsername);
+                        break;
+                    case 'admindelitem':
+                        respostaParaEnviar = await Arcadia.processarAdminDelItem(options.getUser('jogador').id, options.getString('item'), options.getInteger('quantidade') || 1, senderUsername);
+                        break;
+                    case 'adminsetattr':
+                        respostaParaEnviar = await Arcadia.processarAdminSetAtributo(options.getUser('jogador').id, options.getString('atributo'), options.getInteger('valor'), senderUsername);
+                        break;
+                    case 'adminaddpontosattr':
+                        respostaParaEnviar = await Arcadia.processarAdminAddPontosAtributo(options.getUser('jogador').id, options.getInteger('quantidade'), senderUsername);
+                        break;
+                    case 'adminexcluirficha':
+                        const alvoExcluir = options.getUser('jogador');
+                        const membroAlvo = interaction.guild ? interaction.guild.members.cache.get(alvoExcluir.id) : null;
+                        respostaParaEnviar = await Arcadia.processarAdminExcluirFicha(alvoExcluir.id, options.getString('confirmacao'), senderUsername, membroAlvo);
+                        break;
+                    default:
+                        if (commandName) { 
+                            respostaParaEnviar = Arcadia.gerarEmbedAviso("Comando Desconhecido", `O comando \`/${commandName}\` não foi reconhecido ou não está implementado no switch principal.`);
+                        } else {
+                            respostaParaEnviar = Arcadia.gerarEmbedErro("Erro Interno", "Nome do comando não recebido.");
+                        }
+                        break;
+                } // Fim do switch
+            } // Fim do else (do if comandosAdmin)
 
-        // --- LÓGICA DE ENVIO DA RESPOSTA (COM LOGS DE DEBUG) ---
-        if (respostaParaEnviar) {
-            const payload = {};
-            // console.log("[PAYLOAD_DEBUG] Iniciando tratamento de respostaParaEnviar:", JSON.stringify(respostaParaEnviar, null, 2));
-
-            if (typeof respostaParaEnviar === 'string') {
-                // console.log("[PAYLOAD_DEBUG] Condição: É string. VERDADEIRO");
-                payload.content = respostaParaEnviar;
-            } else {
-                // console.log("[PAYLOAD_DEBUG] Condição: É string. FALSO");
-                if (respostaParaEnviar.embeds && Array.isArray(respostaParaEnviar.embeds)) {
-                    // console.log("[PAYLOAD_DEBUG] Condição: É objeto { embeds: [...] }. VERDADEIRO");
+            // --- LÓGICA DE ENVIO DA RESPOSTA (para comandos que definem 'respostaParaEnviar') ---
+            if (respostaParaEnviar) {
+                const payload = {};
+                if (typeof respostaParaEnviar === 'string') {
+                    payload.content = respostaParaEnviar;
+                } else if (respostaParaEnviar.embeds && Array.isArray(respostaParaEnviar.embeds)) {
                     payload.embeds = respostaParaEnviar.embeds; 
-                    if (respostaParaEnviar.content) { 
-                        payload.content = respostaParaEnviar.content;
-                    }
+                    if (respostaParaEnviar.content) { payload.content = respostaParaEnviar.content; }
+                } else if (respostaParaEnviar && typeof respostaParaEnviar.setTitle === 'function' && respostaParaEnviar.data) {
+                    payload.embeds = [respostaParaEnviar]; 
                 } else {
-                    // console.log("[PAYLOAD_DEBUG] Condição: É objeto { embeds: [...] }. FALSO");
-                    const isEmbedBuilderCandidate = !!(respostaParaEnviar && typeof respostaParaEnviar.setTitle === 'function' && respostaParaEnviar.data);
-                    // console.log(`[PAYLOAD_DEBUG] Verificando EmbedBuilder: é candidato? ${isEmbedBuilderCandidate}`);
+                    console.warn("[RESPOSTA FINAL ELSE] Formato de respostaParaEnviar não reconhecido:", JSON.stringify(respostaParaEnviar, null, 2));
+                    payload.content = "Ocorreu um erro inesperado ao formatar a resposta do bot."; 
+                }
 
-                    if (isEmbedBuilderCandidate) {
-                        // console.log("[PAYLOAD_DEBUG] Condição: É EmbedBuilder único. VERDADEIRO");
-                        payload.embeds = [respostaParaEnviar]; 
+                let deveSerEfêmera = false;
+                if (commandName === 'adminexcluirficha' && payload.embeds && payload.embeds[0] && payload.embeds[0].data.title && payload.embeds[0].data.title.includes('Exclusão Não Confirmada')) {
+                    deveSerEfêmera = true;
+                }
+                if (deveSerEfêmera) { payload.ephemeral = true; }
+
+                // Verifica se o payload está realmente vazio ou se a interação já foi respondida/adiada por um handler específico
+                if (Object.keys(payload).length === 0 || (!payload.content && (!payload.embeds || payload.embeds.length === 0))) {
+                    if (!interaction.replied && !interaction.deferred) {
+                        console.error("[ENVIO ERRO] Payload resultou em mensagem vazia e interação não respondida:", JSON.stringify(payload, null, 2));
+                        await interaction.reply({ content: "Ocorreu um problema ao gerar a resposta (payload vazio/inválido).", ephemeral: true });
                     } else {
-                        // console.log("[PAYLOAD_DEBUG] Condição: É EmbedBuilder único. FALSO");
-                        console.warn("[RESPOSTA FINAL ELSE] Formato de respostaParaEnviar não reconhecido:", JSON.stringify(respostaParaEnviar, null, 2));
-                        payload.content = "Ocorreu um erro inesperado ao formatar a resposta do bot (código não conseguiu determinar o tipo)."; 
-                    }
-                }
-            }
-
-            // console.log("[PAYLOAD_DEBUG] Payload final antes do envio:", JSON.stringify(payload, null, 2));
-
-            let deveSerEfêmera = false;
-            if (commandName === 'adminexcluirficha' && payload.embeds && payload.embeds[0] && payload.embeds[0].data.title && payload.embeds[0].data.title.includes('Exclusão Não Confirmada')) {
-                deveSerEfêmera = true;
-            }
-
-            if (deveSerEfêmera) {
-                payload.ephemeral = true;
-            }
-
-            if (Object.keys(payload).length === 0) {
-                console.error("[ENVIO ERRO] Payload está vazio! Não enviando nada.");
-            } else if (!payload.content && (!payload.embeds || payload.embeds.length === 0)) {
-                console.error("[ENVIO ERRO] Payload resultou em mensagem vazia:", JSON.stringify(payload, null, 2));
-                const errorMsgPayload = { content: "Ocorreu um problema ao gerar a resposta (vazia).", embeds: [], ephemeral: true };
-                if (interaction.replied || interaction.deferred) {
-                    await interaction.editReply(errorMsgPayload);
-                } else {
-                    await interaction.reply(errorMsgPayload);
-                }
-            } else {
-                 if (payload.content && payload.content.length > 2000 && (!payload.embeds || payload.embeds.length === 0)) {
-                    const chunks = payload.content.match(/[\s\S]{1,1990}/g) || [];
-                    const firstChunkPayload = { ...payload, content: chunks.shift() };
-                    if (interaction.replied || interaction.deferred) { await interaction.editReply(firstChunkPayload); }
-                    else { await interaction.reply(firstChunkPayload); }
-                    for (const chunk of chunks) {
-                        await interaction.followUp({ content: chunk, ephemeral: deveSerEfêmera }); 
+                         console.warn(`[ENVIO] Payload vazio ou incompleto para /${commandName}, mas interação já respondida/adiada.`);
                     }
                 } else {
-                    if (interaction.replied || interaction.deferred) {
-                        await interaction.editReply(payload);
+                    if (payload.content && payload.content.length > 2000 && (!payload.embeds || payload.embeds.length === 0)) {
+                        // ... (lógica de dividir em chunks) ...
+                        const chunks = payload.content.match(/[\s\S]{1,1990}/g) || [];
+                        const firstChunkPayload = { ...payload, content: chunks.shift() };
+                        if (interaction.replied || interaction.deferred) { await interaction.editReply(firstChunkPayload); }
+                        else { await interaction.reply(firstChunkPayload); }
+                        for (const chunk of chunks) {
+                            await interaction.followUp({ content: chunk, ephemeral: deveSerEfêmera }); 
+                        }
                     } else {
-                        await interaction.reply(payload);
+                        // Se a interação já foi respondida ou adiada (ex: /interagir), usa editReply. Senão, usa reply.
+                        if (interaction.replied || interaction.deferred) { 
+                            await interaction.editReply(payload); 
+                        } else { 
+                            await interaction.reply(payload); 
+                        }
                     }
                 }
-            }
-        } else { 
-            console.warn("[RESPOSTA] 'respostaParaEnviar' é undefined ou null. Nada para enviar.");
-        } 
+            } else if (!['criar', 'ficha', 'interagir'].includes(commandName)) { // Adicione outros comandos que respondem diretamente aqui
+                console.warn(`[RESPOSTA] 'respostaParaEnviar' é undefined para /${commandName}, e este comando não respondeu diretamente à interação.`);
+            } 
+        // FECHAMENTO DO BLOCO 'try' PRINCIPAL
+        } catch (error) { 
+            console.error(`Erro CRÍTICO ao processar comando /${commandName} por ${user.username}:`, error);
+            let errorEmbedParaUsuario = Arcadia.gerarEmbedErro("😥 Erro Crítico", "Desculpe, ocorreu um erro crítico ao processar seu comando. O Mestre foi notificado e investigará o problema.");
+            const errorReplyPayload = { embeds: [errorEmbedParaUsuario], ephemeral: true };
+            try { 
+                if (interaction.replied || interaction.deferred) { 
+                    await interaction.editReply(errorReplyPayload); 
+                } else { 
+                    await interaction.reply(errorReplyPayload); 
+                }
+            } catch (finalError) { 
+                console.error("Erro catastrófico ao tentar responder sobre um erro anterior:", finalError);
+            } 
+        } // FIM DO BLOCO 'catch'
 
-    } 
-    catch (error) { 
-        console.error(`Erro CRÍTICO ao processar comando /${commandName} por ${senderUsername}:`, error);
-        let errorEmbedParaUsuario = Arcadia.gerarEmbedErro("😥 Erro Crítico", "Desculpe, ocorreu um erro crítico ao processar seu comando. O Mestre foi notificado e investigará o problema.");
-        const errorReplyPayload = { embeds: [errorEmbedParaUsuario], ephemeral: true };
-        try { 
-            if (interaction.replied || interaction.deferred) { 
-                await interaction.editReply(errorReplyPayload); 
-            } else { 
-                await interaction.reply(errorReplyPayload); 
-            }
-        } 
-        catch (finalError) { 
-            console.error("Erro catastrófico ao tentar responder sobre um erro anterior:", finalError);
-        } 
-    }
+    } // <--- ESTA É A CHAVE DE FECHAMENTO DO "if (interaction.isChatInputCommand())"
 
-// --- TRATAMENTO DE INTERAÇÕES DE BOTÃO ---
-    } else if (interaction.isButton()) {
-        const [tipoComponente, idNpcOuContexto, idAcaoOuDialogo, idDialogoOrigem] = interaction.customId.split('_');
-        const senderId = interaction.user.id;
-        // Aqui você precisará de uma lógica mais elaborada para tratar os diferentes customIds
-        // Exemplo:
-        if (tipoComponente === 'dialogo') {
-            // Lógica para avançar no diálogo com o NPC
-            // Chamar uma função em Arcadia.js passando idNpcOuContexto, idAcaoOuDialogo (novo dialogoId), e a ficha do jogador
-            // Atualizar a mensagem com o novo diálogo e novas opções/botões
-            await interaction.update({ content: `Botão de diálogo "${interaction.customId}" clicado! (Lógica a implementar)`, embeds: [], components: [] });
-        } else if (tipoComponente === 'missao' && idAcaoOuDialogo === 'aceitar') {
-            // Lógica para aceitar a missão (idNpcOuContexto é o id do NPC, idDialogoOrigem é o id da missão)
-            // Chamar uma função em Arcadia.js para adicionar a missão ao log do jogador
-            // Atualizar a mensagem ou enviar uma nova confirmação
-             const idMissaoParaAceitar = idDialogoOrigem; // Ajuste conforme seu customId
-             const resultadoAceite = await Arcadia.aceitarMissao(senderId, idMissaoParaAceitar, idNpcOuContexto);
-            if (resultadoAceite.sucesso) {
-                 await interaction.update({ embeds: [Arcadia.gerarEmbedSucesso("Missão Aceita!", resultadoAceite.sucesso)], components: [] });
+    // --- TRATAMENTO DE INTERAÇÕES DE BOTÃO ---
+    else if (interaction.isButton()) {
+        await interaction.deferUpdate(); // Adia a atualização para evitar que o botão fique "carregando"
+        const customIdParts = interaction.customId.split('_');
+        const tipoComponente = customIdParts[0];
+        const idNpcOuContexto = customIdParts[1];
+        const idAcaoOuDialogo = customIdParts[2];
+        const idOrigemOuMissao = customIdParts[3]; // Pode ser idDialogoOrigem para diálogos ou idMissao para aceitar
+        const senderIdButton = interaction.user.id; 
+
+        try {
+            if (tipoComponente === 'dialogo') {
+                // Lógica para avançar no diálogo
+                // Exemplo: const fichaJogadorBtn = await Arcadia.getFichaOuCarregar(senderIdButton);
+                // const proximoDialogoInfo = await Arcadia.processarProximoDialogo(idNpcOuContexto, idAcaoOuDialogo, fichaJogadorBtn);
+                // if (proximoDialogoInfo.erro) { ... } else { interaction.editReply({ embeds: [novoEmbed], components: [novosBotoes]}); }
+                await interaction.editReply({ content: `Botão de diálogo "${interaction.customId}" clicado! Próximo diálogo: ${idAcaoOuDialogo}. (Lógica a implementar)`, embeds: [], components: [] });
+            } else if (tipoComponente === 'missao' && idAcaoOuDialogo === 'aceitar') {
+                const idMissaoParaAceitar = idOrigemOuMissao; 
+                // const resultadoAceite = await Arcadia.aceitarMissao(senderIdButton, idMissaoParaAceitar, idNpcOuContexto); // Função a ser criada
+                // if (resultadoAceite.sucesso) {
+                //     await interaction.editReply({ embeds: [Arcadia.gerarEmbedSucesso("Missão Aceita!", resultadoAceite.sucesso)], components: [] });
+                // } else {
+                //     await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Missão", resultadoAceite.erro || "Não foi possível aceitar a missão.")], components: [] });
+                // }
+                 await interaction.editReply({ content: `Tentando aceitar missão ${idMissaoParaAceitar} do NPC ${idNpcOuContexto}. (Lógica a implementar)`, embeds:[], components: [] });
             } else {
-                 await interaction.update({ embeds: [Arcadia.gerarEmbedAviso("Missão", resultadoAceite.erro || "Não foi possível aceitar a missão.")], components: [] });
+                await interaction.editReply({ content: 'Botão desconhecido clicado ou ação não implementada.', embeds: [], components: [] });
             }
-        } else {
-            await interaction.reply({ content: 'Botão desconhecido clicado.', ephemeral: true });
+        } catch(buttonError) {
+            console.error(`Erro ao processar botão ${interaction.customId}:`, buttonError);
+            try {
+                await interaction.editReply({content: "Ocorreu um erro ao processar esta ação.", embeds: [], components: []});
+            } catch (e) { /* ignore followup error */ }
         }
-        return; // Importante para não cair na lógica de envio de resposta de slash command
+        return; // Importante para não cair na lógica de envio de resposta de slash command se já respondemos com update
     }
-}); 
+    // Outros 'else if' para modals, select menus, etc. podem vir aqui.
+
+});
 
 // --- Login do Bot ---
-const token = process.env.DISCORD_TOKEN;
+const token = process.env.DISCORD_TOKEN; // Pega o token da variável de ambiente
+
 if (!token) {
+    // Se o token não for encontrado, exibe um erro crítico no console e encerra o processo
     console.error("ERRO CRÍTICO: Token do Discord (DISCORD_TOKEN) não encontrado nas variáveis de ambiente!");
-    process.exit(1); 
+    process.exit(1); // Encerra o processo com código de erro
 } else {
+    // Se o token for encontrado, tenta fazer login no Discord
     client.login(token).catch(err => {
+        // Se ocorrer um erro durante o login, exibe a mensagem de erro
         console.error("ERRO AO FAZER LOGIN NO DISCORD:", err.message);
+        // Se o erro for específico de 'Intents não permitidas', dá uma dica ao usuário
         if (err.code === 'DisallowedIntents') {
             console.error("--> DICA: Verifique se todas as 'Privileged Gateway Intents' (ESPECIALMENTE Server Members Intent e Message Content Intent) estão ATIVADAS no Portal de Desenvolvedores do Discord para o seu bot!");
         }
