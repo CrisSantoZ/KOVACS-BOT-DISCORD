@@ -3012,7 +3012,19 @@ async function conectarMongoDB() {
 }
         
 async function carregarFichasDoDB() {
-    if (!fichasColle.forEach(fichaDB => {
+    if (!fichasCollection) { // 1. Checa se fichasCollection existe
+        console.error("Coleção de fichas não inicializada. Tentando reconectar ao DB...");
+        await conectarMongoDB();
+        if (!fichasCollection) {
+            console.error("Falha ao reconectar e inicializar coleção. Carregamento de fichas abortado.");
+            return;
+        }
+    }
+    console.log("Carregando fichas do DB para cache...");
+    try { // 2. Bloco try para a operação com o banco de dados
+        const fichasDoDB = await fichasCollection.find({}).toArray();
+        todasAsFichas = {}; // Limpa o cache antes de carregar
+        fichasDoDB.forEach(fichaDB => { // 3. Itera sobre as fichas do DB
             const idJogador = String(fichaDB._id);
             todasAsFichas[idJogador] = {
                 ...JSON.parse(JSON.stringify(fichaModeloArcadia)),
@@ -3023,13 +3035,13 @@ async function carregarFichasDoDB() {
                 magiasConhecidas: fichaDB.magiasConhecidas && Array.isArray(fichaDB.magiasConhecidas) ? fichaDB.magiasConhecidas : [],
                 cooldownsFeiticos: fichaDB.cooldownsFeiticos || {},
                 cooldownsItens: fichaDB.cooldownsItens || {}
-            }
-        })
-        console.log(`${Object.keys(todasAsFichas).length} fichas carregadas para o cache.`);
-    } catch (error) {
+            }; // Fim do objeto que é atribuído a todasAsFichas[idJogador]
+        }); // Fim do forEach
+        console.log(`${Object.keys(todasAsFichas).length} fichas carregadas para o cache.`); // Esta linha estava causando o erro de sintaxe antes se algo estivesse errado ANTES dela
+    } catch (error) { // 4. Bloco catch para erros do try
         console.error("Erro ao carregar fichas do MongoDB para o cache:", error);
     }
-};
+}
 
 async function getFichaOuCarregar(idJogadorDiscord) {
     const idNormalizado = String(idJogadorDiscord);
