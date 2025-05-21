@@ -3023,13 +3023,13 @@ async function carregarFichasDoDB() {
                 magiasConhecidas: fichaDB.magiasConhecidas && Array.isArray(fichaDB.magiasConhecidas) ? fichaDB.magiasConhecidas : [],
                 cooldownsFeiticos: fichaDB.cooldownsFeiticos || {},
                 cooldownsItens: fichaDB.cooldownsItens || {}
-            };
-        });
+            }
+        })
         console.log(`${Object.keys(todasAsFichas).length} fichas carregadas para o cache.`);
     } catch (error) {
         console.error("Erro ao carregar fichas do MongoDB para o cache:", error);
     }
-}
+};
 
 async function getFichaOuCarregar(idJogadorDiscord) {
     const idNormalizado = String(idJogadorDiscord);
