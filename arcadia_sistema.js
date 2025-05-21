@@ -4083,36 +4083,61 @@ async function adicionarItemAoInventario(ficha, nomeItem, quantidade) {
     }
 }
 
-async function processarInteracaoComNPC(nomeNPCInput, fichaJogador) {
-    if (!npcsCollection) {
-        console.error("Coleção de NPCs não inicializada! Tentando reconectar ao DB...");
-        await conectarMongoDB(); // Tenta reconectar se necessário
-        if (!npcsCollection){
-             return { erro: "Erro interno: A coleção de NPCs não está pronta. Tente novamente em alguns instantes." };
+
+// Em arcadia_sistema.js
+
+async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspecifico = null) {
+    if (!npcsCollection || !fichasCollection || !missoesCollection) { // Adicionei missoesCollection
+        console.error("Uma ou mais coleções não inicializadas! Tentando reconectar...");
+        await conectarMongoDB();
+        if (!npcsCollection || !fichasCollection || !missoesCollection) {
+            return { erro: "Erro interno: As coleções do banco de dados não estão prontas." };
         }
     }
 
     try {
-        const npcData = await npcsCollection.findOne({ nome: new RegExp(`^${nomeNPCInput}$`, 'i') });
+        const npcData = await npcsCollection.findOne(
+            idDialogoEspecifico ? { _id: nomeOuIdNPC } : { nome: new RegExp(`^${nomeOuIdNPC}$`, 'i') }
+        );
 
         if (!npcData) {
-            return { erro: `NPC "${nomeNPCInput}" não encontrado em Arcádia.` };
+            return { erro: `NPC "${nomeOuIdNPC}" não encontrado em Arcádia.` };
         }
 
-        // Lógica de seleção de diálogo (simplificada por agora, expandiremos depois)
         let dialogoParaMostrar = null;
 
-        // Exemplo: Priorizar diálogo de "fim_missao" se aplicável
-        if (npcData.dialogos && npcData.dialogos.length > 0) {
-            // Adicionar lógica complexa de condições aqui depois
-            // Por agora, pegar o primeiro diálogo do tipo "saudacao_padrao" ou o primeiro da lista como fallback
-            dialogoParaMostrar = npcData.dialogos.find(d => d.tipo === "saudacao_padrao") || 
-                                npcData.dialogos.find(d => d.idDialogo && d.idDialogo.includes("saudacao_inicial")) ||
-                                npcData.dialogos[0];
-        }
+        if (idDialogoEspecifico) {
+            dialogoParaMostrar = npcData.dialogos.find(d => d.idDialogo === idDialogoEspecifico);
+            if (dialogoParaMostrar) {
+                // Ainda precisamos checar as condições deste diálogo específico
+                const condicoesOk = verificarCondicoesDialogo(dialogoParaMostrar.condicoesParaMostrar, fichaJogador, npcData);
+                if (!condicoesOk) {
+                    // O jogador tentou acessar um diálogo cujas condições ele não cumpre mais
+                    // Poderia retornar um diálogo genérico de "Não tenho mais nada a dizer sobre isso" ou a saudação padrão
+                    dialogoParaMostrar = npcData.dialogos.find(d => d.tipo === "saudacao_padrao") || npcData.dialogos[0];
+                }
+            }
+        } else {
+            // Lógica de prioridade para diálogo inicial/contextual
+            const dialogosPriorizados = npcData.dialogos.sort((a, b) => {
+                const prioridade = { "fim_missao": 1, "durante_missao": 2, "inicio_missao": 3, "saudacao_condicional": 4, "saudacao_padrao": 5 };
+                return (prioridade[a.tipo] || 99) - (prioridade[b.tipo] || 99);
+            });
 
-        if (!dialogoParaMostrar) {
-            return { erro: `NPC "${npcData.nome}" não possui diálogos configurados corretamente.` };
+            for (const diag of dialogosPriorizados) {
+                if (verificarCondicoesDialogo(diag.condicoesParaMostrar, fichaJogador, npcData, diag.ofereceMissao)) {
+                    dialogoParaMostrar = diag;
+                    break;
+                }
+            }
+            // Fallback se nenhum diálogo condicional for encontrado
+            if (!dialogoParaMostrar) {
+                dialogoParaMostrar = npcData.dialogos.find(d => d.tipo === "saudacao_padrao" || (d.idDialogo && d.idDialogo.includes("saudacao_inicial"))) || npcData.dialogos[0];
+            }
+        }
+        
+        if (!dialogoParaMostrar || !dialogoParaMostrar.texto) {
+            return { erro: `NPC "${npcData.nome}" não possui um diálogo válido para esta situação.` };
         }
 
         return {
@@ -4124,10 +4149,65 @@ async function processarInteracaoComNPC(nomeNPCInput, fichaJogador) {
         };
 
     } catch (error) {
-        console.error(`Erro ao processar interação com NPC ${nomeNPCInput}:`, error);
+        console.error(`Erro ao processar interação com NPC ${nomeOuIdNPC}:`, error);
         return { erro: "Ocorreu um erro ao buscar informações do NPC no banco de dados." };
     }
 }
+
+// Nova função auxiliar para verificar condições
+function verificarCondicoesDialogo(condicoes, fichaJogador, npcData, idMissaoOferecidaPeloDialogo = null) {
+    if (!condicoes || condicoes.length === 0) {
+        // Se o diálogo oferece uma missão, mas o jogador já a completou, não mostrar este diálogo de "oferecer missão".
+        if (idMissaoOferecidaPeloDialogo && fichaJogador.logMissoes) {
+            const missaoLog = fichaJogador.logMissoes.find(m => m.idMissao === idMissaoOferecidaPeloDialogo);
+            if (missaoLog && (missaoLog.status === 'concluida' || missaoLog.status === 'falhou')) {
+                return false; // Não mostrar se a missão já foi feita/falhou
+            }
+            if (missaoLog && missaoLog.status === 'aceita') {
+                 return false; // Não mostrar diálogo de oferta se já está aceita
+            }
+        }
+        return true; // Sem condições, diálogo é válido (a menos que seja oferta de missão já feita)
+    }
+
+    for (const cond of condicoes) {
+        if (cond.nivelMinJogador && (!fichaJogador.nivel || fichaJogador.nivel < cond.nivelMinJogador.$numberInt)) return false;
+        if (cond.nivelMaxJogador && (fichaJogador.nivel > cond.nivelMaxJogador.$numberInt)) return false;
+        
+        if (cond.missaoNaoIniciada) {
+            if (fichaJogador.logMissoes && fichaJogador.logMissoes.some(m => m.idMissao === cond.missaoNaoIniciada)) return false;
+        }
+        if (cond.missaoAtiva) {
+            if (!fichaJogador.logMissoes || !fichaJogador.logMissoes.some(m => m.idMissao === cond.missaoAtiva && m.status === "aceita")) return false;
+        }
+        if (cond.missaoConcluida) {
+            if (!fichaJogador.logMissoes || !fichaJogador.logMissoes.some(m => m.idMissao === cond.missaoConcluida && m.status === "concluida")) return false;
+        }
+        if (cond.objetivoMissaoCompleto) {
+            // Esta é a parte mais complexa. Precisamos checar o progresso do objetivo na ficha do jogador.
+            // Exemplo: if (!jogadorCompletouObjetivo(fichaJogador, cond.objetivoMissaoCompleto.idMissao, cond.objetivoMissaoCompleto.idObjetivo)) return false;
+            // Por agora, vamos simplificar e assumir que se a missão está ativa, o objetivo pode estar completo se o tipo for fim_missao.
+            // Para uma implementação real, você precisaria de um sistema para marcar objetivos como completos na ficha.
+            const missaoParaCompletar = fichaJogador.logMissoes && fichaJogador.logMissoes.find(m => m.idMissao === cond.objetivoMissaoCompleto.idMissao && m.status === "aceita");
+            if (!missaoParaCompletar) return false; // Se a missão nem está ativa, não pode completar objetivo
+            // Adicionar aqui a lógica para verificar se o objetivo específico da missão X foi cumprido.
+            // Por exemplo, checando itens no inventário se o objetivo for de coleta.
+            // if (cond.objetivoMissaoCompleto.tipo === "COLETA") { ... }
+        }
+        if (cond.jogadorPossuiItemQuest) {
+            if (!fichaJogador.inventario || !fichaJogador.inventario.some(item => item.itemNome === cond.jogadorPossuiItemQuest && item.quantidade >= (cond.quantidadeItemQuest || 1) )) return false;
+        }
+         if (cond.jogadorNaoPossuiItemQuest) {
+            if (fichaJogador.inventario && fichaJogador.inventario.some(item => item.itemNome === cond.jogadorNaoPossuiItemQuest)) return false;
+        }
+        // Adicionar mais tipos de condição (reputação, classe, raça etc.)
+    }
+    return true;
+}
+
+// Adicionar `verificarCondicoesDialogo` aos exports se for útil em outros lugares,
+// mas por enquanto ela é uma auxiliar para `processarInteracaoComNPC`.
+
 
 
 // --- Funções de Lógica de Comandos de Admin ---
