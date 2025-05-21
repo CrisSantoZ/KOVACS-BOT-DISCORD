@@ -4156,15 +4156,47 @@ async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspe
 
 // Nova função auxiliar para verificar condições
 function verificarCondicoesDialogo(condicoes, fichaJogador, npcData, idMissaoOferecidaPeloDialogo = null) {
-    if (!condicoes || !Array.isArray(condicoes) || condicoes.length === 0) { 
-        if (idMissaoOferecidaPeloDialogo && fichaJogador.logMissoes) {
-            const missaoLog = fichaJogador.logMissoes.find(m => m.idMissao === idMissaoOferecidaPeloDialogo);
-            if (missaoLog && (missaoLog.status === 'aceita' || missaoLog.status === 'concluida' || missaoLog.status === 'falhou')) {
-                return false; 
-            }
-        }
-        return true; 
+    if (!condicoes || !Array.isArray(condicoes) || condicoes.length === 0) {
+        // ... (lógica para oferta de missão já feita/ativa) ...
+        return true;
     }
+
+    for (const cond of condicoes) {
+        if (cond.tipo === "nivelMinJogador" && (!fichaJogador.nivel || fichaJogador.nivel < cond.valor)) return false;
+
+        if (cond.tipo === "missaoNaoIniciada") {
+            if (fichaJogador.logMissoes && fichaJogador.logMissoes.some(m => m.idMissao === cond.idMissao)) return false;
+        }
+        if (cond.tipo === "missaoAtiva") {
+            if (!fichaJogador.logMissoes || !fichaJogador.logMissoes.some(m => m.idMissao === cond.idMissao && m.status === "aceita")) return false;
+        }
+        if (cond.tipo === "missaoConcluida") {
+            if (!fichaJogador.logMissoes || !fichaJogador.logMissoes.some(m => m.idMissao === cond.idMissao && m.status === "concluida")) return false;
+        }
+        if (cond.tipo === "objetivoMissaoCompleto") {
+            const missaoLog = fichaJogador.logMissoes && fichaJogador.logMissoes.find(m => m.idMissao === cond.idMissao && m.status === "aceita");
+            if (!missaoLog) return false; // Missão nem está ativa
+
+            // LÓGICA DE VERIFICAÇÃO DE OBJETIVO PRECISA SER IMPLEMENTADA AQUI
+            // Você precisará buscar a definição da missão no `missoesCollection` para saber o tipo do objetivo.
+            // Ex: Se for "COLETA", verificar `fichaJogador.inventario`.
+            // Por agora, se esta condição está presente e a missão está ativa, PODE ser que precise de uma lógica mais elaborada.
+            // Para simplificar o teste inicial de fim de missão, talvez você possa comentar esta checagem
+            // ou implementar uma forma de marcar objetivos como completos na ficha do jogador.
+            // Exemplo SIMPLES (NÃO IDEAL PARA PRODUÇÃO):
+            // if (!missaoLog.objetivosConcluidos || !missaoLog.objetivosConcluidos.includes(cond.idObjetivo)) {
+            //    return false; 
+            // }
+        }
+        if (cond.tipo === "jogadorPossuiItemQuest") {
+            if (!fichaJogador.inventario || !fichaJogador.inventario.some(item => item.itemNome === cond.itemNomeQuest && item.quantidade >= (cond.quantidadeItemQuest || 1) )) return false;
+        }
+        if (cond.tipo === "jogadorNaoPossuiItemQuest") {
+            if (fichaJogador.inventario && fichaJogador.inventario.some(item => item.itemNome === cond.itemNomeQuest)) return false;
+        }
+    }
+    return true;
+}
 
     for (const cond of condicoes) {
         if (cond.nivelMinJogador && (!fichaJogador.nivel || fichaJogador.nivel < cond.nivelMinJogador.$numberInt)) return false;
