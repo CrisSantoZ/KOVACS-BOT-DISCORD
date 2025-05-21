@@ -530,8 +530,7 @@ client.on('interactionCreate', async interaction => {
         catch (finalError) { 
             console.error("Erro catastrófico ao tentar responder sobre um erro anterior:", finalError);
         } 
-    } 
-}); 
+    }
 
 // --- TRATAMENTO DE INTERAÇÕES DE BOTÃO ---
     } else if (interaction.isButton()) {
