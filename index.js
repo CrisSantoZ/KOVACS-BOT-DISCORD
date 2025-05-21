@@ -320,6 +320,84 @@ client.on('interactionCreate', async interaction => {
                     respostaParaEnviar = await Arcadia.processarUsarItem(senderId, nomeItem, quantidade); // Passa nomeItem e quantidade
                     break;
                 }
+
+                    case 'interagir': {
+                        await interaction.deferReply({ ephemeral: false }); // Adia a resposta para dar tempo de processar
+                        const nomeNPCInput = options.getString('npc');
+                        const fichaJogador = await Arcadia.getFichaOuCarregar(senderId);
+
+                        if (!fichaJogador || fichaJogador.nomePersonagem === "N/A") {
+                            await interaction.editReply({ embeds: [Arcadia.gerarEmbedErro("Ficha não encontrada", "Você precisa criar uma ficha primeiro com `/criar`.")] });
+                            break;
+                        }
+
+                        const resultadoInteracao = await Arcadia.processarInteracaoComNPC(nomeNPCInput, fichaJogador);
+
+                        if (resultadoInteracao.erro) {
+                            await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Interação Falhou", resultadoInteracao.erro)] });
+                        } else {
+                            const embedNPC = new EmbedBuilder()
+                                .setColor(0x7289DA) // Cor para NPCs
+                                .setTitle(`🗣️ ${resultadoInteracao.tituloNPC || resultadoInteracao.nomeNPC}`)
+                                .setAuthor({ name: resultadoInteracao.nomeNPC });
+
+                            if (resultadoInteracao.descricaoVisualNPC) {
+                                embedNPC.setDescription(resultadoInteracao.descricaoVisualNPC);
+                            }
+
+                            embedNPC.addFields({ name: "Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*Este personagem não diz nada no momento.*" });
+
+                            const actionRow = new ActionRowBuilder();
+                            let temOpcoes = false;
+
+                            // Adicionar botões para opções de resposta
+                            if (resultadoInteracao.dialogoAtual.opcoesDeResposta && resultadoInteracao.dialogoAtual.opcoesDeResposta.length > 0) {
+                                resultadoInteracao.dialogoAtual.opcoesDeResposta.slice(0, 5).forEach(opcao => { // Limite de 5 botões por ActionRow
+                                    actionRow.addComponents(
+                                        new ButtonBuilder()
+                                            .setCustomId(`dialogo_${resultadoInteracao.npcId}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}`)
+                                            .setLabel(opcao.texto.substring(0, 80)) // Limite de 80 caracteres para label de botão
+                                            .setStyle(ButtonStyle.Primary)
+                                    );
+                                    temOpcoes = true;
+                                });
+                            }
+
+                            // Adicionar botão para aceitar missão, se oferecida
+                            if (resultadoInteracao.dialogoAtual.ofereceMissao) {
+                                // Você precisará buscar os detalhes da missão aqui para mostrar o título
+                                // const detalhesMissao = await Arcadia.getDetalhesMissao(resultadoInteracao.dialogoAtual.ofereceMissao); 
+                                // if(detalhesMissao) { embedNPC.addFields({ name: "📜 Missão Oferecida!", value: `**${detalhesMissao.titulo}**`}); }
+                                
+                                actionRow.addComponents(
+                                    new ButtonBuilder()
+                                        .setCustomId(`missao_aceitar_${resultadoInteracao.npcId}_${resultadoInteracao.dialogoAtual.ofereceMissao}`)
+                                        .setLabel("Aceitar Missão")
+                                        .setStyle(ButtonStyle.Success)
+                                );
+                                temOpcoes = true;
+                            }
+                            
+                            // Botão genérico para "Encerrar conversa" se não houver outras opções diretas
+                            if (!temOpcoes && resultadoInteracao.dialogoAtual.encerraDialogo) {
+                                actionRow.addComponents(
+                                    new ButtonBuilder()
+                                        .setCustomId(`dialogo_encerrar_${resultadoInteracao.npcId}`)
+                                        .setLabel("Encerrar Conversa")
+                                        .setStyle(ButtonStyle.Secondary)
+                                );
+                                temOpcoes = true;
+                            }
+
+
+                            if (temOpcoes) {
+                                await interaction.editReply({ embeds: [embedNPC], components: [actionRow] });
+                            } else {
+                                await interaction.editReply({ embeds: [embedNPC] });
+                            }
+                        }
+                        break;
+                    }
                 // --- Comandos de Admin ---
                 case 'admincriar':
                     respostaParaEnviar = await Arcadia.processarAdminCriarFicha(client, options.getUser('jogador').id, options.getString('nome'), options.getString('raca'), options.getString('classe'), options.getString('reino'), senderUsername);
@@ -453,6 +531,35 @@ client.on('interactionCreate', async interaction => {
             console.error("Erro catastrófico ao tentar responder sobre um erro anterior:", finalError);
         } 
     } 
+}); 
+
+// --- TRATAMENTO DE INTERAÇÕES DE BOTÃO ---
+    } else if (interaction.isButton()) {
+        const [tipoComponente, idNpcOuContexto, idAcaoOuDialogo, idDialogoOrigem] = interaction.customId.split('_');
+        const senderId = interaction.user.id;
+        // Aqui você precisará de uma lógica mais elaborada para tratar os diferentes customIds
+        // Exemplo:
+        if (tipoComponente === 'dialogo') {
+            // Lógica para avançar no diálogo com o NPC
+            // Chamar uma função em Arcadia.js passando idNpcOuContexto, idAcaoOuDialogo (novo dialogoId), e a ficha do jogador
+            // Atualizar a mensagem com o novo diálogo e novas opções/botões
+            await interaction.update({ content: `Botão de diálogo "${interaction.customId}" clicado! (Lógica a implementar)`, embeds: [], components: [] });
+        } else if (tipoComponente === 'missao' && idAcaoOuDialogo === 'aceitar') {
+            // Lógica para aceitar a missão (idNpcOuContexto é o id do NPC, idDialogoOrigem é o id da missão)
+            // Chamar uma função em Arcadia.js para adicionar a missão ao log do jogador
+            // Atualizar a mensagem ou enviar uma nova confirmação
+             const idMissaoParaAceitar = idDialogoOrigem; // Ajuste conforme seu customId
+             const resultadoAceite = await Arcadia.aceitarMissao(senderId, idMissaoParaAceitar, idNpcOuContexto);
+            if (resultadoAceite.sucesso) {
+                 await interaction.update({ embeds: [Arcadia.gerarEmbedSucesso("Missão Aceita!", resultadoAceite.sucesso)], components: [] });
+            } else {
+                 await interaction.update({ embeds: [Arcadia.gerarEmbedAviso("Missão", resultadoAceite.erro || "Não foi possível aceitar a missão.")], components: [] });
+            }
+        } else {
+            await interaction.reply({ content: 'Botão desconhecido clicado.', ephemeral: true });
+        }
+        return; // Importante para não cair na lógica de envio de resposta de slash command
+    }
 }); 
 
 // --- Login do Bot ---
