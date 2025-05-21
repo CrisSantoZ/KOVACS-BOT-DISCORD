@@ -8,8 +8,8 @@ const atributosValidos = ["forca", "agilidade", "vitalidade", "manabase", "intel
 
 // --- CONFIGURAÇÃO DO MONGODB (lidas do process.env no index.js) ---
 const MONGODB_URI = process.env.MONGODB_URI;
-const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || "arcadiaDB";
-const MONGODB_FICHAS_COLLECTION = process.env.MONGODB_FICHAS_COLLECTION || "fichas";
+const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || "arcadia_rpg_db";
+const MONGODB_FICHAS_COLLECTION = process.env.MONGODB_FICHAS_COLLECTION || "fichas_arcadia";
 
 // --- CONSTANTES DE CONFIGURAÇÃO DO SERVIDOR DISCORD ---
 const ID_CANAL_BOAS_VINDAS_RPG = process.env.ID_CANAL_BOAS_VINDAS_RPG;
