@@ -4156,18 +4156,14 @@ async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspe
 
 // Nova função auxiliar para verificar condições
 function verificarCondicoesDialogo(condicoes, fichaJogador, npcData, idMissaoOferecidaPeloDialogo = null) {
-    if (!condicoes || condicoes.length === 0) {
-        // Se o diálogo oferece uma missão, mas o jogador já a completou, não mostrar este diálogo de "oferecer missão".
+    if (!condicoes || !Array.isArray(condicoes) || condicoes.length === 0) { 
         if (idMissaoOferecidaPeloDialogo && fichaJogador.logMissoes) {
             const missaoLog = fichaJogador.logMissoes.find(m => m.idMissao === idMissaoOferecidaPeloDialogo);
-            if (missaoLog && (missaoLog.status === 'concluida' || missaoLog.status === 'falhou')) {
-                return false; // Não mostrar se a missão já foi feita/falhou
-            }
-            if (missaoLog && missaoLog.status === 'aceita') {
-                 return false; // Não mostrar diálogo de oferta se já está aceita
+            if (missaoLog && (missaoLog.status === 'aceita' || missaoLog.status === 'concluida' || missaoLog.status === 'falhou')) {
+                return false; 
             }
         }
-        return true; // Sem condições, diálogo é válido (a menos que seja oferta de missão já feita)
+        return true; 
     }
 
     for (const cond of condicoes) {
