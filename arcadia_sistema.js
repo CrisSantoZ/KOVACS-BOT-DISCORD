@@ -4198,45 +4198,9 @@ function verificarCondicoesDialogo(condicoes, fichaJogador, npcData, idMissaoOfe
     return true;
 }
 
-    for (const cond of condicoes) {
-        if (cond.nivelMinJogador && (!fichaJogador.nivel || fichaJogador.nivel < cond.nivelMinJogador.$numberInt)) return false;
-        if (cond.nivelMaxJogador && (fichaJogador.nivel > cond.nivelMaxJogador.$numberInt)) return false;
-        
-        if (cond.missaoNaoIniciada) {
-            if (fichaJogador.logMissoes && fichaJogador.logMissoes.some(m => m.idMissao === cond.missaoNaoIniciada)) return false;
-        }
-        if (cond.missaoAtiva) {
-            if (!fichaJogador.logMissoes || !fichaJogador.logMissoes.some(m => m.idMissao === cond.missaoAtiva && m.status === "aceita")) return false;
-        }
-        if (cond.missaoConcluida) {
-            if (!fichaJogador.logMissoes || !fichaJogador.logMissoes.some(m => m.idMissao === cond.missaoConcluida && m.status === "concluida")) return false;
-        }
-        if (cond.objetivoMissaoCompleto) {
-            // Esta é a parte mais complexa. Precisamos checar o progresso do objetivo na ficha do jogador.
-            // Exemplo: if (!jogadorCompletouObjetivo(fichaJogador, cond.objetivoMissaoCompleto.idMissao, cond.objetivoMissaoCompleto.idObjetivo)) return false;
-            // Por agora, vamos simplificar e assumir que se a missão está ativa, o objetivo pode estar completo se o tipo for fim_missao.
-            // Para uma implementação real, você precisaria de um sistema para marcar objetivos como completos na ficha.
-            const missaoParaCompletar = fichaJogador.logMissoes && fichaJogador.logMissoes.find(m => m.idMissao === cond.objetivoMissaoCompleto.idMissao && m.status === "aceita");
-            if (!missaoParaCompletar) return false; // Se a missão nem está ativa, não pode completar objetivo
-            // Adicionar aqui a lógica para verificar se o objetivo específico da missão X foi cumprido.
-            // Por exemplo, checando itens no inventário se o objetivo for de coleta.
-            // if (cond.objetivoMissaoCompleto.tipo === "COLETA") { ... }
-        }
-        if (cond.jogadorPossuiItemQuest) {
-            if (!fichaJogador.inventario || !fichaJogador.inventario.some(item => item.itemNome === cond.jogadorPossuiItemQuest && item.quantidade >= (cond.quantidadeItemQuest || 1) )) return false;
-        }
-         if (cond.jogadorNaoPossuiItemQuest) {
-            if (fichaJogador.inventario && fichaJogador.inventario.some(item => item.itemNome === cond.jogadorNaoPossuiItemQuest)) return false;
-        }
-        // Adicionar mais tipos de condição (reputação, classe, raça etc.)
-    }
-    return true;
-}
 
 // Adicionar `verificarCondicoesDialogo` aos exports se for útil em outros lugares,
 // mas por enquanto ela é uma auxiliar para `processarInteracaoComNPC`.
-
-
 
 // --- Funções de Lógica de Comandos de Admin ---
 async function processarAdminCriarFicha(client, idAlvoDiscord, nomePersonagem, racaNome, classeNome, reinoNome, adminNome) {
