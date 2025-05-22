@@ -4199,6 +4199,87 @@ function verificarCondicoesDialogo(condicoes, fichaJogador, npcData, idMissaoOfe
 }
 
 
+async function aceitarMissao(idJogador, idMissao, idNpcQueOfereceu) {
+    const ficha = await getFichaOuCarregar(idJogador);
+    if (!ficha) return { erro: "Sua ficha não foi encontrada." };
+
+    if (!missoesCollection || !npcsCollection) { // Verifica se as coleções de missões e NPCs estão prontas
+        console.error("Coleção de missões ou NPCs não inicializada para aceitarMissao.");
+        return { erro: "Erro interno: Sistema de missões indisponível." };
+    }
+
+    const definicaoMissao = await missoesCollection.findOne({ _id: idMissao });
+    if (!definicaoMissao) return { erro: "Definição da missão não encontrada." };
+
+    // 1. Verificar se o jogador já tem a missão
+    const missaoExistente = ficha.logMissoes ? ficha.logMissoes.find(m => m.idMissao === idMissao) : null;
+    if (missaoExistente) {
+        if (missaoExistente.status === "aceita") return { erro: `Você já está com a missão "${definicaoMissao.titulo}" ativa.` };
+        if (missaoExistente.status === "concluida") return { erro: `Você já completou a missão "${definicaoMissao.titulo}".` };
+        // Poderia haver outros status como "falhou", "cancelada"
+    }
+
+    // 2. Verificar pré-requisitos da missão (se houver)
+    if (definicaoMissao.preRequisitos) {
+        for (const preReq of definicaoMissao.preRequisitos) {
+            if (preReq.tipo === "nivelMinJogador" && ficha.nivel < preReq.valor) {
+                return { erro: `Você precisa ser Nível ${preReq.valor} para aceitar "${definicaoMissao.titulo}". Seu nível é ${ficha.nivel}.` };
+            }
+            if (preReq.tipo === "missaoConcluidaAnteriormente") {
+                const preReqMissaoLog = ficha.logMissoes ? ficha.logMissoes.find(m => m.idMissao === preReq.idMissaoRequisito) : null;
+                if (!preReqMissaoLog || preReqMissaoLog.status !== "concluida") {
+                    const nomeMissaoReq = (await missoesCollection.findOne({_id: preReq.idMissaoRequisito}))?.titulo || preReq.idMissaoRequisito;
+                    return { erro: `Você precisa completar a missão "${nomeMissaoReq}" antes de aceitar esta.` };
+                }
+            }
+            // Adicionar outras checagens de pré-requisitos (itens, reputação, etc.)
+        }
+    }
+
+    // 3. Adicionar a missão ao log do jogador
+    const novaEntradaLogMissao = {
+        idMissao: idMissao,
+        tituloMissao: definicaoMissao.titulo,
+        status: "aceita", // ou "iniciada"
+        dataInicio: new Date().toISOString(),
+        objetivos: definicaoMissao.objetivos.map(obj => ({ // Copia os objetivos da definição da missão
+            idObjetivo: obj.idObjetivo,
+            descricao: obj.descricao,
+            tipo: obj.tipo,
+            // Para objetivos de coleta/entrega, pode-se adicionar contagem aqui:
+            // itemNecessario: obj.itemNome, (se aplicável)
+            // quantidadeNecessaria: obj.quantidade, (se aplicável)
+            // quantidadeAtual: 0, (se aplicável)
+            concluido: false
+        })),
+        dialogoFeedbackAoAceitar: definicaoMissao.dialogoFeedbackAoAceitar || null // ID do diálogo para o NPC dizer após aceitar
+    };
+
+    if (!ficha.logMissoes) ficha.logMissoes = [];
+    ficha.logMissoes.push(novaEntradaLogMissao);
+
+    // 4. Adicionar itens de quest (se houver)
+    let itensRecebidosMsg = "";
+    if (definicaoMissao.itensConcedidosAoAceitar && definicaoMissao.itensConcedidosAoAceitar.length > 0) {
+        itensRecebidosMsg = "\n\nItens recebidos:";
+        for (const itemQuest of definicaoMissao.itensConcedidosAoAceitar) {
+            await adicionarItemAoInventario(ficha, itemQuest.idItem, itemQuest.quantidade); // Usar a função já existente
+            itensRecebidosMsg += `\n- ${itemQuest.idItem} (x${itemQuest.quantidade})`;
+        }
+    }
+
+    // 5. Salvar a ficha
+    await atualizarFichaNoCacheEDb(idJogador, ficha);
+
+    let msgSucesso = `Missão **"${definicaoMissao.titulo}"** aceita!`;
+    if (itensRecebidosMsg) msgSucesso += itensRecebidosMsg;
+    
+    // Retorna o ID do diálogo de feedback se existir, para o NPC "responder"
+    return { 
+        sucesso: msgSucesso, 
+        dialogoFeedbackId: definicaoMissao.dialogoFeedbackAoAceitar || null 
+    };
+                                            }
 // Adicionar `verificarCondicoesDialogo` aos exports se for útil em outros lugares,
 // mas por enquanto ela é uma auxiliar para `processarInteracaoComNPC`.
 
@@ -4636,7 +4717,7 @@ module.exports = {
     aprenderFeitico, usarFeitico,
     processarJackpot, processarUsarItem,
     gerarListaComandos,
-    processarMeusFeiticos,
+    processarMeusFeiticos, aceitarMissao,
 
     // Funções de Lógica de Comandos de Admin
     processarAdminCriarFicha, processarAdminAddXP, processarAdminSetNivel,
