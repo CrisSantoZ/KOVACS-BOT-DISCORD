@@ -539,114 +539,173 @@ client.on('interactionCreate', async interaction => {
     } // FIM DO "if (interaction.isChatInputCommand())"
 
 // --- TRATAMENTO DE INTERAÇÕES DE BOTÃO ---
-    else if (interaction.isButton()) {
-        await interaction.deferUpdate(); 
+
+else if (interaction.isButton()) {
+        await interaction.deferUpdate(); // Acknowledge a interação rapidamente
         const customIdParts = interaction.customId.split('_');
         const tipoComponente = customIdParts[0];
-        const idNpc = customIdParts[1]; // Anteriormente idNpcOuContexto
-        const idProximoDialogoOuAcao = customIdParts[2];
-        const idOrigem = customIdParts[3]; // Pode ser idDialogoAtual ou idMissao
-        const senderIdButton = interaction.user.id; 
+        const senderIdButton = interaction.user.id;
+        const fichaJogador = await Arcadia.getFichaOuCarregar(senderIdButton);
+
+        if (!fichaJogador) {
+            await interaction.editReply({ content: "Sua ficha não foi encontrada para continuar a interação.", embeds: [], components: [] });
+            return;
+        }
 
         try {
-            const fichaJogador = await Arcadia.getFichaOuCarregar(senderIdButton);
-            if (!fichaJogador) {
-                await interaction.editReply({ content: "Sua ficha não foi encontrada para continuar a interação.", embeds: [], components: [] });
-                return;
-            }
-
             if (tipoComponente === 'dialogo') {
-                if (idProximoDialogoOuAcao === 'sem_acao' || idProximoDialogoOuAcao === 'encerrar') {
+                const acaoDialogo = customIdParts[1]; // Pode ser CONTINUAR ou ENCERRAR (se seguirmos o padrão de encerrar também ser um tipo de diálogo)
+                const idNpc = customIdParts[2];
+                const idProximoOuContexto = customIdParts[3]; // Para CONTINUAR, é levaParaDialogoId. Para ENCERRAR, pode ser o idDialogoAtual ou um placeholder.
+                // const idDialogoAtualSeContinuar = customIdParts[4]; // Se usarmos o formato completo para continuar
+
+                if (acaoDialogo === 'ENCERRAR' || idProximoOuContexto === 'encerrar' || idProximoOuContexto === 'sem_acao') { // Checagem robusta para encerrar
                     await interaction.editReply({ content: "Conversa encerrada.", embeds: [], components: [] });
                     return;
-                }
+                } else if (acaoDialogo === 'CONTINUAR') {
+                    const idProximoDialogo = idProximoOuContexto; // que é o levaParaDialogoId
+                    const resultadoInteracao = await Arcadia.processarInteracaoComNPC(idNpc, fichaJogador, idProximoDialogo);
 
-                // Passamos o ID do NPC (que é o customIdParts[1]) e o ID do PRÓXIMO diálogo
-                const resultadoInteracao = await Arcadia.processarInteracaoComNPC(idNpc, fichaJogador, idProximoDialogoOuAcao);
+                    if (resultadoInteracao.erro) {
+                        await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Interação Falhou", resultadoInteracao.erro)], components: [] });
+                    } else {
+                        const embedNPC = new EmbedBuilder()
+                            .setColor(0x7289DA)
+                            .setTitle(`🗣️ ${resultadoInteracao.tituloNPC || resultadoInteracao.nomeNPC}`)
+                            .setAuthor({ name: resultadoInteracao.nomeNPC });
+                        if (resultadoInteracao.descricaoVisualNPC) embedNPC.setDescription(resultadoInteracao.descricaoVisualNPC);
+                        embedNPC.addFields({ name: "Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*...*" });
 
-                if (resultadoInteracao.erro) {
-                    await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Interação Falhou", resultadoInteracao.erro)], components: [] });
-                } else {
-                    const embedNPC = new EmbedBuilder() // Recria o embed com o novo diálogo
-                        .setColor(0x7289DA) 
-                        .setTitle(`🗣️ ${resultadoInteracao.tituloNPC || resultadoInteracao.nomeNPC}`)
-                        .setAuthor({ name: resultadoInteracao.nomeNPC });
-                    if (resultadoInteracao.descricaoVisualNPC) embedNPC.setDescription(resultadoInteracao.descricaoVisualNPC);
-                    embedNPC.addFields({ name: "Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*...*" });
+                        const novaActionRow = new ActionRowBuilder();
+                        let novasOpcoes = false;
 
-                    const novaActionRow = new ActionRowBuilder();
-                    let novasOpcoes = false;
-
-                    if (resultadoInteracao.dialogoAtual.respostasJogador && resultadoInteracao.dialogoAtual.respostasJogador.length > 0) {
-                        resultadoInteracao.dialogoAtual.respostasJogador.slice(0, 5).forEach(opcao => {
-                            novaActionRow.addComponents(
-                                new ButtonBuilder()
-                                    .setCustomId(`dialogo_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}`)
-                                    .setLabel(opcao.textoResposta.substring(0, 80))
-                                    .setStyle(ButtonStyle.Primary)
-                            );
-                            novasOpcoes = true;
-                        });
-                    }
-                    if (resultadoInteracao.dialogoAtual.ofereceMissao) {
-                        const missaoLog = fichaJogador.logMissoes ? fichaJogador.logMissoes.find(m => m.idMissao === resultadoInteracao.dialogoAtual.ofereceMissao) : null;
-                        if (!missaoLog || (missaoLog.status !== 'aceita' && missaoLog.status !== 'concluida')) {
-                             if (novaActionRow.components.length < 5) { // Verifica se há espaço na ActionRow
+                        if (resultadoInteracao.dialogoAtual.respostasJogador && resultadoInteracao.dialogoAtual.respostasJogador.length > 0) {
+                            resultadoInteracao.dialogoAtual.respostasJogador.slice(0, 4).forEach(opcao => { // Limitando para caber o botão de encerrar, se necessário
                                 novaActionRow.addComponents(
                                     new ButtonBuilder()
-                                        .setCustomId(`missao_aceitar_${idNpc}_${resultadoInteracao.dialogoAtual.ofereceMissao}`)
-                                        .setLabel("Aceitar Missão")
-                                        .setStyle(ButtonStyle.Success)
+                                        // Usar o novo formato de customId padronizado
+                                        .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}`)
+                                        .setLabel(opcao.textoResposta.substring(0, 80))
+                                        .setStyle(ButtonStyle.Primary)
                                 );
                                 novasOpcoes = true;
+                            });
+                        }
+
+                        if (resultadoInteracao.dialogoAtual.ofereceMissao) {
+                            const missaoLog = fichaJogador.logMissoes ? fichaJogador.logMissoes.find(m => m.idMissao === resultadoInteracao.dialogoAtual.ofereceMissao) : null;
+                            if (!missaoLog || (missaoLog.status !== 'aceita' && missaoLog.status !== 'concluida')) {
+                                 if (novaActionRow.components.length < 5) {
+                                    novaActionRow.addComponents(
+                                        new ButtonBuilder()
+                                            // Usar o novo formato de customId padronizado
+                                            .setCustomId(`missao_ACEITAR_${idNpc}_${resultadoInteracao.dialogoAtual.ofereceMissao}`)
+                                            .setLabel("Aceitar Missão")
+                                            .setStyle(ButtonStyle.Success)
+                                    );
+                                    novasOpcoes = true;
+                                }
                             }
                         }
-                    }
-                    if (!novasOpcoes || resultadoInteracao.dialogoAtual.encerraDialogo) {
-                         if (novaActionRow.components.length < 5 && (resultadoInteracao.dialogoAtual.encerraDialogo || !novasOpcoes)) {
-                            novaActionRow.addComponents(
+                        
+                        // Botão de Encerrar Padrão ou se o diálogo explicitamente encerra
+                        if (novaActionRow.components.length < 5 && (!novasOpcoes || resultadoInteracao.dialogoAtual.encerraDialogo)) {
+                             novaActionRow.addComponents(
                                 new ButtonBuilder()
-                                    .setCustomId(`dialogo_encerrar_${idNpc}_${resultadoInteracao.dialogoAtual.idDialogo}`)
+                                    // Usar o novo formato de customId padronizado
+                                    .setCustomId(`dialogo_ENCERRAR_${idNpc}_${resultadoInteracao.dialogoAtual.idDialogo}`)
                                     .setLabel(novasOpcoes && resultadoInteracao.dialogoAtual.encerraDialogo ? "Finalizar" : "Encerrar Conversa")
                                     .setStyle(ButtonStyle.Secondary)
                             );
-                         } else if (novaActionRow.components.length === 0) { // Se realmente não há NENHUM botão
-                             novaActionRow.addComponents(
-                                new ButtonBuilder()
-                                    .setCustomId(`dialogo_continuar_${idNpc}_${resultadoInteracao.dialogoAtual.idDialogo}`) // 'continuar' pode levar a uma saudação padrão ou fechar
-                                    .setLabel("Ok")
-                                    .setStyle(ButtonStyle.Secondary)
-                            );
-                         }
-                    }
-                    await interaction.editReply({ embeds: [embedNPC], components: novaActionRow.components.length > 0 ? [novaActionRow] : [] });
-                }
-            } else if (tipoComponente === 'missao' && idProximoDialogoOuAcao === 'aceitar') {
-                const idMissaoParaAceitar = idOrigem; // idOrigem aqui é o idMissao
-                const resultadoAceite = await Arcadia.aceitarMissao(senderIdButton, idMissaoParaAceitar, idNpc); // Precisa criar Arcadia.aceitarMissao
+                        }
 
-                if (resultadoAceite.sucesso) {
-                    // Após aceitar, idealmente você buscaria o próximo diálogo contextual do NPC (que pode ser um "vá e faça X")
-                    // Por agora, apenas confirmamos e removemos os botões.
-                    const novoDialogoPosAceite = await Arcadia.processarInteracaoComNPC(idNpc, fichaJogador); // Tenta pegar um diálogo contextual
-                    const embedConfirmacao = Arcadia.gerarEmbedSucesso("Missão Aceita!", resultadoAceite.sucesso);
-                    if(novoDialogoPosAceite && !novoDialogoPosAceite.erro && novoDialogoPosAceite.dialogoAtual.texto){
-                        embedConfirmacao.addFields({name: `${novoDialogoPosAceite.nomeNPC} diz:`, value: novoDialogoPosAceite.dialogoAtual.texto});
+
+                        await interaction.editReply({ embeds: [embedNPC], components: novaActionRow.components.length > 0 ? [novaActionRow] : [] });
                     }
-                    await interaction.editReply({ embeds: [embedConfirmacao], components: [] });
                 } else {
-                    await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Missão", resultadoAceite.erro || "Não foi possível aceitar a missão.")], components: [] });
+                     await interaction.editReply({ content: `Ação de diálogo "${acaoDialogo}" não reconhecida.`, embeds:[], components: [] });
                 }
-            } else {
+
+            } else if (tipoComponente === 'missao') {
+                const acaoMissao = customIdParts[1]; // Deveria ser ACEITAR
+                const idNpcMissao = customIdParts[2]; 
+                const idMissaoParaAceitar = customIdParts[3];
+
+                if (acaoMissao === 'ACEITAR') {
+                    const resultadoAceite = await Arcadia.aceitarMissao(senderIdButton, idMissaoParaAceitar, idNpcMissao);
+
+                    if (resultadoAceite.sucesso) {
+                        const embedConfirmacao = Arcadia.gerarEmbedSucesso("Missão Aceita!", resultadoAceite.sucesso);
+                        // Tenta obter um diálogo de feedback do NPC pós-aceite
+                        const novoDialogoPosAceite = await Arcadia.processarInteracaoComNPC(idNpcMissao, fichaJogador, resultadoAceite.dialogoFeedbackId);
+                        
+                        let componentesResposta = [];
+                        if (novoDialogoPosAceite && !novoDialogoPosAceite.erro && novoDialogoPosAceite.dialogoAtual) {
+                            embedConfirmacao.addFields({name: `${novoDialogoPosAceite.nomeNPC} diz:`, value: novoDialogoPosAceite.dialogoAtual.texto});
+                            
+                            // Adiciona botões para o novo diálogo, se houver
+                            const proximaActionRow = new ActionRowBuilder();
+                            let temProximasOpcoes = false;
+                            if (novoDialogoPosAceite.dialogoAtual.respostasJogador && novoDialogoPosAceite.dialogoAtual.respostasJogador.length > 0) {
+                                novoDialogoPosAceite.dialogoAtual.respostasJogador.slice(0,4).forEach(opcao => {
+                                    proximaActionRow.addComponents(
+                                        new ButtonBuilder()
+                                            .setCustomId(`dialogo_CONTINUAR_${idNpcMissao}_${opcao.levaParaDialogoId || 'sem_acao'}_${novoDialogoPosAceite.dialogoAtual.idDialogo}`)
+                                            .setLabel(opcao.textoResposta.substring(0,80))
+                                            .setStyle(ButtonStyle.Primary)
+                                    );
+                                    temProximasOpcoes = true;
+                                });
+                            }
+                             if (proximaActionRow.components.length < 5 && (!temProximasOpcoes || novoDialogoPosAceite.dialogoAtual.encerraDialogo)) {
+                                proximaActionRow.addComponents(
+                                    new ButtonBuilder()
+                                        .setCustomId(`dialogo_ENCERRAR_${idNpcMissao}_${novoDialogoPosAceite.dialogoAtual.idDialogo}`)
+                                        .setLabel("Encerrar Conversa")
+                                        .setStyle(ButtonStyle.Secondary)
+                                );
+                            }
+                            if(proximaActionRow.components.length > 0) componentesResposta = [proximaActionRow];
+                        }
+                        
+                        await interaction.editReply({ embeds: [embedConfirmacao], components: componentesResposta });
+
+                    } else {
+                        await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Missão", resultadoAceite.erro || "Não foi possível aceitar a missão.")], components: [] });
+                    }
+                } else {
+                    await interaction.editReply({ content: `Ação de missão "${acaoMissao}" não reconhecida.`, embeds:[], components: [] });
+                }
+            }
+            // Adicione o tipoComponente 'conversa' para tratar o customId 'conversa_ENCERRAR_${npcId}_${idDialogoAtual}'
+            else if (tipoComponente === 'conversa') {
+                const acaoConversa = customIdParts[1]; // Deveria ser ENCERRAR
+                // const idNpcConversa = customIdParts[2];
+                // const idDialogoAtualConversa = customIdParts[3];
+
+                if (acaoConversa === 'ENCERRAR') {
+                    await interaction.editReply({ content: "Conversa encerrada.", embeds: [], components: [] });
+                    return;
+                } else {
+                    await interaction.editReply({ content: `Ação de conversa "${acaoConversa}" não reconhecida.`, embeds:[], components: [] });
+                }
+            }
+             else {
+                console.warn(`[AVISO BOTÃO] Tipo de componente não reconhecido no botão: ${tipoComponente} (customId: ${interaction.customId})`);
                 await interaction.editReply({ content: 'Ação de botão não reconhecida ou não implementada.', embeds:[], components: [] });
             }
         } catch(buttonError) {
-            console.error(`Erro ao processar botão ${interaction.customId}:`, buttonError);
-            // Não tente interaction.editReply() se o interaction.update() já falhou ou se a interação original expirou.
-            // Apenas logue o erro. Se o deferUpdate funcionou, a mensagem original pode ter sumido.
+            console.error(`Erro CRÍTICO ao processar botão ${interaction.customId} para ${interaction.user.username}:`, buttonError);
+            // Tenta editar a resposta com um erro, mas pode falhar se a interação já estiver muito antiga
+            try {
+                await interaction.editReply({ content: "Ocorreu um erro interno ao processar esta ação.", embeds: [], components: [] });
+            } catch (editError) {
+                console.error("Erro ao tentar editar a resposta do botão com mensagem de erro:", editError);
+            }
         }
-        return; 
+        return;
     }
+    
     // Outros 'else if' para Modals, Select Menus, etc. podem vir aqui.
 
 }); // FIM DO client.on('interactionCreate'...)
