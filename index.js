@@ -5,6 +5,17 @@ const express = require('express');
 require('dotenv').config();
 const Arcadia = require('./arcadia_sistema.js');
 
+process.on('unhandledRejection', error => {
+    console.error('GRAVE: Unhandled promise rejection:', error);
+    // Em um ambiente de produção, você poderia notificar um canal de desenvolvimento aqui
+});
+
+process.on('uncaughtException', error => {
+    console.error('GRAVE: Uncaught exception:', error);
+    // Tentar um graceful shutdown ou log e sair
+    process.exit(1); // Encerra para evitar estado inconsistente
+});
+
 // --- CONSTANTES DE RESTRIÇÃO DE CANAL ---
 const COMANDOS_CANAL_BEMVINDO = ['historia', 'listaracas', 'listaclasses', 'listareinos', 'comandos', 'ping', 'oi', 'arcadia', 'bemvindo'];
 const COMANDOS_GERAIS_PERMITIDOS_EM_OUTROS_CANAIS = ['comandos', 'ficha', 'distribuirpontos', 'jackpot', 'usaritem', 'usarfeitico', 'aprenderfeitico', 'ping', 'historia', 'interagir']; // Adicionei 'interagir' aqui
