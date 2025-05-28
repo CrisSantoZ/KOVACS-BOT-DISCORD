@@ -4145,17 +4145,7 @@ async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspe
             console.warn(`[processarInteracaoComNPC] NPC não encontrado com a query: ${JSON.stringify(query)} para input: "${inputString}"`);
             return { erro: `NPC "${inputString}" não encontrado em Arcádia.` };
         }
-        const npcData = await npcsCollection.findOne(
-            // Ajuste para buscar por _id se for um ObjectId ou string, ou por nome se for string
-            (typeof nomeOuIdNPC === 'string' && nomeOuIdNPC.length === 24 && /^[0-9a-fA-F]{24}$/.test(nomeOuIdNPC)) || typeof nomeOuIdNPC !== 'string'
-                ? { _id: nomeOuIdNPC } 
-                : { nome: new RegExp(`^<span class="math-inline">\{nomeOuIdNPC\}</span>`, 'i') }
-        );
-
-        if (!npcData) {
-            return { erro: `NPC "${nomeOuIdNPC}" não encontrado em Arcádia.` };
-        }
-
+        
         let dialogoParaMostrar = null;
         let todosObjetivosRealmenteCompletosParaFinalizar = false; // Variável para controle
         let recompensasConcedidasLinhas = []; // Para armazenar as linhas de texto das recompensas
