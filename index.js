@@ -390,6 +390,13 @@ client.on('interactionCreate', async interaction => {
 
                             embedNPC.addFields({ name: "Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*Este personagem não diz nada no momento.*" });
 
+if (resultadoInteracao.missaoFoiConcluidaNestaInteracao && resultadoInteracao.dialogoAtual.recompensasConcedidas) {
+    embedNPC.addFields({ 
+        name: "🏅 Missão Concluída! Recompensas:", 
+        value: resultadoInteracao.dialogoAtual.recompensasConcedidas.join("\n") || "Recompensas processadas."
+    });
+}
+                            
                             const actionRow = new ActionRowBuilder();
                             let temOpcoesParaBotoes = false;
 
