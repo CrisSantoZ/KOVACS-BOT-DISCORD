@@ -4168,11 +4168,15 @@ async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspe
     }
 }
 
-// Nova função auxiliar para verificar condições
-function verificarCondicoesDialogo(condicoes, fichaJogador, npcData, idMissaoOferecidaPeloDialogo = null) {
+async function verificarCondicoesDialogo(condicoes, fichaJogador, npcData, idMissaoOferecidaPeloDialogo = null) {
     if (!condicoes || !Array.isArray(condicoes) || condicoes.length === 0) {
-        // ... (lógica para oferta de missão já feita/ativa) ...
-        return true;
+        if (idMissaoOferecidaPeloDialogo && fichaJogador.logMissoes) {
+            const missaoLog = fichaJogador.logMissoes.find(m => m.idMissao === idMissaoOferecidaPeloDialogo);
+            if (missaoLog && (missaoLog.status === 'aceita' || missaoLog.status === 'concluida')) {
+                return false; 
+            }
+        }
+        return true; 
     }
 
     for (const cond of condicoes) {
@@ -4187,31 +4191,65 @@ function verificarCondicoesDialogo(condicoes, fichaJogador, npcData, idMissaoOfe
         if (cond.tipo === "missaoConcluida") {
             if (!fichaJogador.logMissoes || !fichaJogador.logMissoes.some(m => m.idMissao === cond.idMissao && m.status === "concluida")) return false;
         }
-        if (cond.tipo === "objetivoMissaoCompleto") {
-            const missaoLog = fichaJogador.logMissoes && fichaJogador.logMissoes.find(m => m.idMissao === cond.idMissao && m.status === "aceita");
-            if (!missaoLog) return false; // Missão nem está ativa
+        
+        if (cond.tipo === "objetivoMissaoCompleto" || cond.tipo === "objetivoMissaoIncompleto") {
+            if (!fichaJogador.logMissoes) { // Se não tem log de missões
+                 // Se a condição é para ser incompleto, e não há log, então está incompleto.
+                if (cond.tipo === "objetivoMissaoIncompleto") return true;
+                // Se a condição é para ser completo, e não há log, então não está completo.
+                if (cond.tipo === "objetivoMissaoCompleto") return false;
+            }
 
-            // LÓGICA DE VERIFICAÇÃO DE OBJETIVO PRECISA SER IMPLEMENTADA AQUI
-            // Você precisará buscar a definição da missão no `missoesCollection` para saber o tipo do objetivo.
-            // Ex: Se for "COLETA", verificar `fichaJogador.inventario`.
-            // Por agora, se esta condição está presente e a missão está ativa, PODE ser que precise de uma lógica mais elaborada.
-            // Para simplificar o teste inicial de fim de missão, talvez você possa comentar esta checagem
-            // ou implementar uma forma de marcar objetivos como completos na ficha do jogador.
-            // Exemplo SIMPLES (NÃO IDEAL PARA PRODUÇÃO):
-            // if (!missaoLog.objetivosConcluidos || !missaoLog.objetivosConcluidos.includes(cond.idObjetivo)) {
-            //    return false; 
-            // }
+            const missaoLog = fichaJogador.logMissoes.find(m => m.idMissao === cond.idMissao);
+            if (!missaoLog || missaoLog.status !== "aceita") {
+                // Se a missão não está ativa, um objetivo específico dela não pode estar "completo".
+                // E para "incompleto", se a missão não está ativa, o objetivo está de fato incompleto.
+                if (cond.tipo === "objetivoMissaoIncompleto") {
+                    // Não retorne true aqui ainda, pois pode haver outras condições.
+                    // Se esta for a única condição e for verdadeira, o loop continua e retorna true no final.
+                    // Se for falso, o loop deve ser interrompido.
+                    // Esta parte da lógica é sutil: se a missão não está ativa, o objetivo está "incompleto"
+                    // Se a condição é "objetivoMissaoIncompleto", essa parte da condição é atendida.
+                    // Se a condição é "objetivoMissaoCompleto", essa parte da condição NÃO é atendida.
+                    if (cond.tipo === "objetivoMissaoCompleto") return false; 
+                    // Se for "objetivoMissaoIncompleto" e a missão não está ativa, esta parte está OK, continue verificando outras condições.
+                } else { // cond.tipo === "objetivoMissaoCompleto"
+                    return false; // Objetivo não pode estar completo se a missão não está ativa.
+                }
+            } else { // Missão está ativa, verificar o objetivo específico
+                const objetivoNoLog = missaoLog.objetivos ? missaoLog.objetivos.find(o => o.idObjetivo === cond.idObjetivo) : null;
+                if (!objetivoNoLog) {
+                    console.warn(`[verificarCondicoesDialogo] Objetivo ${cond.idObjetivo} não encontrado no log da missão ${cond.idMissao} para o jogador ${fichaJogador._id}`);
+                    // Se o objetivo não está no log (pode acontecer se a estrutura do log for alterada ou houver erro)
+                    // considera-se incompleto.
+                    if (cond.tipo === "objetivoMissaoCompleto") return false;
+                    // Se for "objetivoMissaoIncompleto", esta parte está OK.
+                } else {
+                    const objetivoEstaRealmenteCompleto = objetivoNoLog.concluido === true;
+
+                    if (cond.tipo === "objetivoMissaoCompleto" && !objetivoEstaRealmenteCompleto) return false;
+                    if (cond.tipo === "objetivoMissaoIncompleto" && objetivoEstaRealmenteCompleto) return false;
+                }
+            }
         }
+
         if (cond.tipo === "jogadorPossuiItemQuest") {
-            if (!fichaJogador.inventario || !fichaJogador.inventario.some(item => item.itemNome === cond.itemNomeQuest && item.quantidade >= (cond.quantidadeItemQuest || 1) )) return false;
+            if (!fichaJogador.inventario || !fichaJogador.inventario.some(item => 
+                item.itemNome.toLowerCase() === cond.itemNomeQuest.toLowerCase() && 
+                item.quantidade >= (cond.quantidadeItemQuest || 1) 
+            )) return false;
         }
         if (cond.tipo === "jogadorNaoPossuiItemQuest") {
-            if (fichaJogador.inventario && fichaJogador.inventario.some(item => item.itemNome === cond.itemNomeQuest)) return false;
+            if (fichaJogador.inventario && fichaJogador.inventario.some(item => 
+                item.itemNome.toLowerCase() === cond.itemNomeQuest.toLowerCase()
+            )) return false;
+        }
+        if (cond.tipo === "reputacaoMinima") {
+            if (!fichaJogador.reputacao || (fichaJogador.reputacao[cond.faccao] || 0) < cond.valor) return false;
         }
     }
     return true;
 }
-
 
 async function aceitarMissao(idJogador, idMissao, idNpcQueOfereceu) {
     const ficha = await getFichaOuCarregar(idJogador);
