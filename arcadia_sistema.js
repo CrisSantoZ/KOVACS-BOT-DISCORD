@@ -4098,7 +4098,7 @@ async function adicionarItemAoInventario(ficha, nomeItem, quantidade) {
 }
 
 
-// Em arcadia_sistema.js
+// NPC'S E MISSÕES
 
 async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspecifico = null) {
     if (!npcsCollection || !fichasCollection || !missoesCollection) { // Adicionei missoesCollection
@@ -4249,6 +4249,97 @@ async function verificarCondicoesDialogo(condicoes, fichaJogador, npcData, idMis
         }
     }
     return true;
+}
+
+async function atualizarProgressoMissao(idJogador, idMissao, idObjetivo, progresso) {
+    const ficha = await getFichaOuCarregar(idJogador);
+    if (!ficha || !ficha.logMissoes) {
+        console.log(`[Progresso Missão] Ficha ou log de missões não encontrado para ${idJogador}.`);
+        return false;
+    }
+
+    const missaoIndex = ficha.logMissoes.findIndex(m => m.idMissao === idMissao && m.status === "aceita");
+    if (missaoIndex === -1) {
+        // console.log(`[Progresso Missão] Missão ${idMissao} não está ativa para ${idJogador}.`);
+        return false; 
+    }
+
+    const objetivoIndex = ficha.logMissoes[missaoIndex].objetivos.findIndex(o => o.idObjetivo === idObjetivo);
+    if (objetivoIndex === -1) {
+        console.warn(`[atualizarProgressoMissao] Objetivo ${idObjetivo} não encontrado no log da missão ${idMissao} do jogador ${idJogador}`);
+        return false;
+    }
+
+    const objetivoLog = ficha.logMissoes[missaoIndex].objetivos[objetivoIndex];
+    if (objetivoLog.concluido) {
+        // console.log(`[Progresso Missão] Objetivo ${idObjetivo} da missão ${idMissao} já está concluído para ${idJogador}.`);
+        return false; // Já concluído, não faz nada.
+    }
+    
+    const definicaoMissao = await missoesCollection.findOne({ _id: idMissao });
+    if (!definicaoMissao) {
+        console.warn(`[atualizarProgressoMissao] Definição da missão ${idMissao} não encontrada no DB.`);
+        return false;
+    }
+    const definicaoObjetivo = definicaoMissao.objetivos.find(o => o.idObjetivo === idObjetivo);
+    if (!definicaoObjetivo) {
+        console.warn(`[atualizarProgressoMissao] Definição do objetivo ${idObjetivo} não encontrada para missão ${idMissao} no DB.`);
+        return false;
+    }
+
+    let objetivoConcluidoNesteUpdate = false;
+
+    switch (definicaoObjetivo.tipo) { // Usar definicaoObjetivo.tipo para checar
+        case "COMBATE":
+        case "COMBATE_OPCIONAL":
+            objetivoLog.quantidadeAtual = (objetivoLog.quantidadeAtual || 0) + (progresso.quantidadeMortos || 0);
+            if (objetivoLog.quantidadeAtual >= definicaoObjetivo.quantidadeNecessaria) {
+                objetivoLog.concluido = true;
+                objetivoConcluidoNesteUpdate = true;
+            }
+            break;
+        case "COLETA":
+            // A contagem de itens no inventário deve ser feita ANTES de chamar esta função,
+            // e o 'progresso' aqui indicaria se a quantidade necessária foi atingida.
+            // Ou, esta função poderia verificar o inventário diretamente.
+            const itemNoInventario = ficha.inventario.find(i => i.itemNome.toLowerCase() === definicaoObjetivo.itemNomeQuest.toLowerCase());
+            const quantidadeAtualNoInventario = itemNoInventario ? itemNoInventario.quantidade : 0;
+            
+            objetivoLog.quantidadeAtual = quantidadeAtualNoInventario; // Atualiza a contagem no log da missão
+            
+            if (quantidadeAtualNoInventario >= definicaoObjetivo.quantidadeNecessaria) {
+                objetivoLog.concluido = true;
+                objetivoConcluidoNesteUpdate = true;
+            }
+            break;
+        case "ENTREGA":
+            // Marcado como concluído quando o jogador interage com o NPC correto e o item é "entregue"
+            // A chamada a esta função para ENTREGA seria mais para formalizar o log.
+            if (progresso.itemEntregue) { // progresso = { itemEntregue: true }
+                 objetivoLog.concluido = true;
+                 objetivoConcluidoNesteUpdate = true;
+            }
+            break;
+        case "EXPLORAR":
+            if (progresso.areaExplorada) { // progresso = { areaExplorada: true }
+                objetivoLog.concluido = true;
+                objetivoConcluidoNesteUpdate = true;
+            }
+            break;
+        default:
+            console.warn(`[atualizarProgressoMissao] Tipo de objetivo desconhecido: ${definicaoObjetivo.tipo}`);
+            return false;
+    }
+    
+    ficha.logMissoes[missaoIndex].objetivos[objetivoIndex] = objetivoLog;
+    await atualizarFichaNoCacheEDb(idJogador, ficha);
+    
+    if (objetivoConcluidoNesteUpdate) {
+        console.log(`[Progresso Missão] Jogador ${ficha.nomePersonagem}, Missão "${definicaoMissao.titulo}", Objetivo "${objetivoLog.descricao}" CONCLUÍDO!`);
+        // Poderia enviar DM para o jogador aqui
+        // client.users.send(idJogador, `🔔 Objetivo Concluído: "${objetivoLog.descricao}" da missão "${definicaoMissao.titulo}"!`).catch(console.error);
+    }
+    return objetivoConcluidoNesteUpdate;
 }
 
 async function aceitarMissao(idJogador, idMissao, idNpcQueOfereceu) {
