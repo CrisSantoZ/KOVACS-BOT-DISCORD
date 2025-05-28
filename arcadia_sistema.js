@@ -4379,28 +4379,24 @@ async function aceitarMissao(idJogador, idMissao, idNpcQueOfereceu) {
         }
     }
 
-    // 3. Adicionar a missão ao log do jogador
     const novaEntradaLogMissao = {
         idMissao: idMissao,
         tituloMissao: definicaoMissao.titulo,
-        status: "aceita", // ou "iniciada"
+        status: "aceita",
         dataInicio: new Date().toISOString(),
-        objetivos: definicaoMissao.objetivos.map(obj => ({ // Copia os objetivos da definição da missão
-            idObjetivo: obj.idObjetivo,
-            descricao: obj.descricao,
-            tipo: obj.tipo,
-            // Para objetivos de coleta/entrega, pode-se adicionar contagem aqui:
-            // itemNecessario: obj.itemNome, (se aplicável)
-            // quantidadeNecessaria: obj.quantidade, (se aplicável)
-            // quantidadeAtual: 0, (se aplicável)
-            concluido: false
+        objetivos: definicaoMissao.objetivos.map(objDef => ({ // Copia os objetivos da definição da missão
+            idObjetivo: objDef.idObjetivo,
+            descricao: objDef.descricao,
+            // tipo: objDef.tipo, // O tipo já está na definição, não precisa repetir no log talvez
+            quantidadeAtual: 0, // INICIALIZA A CONTAGEM
+            concluido: false     // INICIALIZA COMO NÃO CONCLUÍDO
         })),
-        dialogoFeedbackAoAceitar: definicaoMissao.dialogoFeedbackAoAceitar || null // ID do diálogo para o NPC dizer após aceitar
+        // dialogoFeedbackAoAceitar: definicaoMissao.dialogoFeedbackAoAceitar || null // Se você usa isso
     };
 
     if (!ficha.logMissoes) ficha.logMissoes = [];
     ficha.logMissoes.push(novaEntradaLogMissao);
-
+    
     // 4. Adicionar itens de quest (se houver)
     let itensRecebidosMsg = "";
     if (definicaoMissao.itensConcedidosAoAceitar && definicaoMissao.itensConcedidosAoAceitar.length > 0) {
