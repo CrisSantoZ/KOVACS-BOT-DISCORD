@@ -4154,6 +4154,115 @@ async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspe
             return { erro: `NPC "${npcData.nome}" não possui um diálogo válido para esta situação.` };
         }
 
+                        // Lógica de encerramento da missão e recompensas
+                        if (resultadoInteracao.dialogoAtual.encerraMissao) {
+                            const idMissaoEncerrada = resultadoInteracao.dialogoAtual.encerraMissao;
+                            const missaoLogIndex = fichaJogador.logMissoes.findIndex(m => m.idMissao === idMissaoEncerrada && m.status === "aceita");
+
+                            if (missaoLogIndex !== -1) {
+                                // Validação final se todos os objetivos estão completos (opcional, mas bom ter)
+                                const definicaoMissaoDB = await missoesCollection.findOne({ _id: idMissaoEncerrada });
+                                let todosObjetivosRealmenteCompletos = true;
+                                if (definicaoMissaoDB && definicaoMissaoDB.objetivos) {
+                                    for (const objDef of definicaoMissaoDB.objetivos) {
+                                        const objLog = fichaJogador.logMissoes[missaoLogIndex].objetivos.find(ol => ol.idObjetivo === objDef.idObjetivo);
+                                        if (!objLog || !objLog.concluido) {
+                                            // Se um objetivo de combate opcional não foi feito, não impede a conclusão
+                                            // se o tipo de missão principal foi concluído (ex: entrega).
+                                            // A lógica de 'concluido' para objetivos de ENTREGA ou EXPLORAR deve ser marcada 
+                                            // antes deste ponto se forem pré-requisitos para o diálogo de fim.
+                                            if (objDef.tipo !== "COMBATE_OPCIONAL") { 
+                                                // Para entrega, a condição do diálogo já deve ter verificado se o item está presente
+                                                // e o objetivo de entrega pode ser marcado como concluído AGORA, antes de finalizar a missão.
+                                                if (objDef.tipo === "ENTREGA" && fichaJogador.inventario.some(i => i.itemNome.toLowerCase() === objDef.itemNomeQuest.toLowerCase())) {
+                                                   if(objLog) objLog.concluido = true; // Marca como concluído
+                                                } else if (objDef.tipo !== "ENTREGA"){ // Para outros tipos não opcionais, se não está concluído, bloqueia.
+                                                    todosObjetivosRealmenteCompletos = false;
+                                                    console.warn(`[Fim Missão] Tentativa de encerrar ${idMissaoEncerrada} mas objetivo ${objDef.idObjetivo} não está concluído.`);
+                                                    // Pode adicionar uma mensagem ao jogador aqui
+                                                    embedNPC.addFields({ name: "⚠️ Tarefa Incompleta", value: `Parece que você ainda não concluiu todos os objetivos de "${definicaoMissaoDB.titulo}". Objetivo pendente: ${objDef.descricao}` });
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (todosObjetivosRealmenteCompletos) {
+                                    fichaJogador.logMissoes[missaoLogIndex].status = "concluida";
+                                    fichaJogador.logMissoes[missaoLogIndex].dataConclusao = new Date().toISOString();
+                                    
+                                    let recompensasMsg = "\n\n**Recompensas Recebidas:**";
+                                    let recompensasAplicadas = false;
+
+                                    if (definicaoMissaoDB && definicaoMissaoDB.recompensas) {
+                                        const rec = definicaoMissaoDB.recompensas;
+                                        if (rec.xp) {
+                                            fichaJogador.xpAtual = (fichaJogador.xpAtual || 0) + rec.xp;
+                                            recompensasMsg += `\n- ${rec.xp} XP`;
+                                            recompensasAplicadas = true;
+                                        }
+                                        if (rec.florinsDeOuro) {
+                                            fichaJogador.florinsDeOuro = (fichaJogador.florinsDeOuro || 0) + rec.florinsDeOuro;
+                                            recompensasMsg += `\n- ${rec.florinsDeOuro} Florins de Ouro`;
+                                            recompensasAplicadas = true;
+                                        }
+                                        if (rec.itens && rec.itens.length > 0) {
+                                            for (const itemRec of rec.itens) {
+                                                if (Math.random() < (itemRec.chance || 1.0)) {
+                                                    await adicionarItemAoInventario(fichaJogador, itemRec.itemId, itemRec.quantidade);
+                                                    const nomeItemRec = ITENS_BASE_ARCADIA[itemRec.itemId.toLowerCase()]?.itemNome || itemRec.itemNomeOverride || itemRec.itemId;
+                                                    recompensasMsg += `\n- ${nomeItemRec} (x${itemRec.quantidade})`;
+                                                    recompensasAplicadas = true;
+                                                }
+                                            }
+                                        }
+                                        if (rec.reputacao && rec.reputacao.length > 0) {
+                                            if (!fichaJogador.reputacao) fichaJogador.reputacao = {};
+                                            recompensasMsg += "\n- Reputação: ";
+                                            let repMsgs = [];
+                                            for (const rep of rec.reputacao) {
+                                                fichaJogador.reputacao[rep.faccao] = (fichaJogador.reputacao[rep.faccao] || 0) + rep.valor;
+                                                repMsgs.push(`${rep.faccao} +${rep.valor}`);
+                                                recompensasAplicadas = true;
+                                            }
+                                            recompensasMsg += repMsgs.join(", ");
+                                        }
+                                    }
+
+                                    // Remover Itens de Missão
+                                    if (definicaoMissaoDB && definicaoMissaoDB.objetivos) {
+                                        for (const objDef of definicaoMissaoDB.objetivos) {
+                                            if (objDef.removerItemAoEntregar && objDef.itemNomeQuest) {
+                                                const itemParaRemoverIndex = fichaJogador.inventario.findIndex(i => i.itemNome.toLowerCase() === objDef.itemNomeQuest.toLowerCase());
+                                                if (itemParaRemoverIndex > -1) {
+                                                    const itemNoInventario = fichaJogador.inventario[itemParaRemoverIndex];
+                                                    const qtdRemover = definicaoMissaoDB.objetivos.find(o => o.idObjetivo === objDef.idObjetivo)?.quantidadeNecessaria || itemNoInventario.quantidade;
+                                                    
+                                                    itemNoInventario.quantidade -= qtdRemover;
+                                                    if (itemNoInventario.quantidade <= 0) {
+                                                        fichaJogador.inventario.splice(itemParaRemoverIndex, 1);
+                                                    }
+                                                   // console.log(`Removido ${qtdRemover}x ${objDef.itemNomeQuest}`);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Adiciona a mensagem de recompensas ao embed do diálogo
+                                    if (recompensasAplicadas) {
+                                       embedNPC.addFields({ name: "🏅 Recompensas", value: recompensasMsg.substring(2) }); // Remove o \n\n inicial
+                                    } else {
+                                       embedNPC.addFields({ name: "🏅 Recompensas", value: "Nenhuma recompensa específica listada para esta conclusão." });
+                                    }
+                                     // Checar se subiu de nível
+                                     // (você já tem essa lógica em processarAdminAddXP, pode adaptá-la aqui)
+
+                                } // Fim if todosObjetivosRealmenteCompletos
+                                await atualizarFichaNoCacheEDb(fichaJogador._id, fichaJogador);
+                            }
+                        } // Fim if encerraMissao
+
         return {
             npcId: npcData._id,
             nomeNPC: npcData.nome,
