@@ -4110,6 +4110,41 @@ async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspe
     }
 
     try {
+
+        // Adiciona um log para ver o que está sendo recebido
+        console.log(`[processarInteracaoComNPC] Tentando encontrar NPC. Input: "${nomeOuIdNPC}", Tipo: ${typeof nomeOuIdNPC}`);
+
+        let query = {};
+        const inputString = String(nomeOuIdNPC).trim(); // Garante que é string e remove espaços extras
+
+        // Verifica se o input parece um ObjectId (24 caracteres hexadecimais)
+        // Isso é mais relevante se você planeja buscar NPCs por ID em outros contextos
+        if (inputString.length === 24 && /^[0-9a-fA-F]{24}$/.test(inputString)) {
+            // Se você estiver usando ObjectId genuínos do MongoDB, precisará converter a string para ObjectId
+            // const { ObjectId } = require('mongodb'); // Adicione no topo do arquivo se não estiver lá
+            // query = { _id: new ObjectId(inputString) };
+            // Por enquanto, se o seu _id no DB é apenas uma string, a busca por nome é mais provável
+            // Se o _id no seu DB para NPCs é uma string e não um ObjectId, e você quer buscar por _id:
+             query = { _id: inputString }; 
+            // No entanto, o comando /interagir está configurado para enviar o NOME do NPC via autocomplete.
+            // Então, a busca por nome é a mais provável aqui.
+             console.log(`[processarInteracaoComNPC] Input parece ObjectId, mas vamos priorizar busca por nome para /interagir.`);
+             query = { nome: new RegExp(`^${inputString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') };
+
+        } else {
+            // Busca por nome usando uma expressão regular case-insensitive e que busca o nome exato.
+            // Escapa caracteres especiais de regex no nome do NPC para evitar erros.
+            const escapedName = inputString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            query = { nome: new RegExp(`^${escapedName}$`, 'i') };
+        }
+
+        console.log(`[processarInteracaoComNPC] Query MongoDB: ${JSON.stringify(query)}`);
+        const npcData = await npcsCollection.findOne(query);
+
+        if (!npcData) {
+            console.warn(`[processarInteracaoComNPC] NPC não encontrado com a query: ${JSON.stringify(query)} para input: "${inputString}"`);
+            return { erro: `NPC "${inputString}" não encontrado em Arcádia.` };
+        }
         const npcData = await npcsCollection.findOne(
             // Ajuste para buscar por _id se for um ObjectId ou string, ou por nome se for string
             (typeof nomeOuIdNPC === 'string' && nomeOuIdNPC.length === 24 && /^[0-9a-fA-F]{24}$/.test(nomeOuIdNPC)) || typeof nomeOuIdNPC !== 'string'
