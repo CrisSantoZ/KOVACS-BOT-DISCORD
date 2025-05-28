@@ -175,6 +175,20 @@ const ITENS_BASE_ARCADIA = {
         equipavel: false 
         // Não precisa de "quantidade" aqui, pois a quantidade será gerenciada no inventário do jogador.
     },
+"cogumelo solar": {
+    itemNome: "Cogumelo Solar",
+    tipo: "Item de Missão", // ou "Ingrediente Alquímico"
+    descricao: "Um cogumelo alaranjado que brilha suavemente, usado em receitas especiais.",
+    usavel: false,
+    equipavel: false
+},
+"mapa local de valdoria": {
+    itemNome: "Mapa Local de Valdoria",
+    tipo: "Utilitário",
+    descricao: "Um mapa simples da cidade capital de Valdoria e seus arredores imediatos.",
+    usavel: false, // Ou true se tiver uma função de visualização
+    equipavel: false
+},
     
     "mapa_parcial_rotas_comerciais": { 
         itemNome: "Mapa Parcial das Rotas Comerciais", 
