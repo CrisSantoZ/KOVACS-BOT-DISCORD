@@ -376,7 +376,7 @@ client.on('interactionCreate', async interaction => {
 
                         const resultadoInteracao = await Arcadia.processarInteracaoComNPC(nomeNPCInput, fichaJogador); // Passa ficha para lógica de condições
 
-                        if (resultadoInteracao.erro) {
+if (resultadoInteracao.erro) {
                             await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Interação Falhou", resultadoInteracao.erro)] });
                         } else {
                             const embedNPC = new EmbedBuilder()
@@ -390,16 +390,17 @@ client.on('interactionCreate', async interaction => {
 
                             embedNPC.addFields({ name: "Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*Este personagem não diz nada no momento.*" });
 
-if (resultadoInteracao.missaoFoiConcluidaNestaInteracao && resultadoInteracao.dialogoAtual.recompensasConcedidas) {
-    embedNPC.addFields({ 
-        name: "🏅 Missão Concluída! Recompensas:", 
-        value: resultadoInteracao.dialogoAtual.recompensasConcedidas.join("\n") || "Recompensas processadas."
-    });
+if (resultadoInteracao.missaoRealmenteConcluida && resultadoInteracao.recompensasConcedidasTexto && resultadoInteracao.recompensasConcedidasTexto.length > 0) {
+                                embedNPC.addFields({ 
+                                    name: "🏅 Missão Concluída! Recompensas:", 
+                                    value: resultadoInteracao.recompensasConcedidasTexto.join("\n")
+                                });
+                            } else if (resultadoInteracao.missaoRealmenteConcluida) { // Se foi concluída mas sem recompensas específicas listadas (raro)
+                                embedNPC.addFields({ name: "🏅 Missão Concluída!", value: "Tarefa finalizada." });
 }
                             
                             const actionRow = new ActionRowBuilder();
                             let temOpcoesParaBotoes = false;
-
 
 if (resultadoInteracao.dialogoAtual.respostasJogador && resultadoInteracao.dialogoAtual.respostasJogador.length > 0) {
     resultadoInteracao.dialogoAtual.respostasJogador.slice(0, 4).forEach(opcao => {
@@ -414,18 +415,17 @@ if (resultadoInteracao.dialogoAtual.respostasJogador && resultadoInteracao.dialo
     });
 }
 
-if (resultadoInteracao.dialogoAtual.ofereceMissao) {
-    const missaoLog = fichaJogador.logMissoes ? fichaJogador.logMissoes.find(m => m.idMissao === resultadoInteracao.dialogoAtual.ofereceMissao) : null;
-    if ((!missaoLog || (missaoLog.status !== 'aceita' && missaoLog.status !== 'concluida')) && actionRow.components.length < 5) {
-        actionRow.addComponents(
-            new ButtonBuilder()
-                // USE "ACEITAR" EM MAIÚSCULAS
-                .setCustomId(`missao_ACEITAR_${resultadoInteracao.npcId}_${resultadoInteracao.dialogoAtual.ofereceMissao}`)
-                .setLabel("Aceitar Missão")
-                .setStyle(ButtonStyle.Success)
-        );
-        temOpcoesParaBotoes = true;
-    }
+if (resultadoInteracao.dialogoAtual.ofereceMissao && !resultadoInteracao.missaoRealmenteConcluida) { // Só oferece se não acabou de concluir outra
+                                const missaoLog = fichaJogador.logMissoes ? fichaJogador.logMissoes.find(m => m.idMissao === resultadoInteracao.dialogoAtual.ofereceMissao) : null;
+                                if ((!missaoLog || (missaoLog.status !== 'aceita' && missaoLog.status !== 'concluida')) && actionRow.components.length < 5) {
+                                    actionRow.addComponents(
+                                        new ButtonBuilder()
+                                            .setCustomId(`missao_ACEITAR_${resultadoInteracao.npcId}_${resultadoInteracao.dialogoAtual.ofereceMissao}`)
+                                            .setLabel("Aceitar Missão")
+                                            .setStyle(ButtonStyle.Success)
+                                    );
+                                    temOpcoesParaBotoes = true;
+                                }
 }
 
 if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInteracao.dialogoAtual.encerraDialogo)) {
