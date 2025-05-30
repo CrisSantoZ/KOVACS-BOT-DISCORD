@@ -556,269 +556,237 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
     } // FIM DO "if (interaction.isChatInputCommand())"
 
 // --- TRATAMENTO DE INTERAÇÕES DE BOTÃO ---
-
 else if (interaction.isButton()) {
-        await interaction.deferUpdate(); // Acknowledge a interação rapidamente
-        const customIdParts = interaction.customId.split('_');
-        const tipoComponente = customIdParts[0];
-        const senderIdButton = interaction.user.id;
-        const fichaJogador = await Arcadia.getFichaOuCarregar(senderIdButton);
+    await interaction.deferUpdate(); // Acknowledge a interação rapidamente
+    const customIdParts = interaction.customId.split('_');
+    const tipoComponente = customIdParts[0];
+    const senderIdButton = interaction.user.id;
+    const fichaJogador = await Arcadia.getFichaOuCarregar(senderIdButton);
 
-        if (!fichaJogador) {
-            await interaction.editReply({ content: "Sua ficha não foi encontrada para continuar a interação.", embeds: [], components: [] });
-            return;
-        }
+    if (!fichaJogador) {
+        await interaction.editReply({ content: "Sua ficha não foi encontrada para continuar a interação.", embeds: [], components: [] });
+        return;
+    }
 
-        try { 
+    try { 
 
-            if (tipoComponente === 'dialogo') {
-                // Normaliza a ação para maiúsculas para consistência na comparação
-                const acaoDialogo = customIdParts[1] ? customIdParts[1].toUpperCase() : null; 
-                const idNpc = customIdParts[2];
-                const idParametro3 = customIdParts[3]; // Para CONTINUAR, é levaParaDialogoId. Para ENCERRAR, é idDialogoAtual.
-                const idDialogoOriginal = customIdParts[4]; // Para CONTINUAR, é o idDialogoAtual de onde o botão foi clicado.
+        if (tipoComponente === 'dialogo') {
+            const acaoDialogo = customIdParts[1] ? customIdParts[1].toUpperCase() : null; 
+            const idNpc = customIdParts[2];
+            const idParametro3 = customIdParts[3]; 
+            const idDialogoOriginal = customIdParts[4]; 
 
-                // Se a ação é ENCERRAR, ou se um botão de continuar leva para 'sem_acao'
-                if (acaoDialogo === 'ENCERRAR' || (acaoDialogo === 'CONTINUAR' && idParametro3 === 'sem_acao')) {
-                    await interaction.editReply({ content: "Conversa encerrada.", embeds: [], components: [] });
-                    return;
-                } else if (acaoDialogo === 'CONTINUAR') {
-                    const idProximoDialogo = idParametro3; // Este é o levaParaDialogoId
-                    const resultadoInteracao = await Arcadia.processarInteracaoComNPC(idNpc, fichaJogador, idProximoDialogo);
+            if (acaoDialogo === 'ENCERRAR' || (acaoDialogo === 'CONTINUAR' && idParametro3 === 'sem_acao')) {
+                await interaction.editReply({ content: "Conversa encerrada.", embeds: [], components: [] });
+                return;
+            } else if (acaoDialogo === 'CONTINUAR') {
+                const idProximoDialogo = idParametro3; 
+                const resultadoInteracao = await Arcadia.processarInteracaoComNPC(idNpc, fichaJogador, idProximoDialogo);
 
-                    if (resultadoInteracao.erro) {
-                        await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Interação Falhou", resultadoInteracao.erro)], components: [] });
-                    } else {
-                        const embedNPC = new EmbedBuilder()
-                            .setColor(0x7289DA)
-                            .setTitle(`🗣️ ${resultadoInteracao.tituloNPC || resultadoInteracao.nomeNPC}`)
-                            .setAuthor({ name: resultadoInteracao.nomeNPC });
-                        if (resultadoInteracao.descricaoVisualNPC) embedNPC.setDescription(resultadoInteracao.descricaoVisualNPC);
-                        embedNPC.addFields({ name: "Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*...*" });
+                if (resultadoInteracao.erro) {
+                    await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Interação Falhou", resultadoInteracao.erro)], components: [] });
+                } else {
+                    const embedNPC = new EmbedBuilder()
+                        .setColor(0x7289DA)
+                        .setTitle(`🗣️ ${resultadoInteracao.tituloNPC || resultadoInteracao.nomeNPC}`)
+                        .setAuthor({ name: resultadoInteracao.nomeNPC });
+                    if (resultadoInteracao.descricaoVisualNPC) embedNPC.setDescription(resultadoInteracao.descricaoVisualNPC);
+                    embedNPC.addFields({ name: "Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*...*" });
 
-                        const novaActionRow = new ActionRowBuilder();
-                        let novasOpcoes = false;
+                    const novaActionRow = new ActionRowBuilder();
+                    let novasOpcoes = false;
 
-                        // Gera botões para as próximas opções de diálogo
-                        if (resultadoInteracao.dialogoAtual.respostasJogador && resultadoInteracao.dialogoAtual.respostasJogador.length > 0) {
-                            resultadoInteracao.dialogoAtual.respostasJogador.slice(0, 4).forEach(opcao => {
-                                novaActionRow.addComponents(
-                                    new ButtonBuilder()
-                                        // Geração do customId para o PRÓXIMO botão de continuar
-                                        .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}`)
-                                        .setLabel(opcao.textoResposta.substring(0, 80))
-                                        .setStyle(ButtonStyle.Primary)
-                                );
-                                novasOpcoes = true;
-                            });
-                        }
+                    if (resultadoInteracao.dialogoAtual.respostasJogador && resultadoInteracao.dialogoAtual.respostasJogador.length > 0) {
+                        resultadoInteracao.dialogoAtual.respostasJogador.slice(0, 4).forEach(opcao => {
+                            novaActionRow.addComponents(
+                                new ButtonBuilder()
+                                    .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}`)
+                                    .setLabel(opcao.textoResposta.substring(0, 80))
+                                    .setStyle(ButtonStyle.Primary)
+                            );
+                            novasOpcoes = true;
+                        });
+                    }
 
-                        // Gera botão para aceitar missão, se oferecida
-                        if (resultadoInteracao.dialogoAtual.ofereceMissao) {
-                            const missaoLog = fichaJogador.logMissoes ? fichaJogador.logMissoes.find(m => m.idMissao === resultadoInteracao.dialogoAtual.ofereceMissao) : null;
-                            if ((!missaoLog || (missaoLog.status !== 'aceita' && missaoLog.status !== 'concluida')) && novaActionRow.components.length < 5 ) {
-                                 novaActionRow.addComponents(
-                                    new ButtonBuilder()
-                                        // Geração do customId para ACEITAR missão
-                                        .setCustomId(`missao_ACEITAR_${idNpc}_${resultadoInteracao.dialogoAtual.ofereceMissao}`)
-                                        .setLabel("Aceitar Missão") // Idealmente, buscar o nome da missão para o label
-                                        .setStyle(ButtonStyle.Success)
-                                );
-                                novasOpcoes = true;
-                            }
-                        }
-
-                        // Botão de Encerrar: adicionado se não houver outras opções ou se o diálogo for para encerrar
-                        if (novaActionRow.components.length < 5 && (!novasOpcoes || resultadoInteracao.dialogoAtual.encerraDialogo)) {
+                    if (resultadoInteracao.dialogoAtual.ofereceMissao) {
+                        const missaoLog = fichaJogador.logMissoes ? fichaJogador.logMissoes.find(m => m.idMissao === resultadoInteracao.dialogoAtual.ofereceMissao) : null;
+                        if ((!missaoLog || (missaoLog.status !== 'aceita' && missaoLog.status !== 'concluida')) && novaActionRow.components.length < 5 ) {
                              novaActionRow.addComponents(
                                 new ButtonBuilder()
-                                    // Geração do customId para ENCERRAR este novo diálogo
-                                    .setCustomId(`dialogo_ENCERRAR_${idNpc}_${resultadoInteracao.dialogoAtual.idDialogo}`)
-                                    .setLabel(novasOpcoes && resultadoInteracao.dialogoAtual.encerraDialogo ? "Finalizar" : "Encerrar Conversa")
+                                    .setCustomId(`missao_ACEITAR_${idNpc}_${resultadoInteracao.dialogoAtual.ofereceMissao}`)
+                                    .setLabel("Aceitar Missão")
+                                    .setStyle(ButtonStyle.Success)
+                            );
+                            novasOpcoes = true;
+                        }
+                    }
+
+                    if (novaActionRow.components.length < 5 && (!novasOpcoes || resultadoInteracao.dialogoAtual.encerraDialogo)) {
+                         novaActionRow.addComponents(
+                            new ButtonBuilder()
+                                .setCustomId(`dialogo_ENCERRAR_${idNpc}_${resultadoInteracao.dialogoAtual.idDialogo}`)
+                                .setLabel(novasOpcoes && resultadoInteracao.dialogoAtual.encerraDialogo ? "Finalizar" : "Encerrar Conversa")
+                                .setStyle(ButtonStyle.Secondary)
+                        );
+                    }
+                    await interaction.editReply({ embeds: [embedNPC], components: novaActionRow.components.length > 0 ? [novaActionRow] : [] });
+                }
+            } else {
+                 await interaction.editReply({ content: `Ação de diálogo "${customIdParts[1]}" não reconhecida. Verifique o formato do customId.`, embeds:[], components: [] });
+            }
+        } // FECHA if (tipoComponente === 'dialogo')
+        
+        else if (tipoComponente === 'missao') {
+            const acaoMissao = customIdParts[1]; 
+            const idNpcMissao = customIdParts[2]; 
+            const idMissaoParaAceitar = customIdParts[3];
+
+            if (acaoMissao === 'ACEITAR') {
+                const resultadoAceite = await Arcadia.aceitarMissao(senderIdButton, idMissaoParaAceitar, idNpcMissao);
+
+                if (resultadoAceite.sucesso) {
+                    const embedConfirmacao = Arcadia.gerarEmbedSucesso("Missão Aceita!", resultadoAceite.sucesso);
+                    const novoDialogoPosAceite = await Arcadia.processarInteracaoComNPC(idNpcMissao, fichaJogador, resultadoAceite.dialogoFeedbackId);
+                    
+                    let componentesResposta = []; // Declarada ANTES de ser usada
+                    let iniciarCombateInfo = null;
+
+                    if (idMissaoParaAceitar === "mVRatos") {
+                        const missoesCol = Arcadia.getMissoesCollection(); 
+                        if (!missoesCol) {
+                            console.error("ERRO GRAVE no index.js: getMissoesCollection() retornou undefined!");
+                            await interaction.editReply({ embeds: [Arcadia.gerarEmbedErro("Erro de Sistema", "Não foi possível acessar os dados da missão.")] });
+                            return; 
+                        }
+                        const missaoDef = await missoesCol.findOne({ _id: "mVRatos" });
+                        if (missaoDef && missaoDef.objetivos && missaoDef.objetivos[0] && missaoDef.objetivos[0].tipo === "COMBATE") {
+                            const primeiroObjetivo = missaoDef.objetivos[0];
+                            iniciarCombateInfo = {
+                                idMob: primeiroObjetivo.alvo, 
+                                idMissao: idMissaoParaAceitar,
+                                idObjetivo: primeiroObjetivo.idObjetivo
+                            };
+                        }
+                    }
+                    // Adicionar mais 'else if' para outras missões que iniciam combate AQUI
+
+                    if (iniciarCombateInfo) {
+                        const resultadoInicioCombate = await Arcadia.iniciarCombatePvE(
+                            senderIdButton,
+                            iniciarCombateInfo.idMob,
+                            iniciarCombateInfo.idMissao,
+                            iniciarCombateInfo.idObjetivo
+                        );
+
+                        if (resultadoInicioCombate.sucesso) {
+                            const jogadorEstado = resultadoInicioCombate.estadoCombate.jogador;
+                            const mobEstado = resultadoInicioCombate.estadoCombate.mob;
+                            const nomeJogador = jogadorEstado ? jogadorEstado.nome : (fichaJogador.nomePersonagem || "Jogador");
+                            const pvAtualJogador = jogadorEstado ? jogadorEstado.pvAtual : "N/A";
+                            const pvMaxJogador = jogadorEstado ? jogadorEstado.pvMax : "N/A";
+                            const pmAtualJogador = jogadorEstado ? jogadorEstado.pmAtual : "N/A";
+                            const pmMaxJogador = jogadorEstado ? jogadorEstado.pmMax : "N/A";
+                            const nomeMob = mobEstado ? mobEstado.nome : "Criatura Hostil";
+                            const pvAtualMob = mobEstado ? mobEstado.pvAtual : "N/A";
+                            const pvMaxMob = mobEstado ? mobEstado.pvMax : "N/A";
+
+                            const embedCombate = new EmbedBuilder()
+                                .setColor(0xFF0000)
+                                .setTitle(`⚔️ Combate Iniciado! ⚔️`)
+                                .setDescription(resultadoInicioCombate.mensagemInicial || "O combate começou!")
+                                .addFields(
+                                    { name: nomeJogador, value: `PV: ${pvAtualJogador}/${pvMaxJogador}\nPM: ${pmAtualJogador}/${pmMaxJogador}`, inline: true },
+                                    { name: nomeMob, value: `PV: ${pvAtualMob}/${pvMaxMob}`, inline: true }
+                                );
+
+                            const combatActionRow = new ActionRowBuilder()
+                                .addComponents(
+                                    new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${resultadoInicioCombate.idCombate}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
+                                    new ButtonBuilder().setCustomId(`combate_USARFEITICO_${resultadoInicioCombate.idCombate}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary).setDisabled(true),
+                                    new ButtonBuilder().setCustomId(`combate_USARITEM_${resultadoInicioCombate.idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
+                                );
+                            
+                            // Se o combate iniciar, a mensagem de confirmação da missão não terá botões de diálogo adicionais
+                            await interaction.editReply({ embeds: [embedConfirmacao], components: [] }); 
+                            await interaction.followUp({ embeds: [embedCombate], components: [combatActionRow] });
+                            return; 
+                        } else {
+                            embedConfirmacao.addFields({ name: "⚠️ Falha ao Iniciar Combate", value: resultadoInicioCombate.erro || "Não foi possível iniciar o combate." });
+                        }
+                    } // Fecha if (iniciarCombateInfo)
+                    
+                    // Se não iniciou combate (ou falhou), montar os componentesResposta para o diálogo de feedback do NPC
+                    if (novoDialogoPosAceite && !novoDialogoPosAceite.erro && novoDialogoPosAceite.dialogoAtual) {
+                        embedConfirmacao.addFields({name: `${novoDialogoPosAceite.nomeNPC} diz:`, value: novoDialogoPosAceite.dialogoAtual.texto});
+                        const proximaActionRow = new ActionRowBuilder();
+                        let temProximasOpcoes = false;
+                        if (novoDialogoPosAceite.dialogoAtual.respostasJogador && novoDialogoPosAceite.dialogoAtual.respostasJogador.length > 0) {
+                            novoDialogoPosAceite.dialogoAtual.respostasJogador.slice(0,4).forEach(opcao => {
+                                proximaActionRow.addComponents(
+                                    new ButtonBuilder()
+                                        .setCustomId(`dialogo_CONTINUAR_${idNpcMissao}_${opcao.levaParaDialogoId || 'sem_acao'}_${novoDialogoPosAceite.dialogoAtual.idDialogo}`)
+                                        .setLabel(opcao.textoResposta.substring(0,80))
+                                        .setStyle(ButtonStyle.Primary)
+                                );
+                                temProximasOpcoes = true;
+                            });
+                        }
+                         if (proximaActionRow.components.length < 5 && (!temProximasOpcoes || novoDialogoPosAceite.dialogoAtual.encerraDialogo)) {
+                            proximaActionRow.addComponents(
+                                new ButtonBuilder()
+                                    .setCustomId(`dialogo_ENCERRAR_${idNpcMissao}_${novoDialogoPosAceite.dialogoAtual.idDialogo}`)
+                                    .setLabel("Encerrar Conversa")
                                     .setStyle(ButtonStyle.Secondary)
                             );
                         }
-                        await interaction.editReply({ embeds: [embedNPC], components: novaActionRow.components.length > 0 ? [novaActionRow] : [] });
+                        if(proximaActionRow.components.length > 0) componentesResposta = [proximaActionRow];
                     }
-                } else {
-                     // Se acaoDialogo não for nem 'ENCERRAR' nem 'CONTINUAR'
-                     await interaction.editReply({ content: `Ação de diálogo "${customIdParts[1]}" não reconhecida. Verifique o formato do customId.`, embeds:[], components: [] });
+                    await interaction.editReply({ embeds: [embedConfirmacao], components: componentesResposta });
+
+                } else { // else para if (resultadoAceite.sucesso)
+                    await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Missão", resultadoAceite.erro || "Não foi possível aceitar a missão.")], components: [] });
                 }
-            } else if (tipoComponente === 'missao') {
-                const acaoMissao = customIdParts[1]; // Deveria ser ACEITAR
-                const idNpcMissao = customIdParts[2]; 
-                const idMissaoParaAceitar = customIdParts[3];
-
-                if (acaoMissao === 'ACEITAR') {
-                    const resultadoAceite = await Arcadia.aceitarMissao(senderIdButton, idMissaoParaAceitar, idNpcMissao);
-
-                    if (resultadoAceite.sucesso) {
-                        const embedConfirmacao = Arcadia.gerarEmbedSucesso("Missão Aceita!", resultadoAceite.sucesso);
-                        // Tenta obter um diálogo de feedback do NPC pós-aceite
-                        const novoDialogoPosAceite = await Arcadia.processarInteracaoComNPC(idNpcMissao, fichaJogador, resultadoAceite.dialogoFeedbackId);
-let componentesResposta = [];
-let iniciarCombateInfo = null; // Para armazenar dados para iniciar o combate
-
-// Lógica para verificar se a missão recém-aceita inicia um combate
-if (idMissaoParaAceitar === "mVRatos") { // Exemplo específico para a missão dos ratos
-    const missoesCol = Arcadia.getMissoesCollection(); // Chama a função getter
-if (!missoesCol) {
-    console.error(">>> ERRO FATAL no index.js: getMissoesCollection() retornou undefined!");
-    // Você precisa tratar este erro, talvez enviando uma mensagem ao usuário
-    await interaction.editReply({ embeds: [Arcadia.gerarEmbedErro("Erro de Sistema", "Não foi possível acessar os dados da missão. Tente novamente mais tarde.")] });
-    return; // Aborta a execução se a coleção não estiver disponível
-}
-const missaoDef = await missoesCol.findOne({ _id: "mVRatos" });
-    if (missaoDef && missaoDef.objetivos && missaoDef.objetivos[0] && missaoDef.objetivos[0].tipo === "COMBATE") {
-        const primeiroObjetivo = missaoDef.objetivos[0];
-        iniciarCombateInfo = {
-            idMob: primeiroObjetivo.alvo, // Ex: "Rato-Gigante"
-            idMissao: idMissaoParaAceitar,
-            idObjetivo: primeiroObjetivo.idObjetivo
-        };
-    }
-// Adicionar mais 'else if' para outras missões que iniciam combate
-
-if (iniciarCombateInfo) {
-    // Para clareza e para garantir que os objetos e propriedades existem:
-    const jogadorEstado = resultadoInicioCombate.estadoCombate.jogador;
-    const mobEstado = resultadoInicioCombate.estadoCombate.mob;
-
-    // Verifica se os dados do jogador e do mob estão presentes
-    const nomeJogador = jogadorEstado ? jogadorEstado.nome : (fichaJogador.nomePersonagem || "Jogador");
-    const pvAtualJogador = jogadorEstado ? jogadorEstado.pvAtual : "N/A";
-    const pvMaxJogador = jogadorEstado ? jogadorEstado.pvMax : "N/A";
-    const pmAtualJogador = jogadorEstado ? jogadorEstado.pmAtual : "N/A";
-    const pmMaxJogador = jogadorEstado ? jogadorEstado.pmMax : "N/A";
-
-    const nomeMob = mobEstado ? mobEstado.nome : "Criatura Hostil";
-    const pvAtualMob = mobEstado ? mobEstado.pvAtual : "N/A";
-    const pvMaxMob = mobEstado ? mobEstado.pvMax : "N/A";
-
-    const embedCombate = new EmbedBuilder()
-        .setColor(0xFF0000) // Cor de combate
-        .setTitle(`⚔️ Combate Iniciado! ⚔️`)
-        .setDescription(resultadoInicioCombate.mensagemInicial || "O combate começou!") // Mensagem inicial do combate
-        .addFields(
-            { 
-                name: nomeJogador, 
-                value: `PV: ${pvAtualJogador}/${pvMaxJogador}\nPM: ${pmAtualJogador}/${pmMaxJogador}`, 
-                inline: true 
-            },
-            { 
-                name: nomeMob, 
-                value: `PV: ${pvAtualMob}/${pvMaxMob}`, 
-                inline: true 
+            } else { // else para if (acaoMissao === 'ACEITAR')
+                await interaction.editReply({ content: `Ação de missão "${acaoMissao}" não reconhecida.`, embeds:[], components: [] });
             }
-        );
+        } // <<<<<<<<<<<< FECHA O "else if (tipoComponente === 'missao')"
 
-    const combatActionRow = new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(`combate_ATAQUEBASICO_${resultadoInicioCombate.idCombate}`)
-                .setLabel("⚔️ Ataque Básico")
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId(`combate_USARFEITICO_${resultadoInicioCombate.idCombate}`)
-                .setLabel("🔮 Usar Feitiço")
-                .setStyle(ButtonStyle.Primary)
-                .setDisabled(true), // Desabilitado por enquanto, até implementarmos
-            new ButtonBuilder()
-                .setCustomId(`combate_USARITEM_${resultadoInicioCombate.idCombate}`)
-                .setLabel("🎒 Usar Item")
-                .setStyle(ButtonStyle.Success)
-                .setDisabled(true) // Desabilitado por enquanto, até implementarmos
-            // Futuramente: Botão de Fugir
-        );
-    
-    // A mensagem de "Missão Aceita!" é editada. Se o combate iniciar,
-    // provavelmente não queremos botões de diálogo nela.
-    // 'componentesResposta' já deve estar definida (vazia ou com algo, como corrigimos antes).
-    await interaction.editReply({ embeds: [embedConfirmacao], components: componentesResposta }); 
-    await interaction.followUp({ embeds: [embedCombate], components: [combatActionRow] });
-    return;
-// ... continue com o else para if (resultadoInicioCombate.sucesso) ...
-    } else {
-        // Se iniciarCombate falhar, adiciona a mensagem de erro ao embed de confirmação da missão
-        embedConfirmacao.addFields({ name: "⚠️ Falha ao Iniciar Combate", value: resultadoInicioCombate.erro || "Não foi possível iniciar o combate." });
-                        if (novoDialogoPosAceite && !novoDialogoPosAceite.erro && novoDialogoPosAceite.dialogoAtual) {
-                            embedConfirmacao.addFields({name: `${novoDialogoPosAceite.nomeNPC} diz:`, value: novoDialogoPosAceite.dialogoAtual.texto});
-                            
-                            // Adiciona botões para o novo diálogo, se houver
-                            const proximaActionRow = new ActionRowBuilder();
-                            let temProximasOpcoes = false;
-                            if (novoDialogoPosAceite.dialogoAtual.respostasJogador && novoDialogoPosAceite.dialogoAtual.respostasJogador.length > 0) {
-                                novoDialogoPosAceite.dialogoAtual.respostasJogador.slice(0,4).forEach(opcao => {
-                                    proximaActionRow.addComponents(
-                                        new ButtonBuilder()
-                                            .setCustomId(`dialogo_CONTINUAR_${idNpcMissao}_${opcao.levaParaDialogoId || 'sem_acao'}_${novoDialogoPosAceite.dialogoAtual.idDialogo}`)
-                                            .setLabel(opcao.textoResposta.substring(0,80))
-                                            .setStyle(ButtonStyle.Primary)
-                                    );
-                                    temProximasOpcoes = true;
-                                });
-                            }
-                             if (proximaActionRow.components.length < 5 && (!temProximasOpcoes || novoDialogoPosAceite.dialogoAtual.encerraDialogo)) {
-                                proximaActionRow.addComponents(
-                                    new ButtonBuilder()
-                                        .setCustomId(`dialogo_ENCERRAR_${idNpcMissao}_${novoDialogoPosAceite.dialogoAtual.idDialogo}`)
-                                        .setLabel("Encerrar Conversa")
-                                        .setStyle(ButtonStyle.Secondary)
-                                );
-                            }
-                            if(proximaActionRow.components.length > 0) componentesResposta = [proximaActionRow];
-                        }
-                        
-                        await interaction.editReply({ embeds: [embedConfirmacao], components: componentesResposta });
-
-                    } else {
-                        await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Missão", resultadoAceite.erro || "Não foi possível aceitar a missão.")], components: [] });
-                    }
-                } else {
-                    await interaction.editReply({ content: `Ação de missão "${acaoMissao}" não reconhecida.`, embeds:[], components: [] });
-                }
-        }
-
-        } else if (tipoComponente === 'combate') {
-            const acaoCombate = customIdParts[1]; // Ex: ATAQUEBASICO, USARFEITICO
+        else if (tipoComponente === 'combate') {
+            const acaoCombate = customIdParts[1]; 
             const idCombate = customIdParts[2];
-            // customIdParts[3] em diante podem ser IDs de feitiços/itens, se aplicável
-
             let resultadoAcaoJogador;
 
             if (acaoCombate === 'ATAQUEBASICO') {
                 resultadoAcaoJogador = await Arcadia.processarAcaoJogadorCombate(idCombate, senderIdButton, "ATAQUE_BASICO");
             } else if (acaoCombate === 'USARFEITICO') {
-                // Aqui, precisaríamos de uma forma de selecionar o feitiço.
-                // Por simplicidade AGORA, vamos apenas simular que o jogador tem um feitiço de ataque e o ID é conhecido.
-                // Em uma implementação completa, clicar em "Usar Feitiço" poderia abrir um SelectMenu ou pedir input.
-                // Para este exemplo, vamos assumir que o jogador está tentando usar um feitiço hipotético 'bola_de_fogo'.
-                // Este ID de feitiço deveria vir de um select menu ou de um botão específico para aquele feitiço.
-                // Por ora, esta parte é mais um placeholder para a lógica futura.
-                // const idFeiticoEscolhido = customIdParts[3]; // Se o ID do feitiço viesse do botão
                 await interaction.followUp({ content: "A seleção de feitiços em combate ainda será implementada. Use Ataque Básico por enquanto.", ephemeral: true });
-                // Não prossiga com o turno do mob se a ação do jogador não foi completada
-                return; // Sai da interação do botão aqui
-                // resultadoAcaoJogador = await Arcadia.processarAcaoJogadorCombate(idCombate, senderIdButton, "USAR_FEITICO", { idFeitico: idFeiticoEscolhido });
+                return; 
             } else if (acaoCombate === 'USARITEM') {
-                // Similar ao feitiço, a seleção de item precisaria de uma UI.
                 await interaction.followUp({ content: "O uso de itens em combate ainda será implementado. Use Ataque Básico por enquanto.", ephemeral: true });
-                return; // Sai da interação do botão aqui
+                return; 
             } else {
                 await interaction.editReply({ content: `Ação de combate "${acaoCombate}" desconhecida.`, components: [] });
                 return;
             }
 
-            // -- Processar resultado da ação do jogador --
             if (resultadoAcaoJogador.erro) {
                 await interaction.followUp({ content: `Erro na ação: ${resultadoAcaoJogador.erro}`, ephemeral: true });
-                // Não edita a mensagem principal do combate se for apenas um erro na ação,
-                // a menos que o erro indique que o combate terminou.
                 if (resultadoAcaoJogador.combateTerminou) {
                      await interaction.editReply({ content: `Combate encerrado devido a um erro: ${resultadoAcaoJogador.erro}`, embeds: [], components: [] });
                 }
                 return;
             }
+
+            const jogadorEstadoAcao = resultadoAcaoJogador.estadoCombate.jogador;
+            const mobEstadoAcao = resultadoAcaoJogador.estadoCombate.mob;
+            const nomeJogadorAcao = jogadorEstadoAcao ? jogadorEstadoAcao.nome : "Jogador";
+            const pvAtualJogadorAcao = jogadorEstadoAcao ? jogadorEstadoAcao.pvAtual : "N/A";
+            const pvMaxJogadorAcao = jogadorEstadoAcao ? jogadorEstadoAcao.pvMax : "N/A";
+            const pmAtualJogadorAcao = jogadorEstadoAcao ? jogadorEstadoAcao.pmAtual : "N/A";
+            const pmMaxJogadorAcao = jogadorEstadoAcao ? jogadorEstadoAcao.pmMax : "N/A";
+            const nomeMobAcao = mobEstadoAcao ? mobEstadoAcao.nome : "Criatura";
+            const pvAtualMobAcao = mobEstadoAcao ? mobEstadoAcao.pvAtual : "N/A";
+            const pvMaxMobAcao = mobEstadoAcao ? mobEstadoAcao.pvMax : "N/A";
 
             let logCombateAtualizado = resultadoAcaoJogador.logTurnoAnterior || [];
             let embedCombateAtualizado = new EmbedBuilder()
@@ -826,43 +794,48 @@ if (iniciarCombateInfo) {
                 .setTitle(`⚔️ Combate em Andamento ⚔️`)
                 .setDescription(logCombateAtualizado.join('\n') || "Ação processada.")
                 .addFields(
-                    { name: resultadoAcaoJogador.estadoCombate.jogador.nome, value: `PV: <span class="math-inline">\{resultadoAcaoJogador\.estadoCombate\.jogador\.pvAtual\}/</span>{resultadoAcaoJogador.estadoCombate.jogador.pvMax}\nPM: <span class="math-inline">\{resultadoAcaoJogador\.estadoCombate\.jogador\.pmAtual\}/</span>{resultadoAcaoJogador.estadoCombate.jogador.pmMax}`, inline: true },
-                    { name: resultadoAcaoJogador.estadoCombate.mob.nome, value: `PV: <span class="math-inline">\{resultadoAcaoJogador\.estadoCombate\.mob\.pvAtual\}/</span>{resultadoAcaoJogador.estadoCombate.mob.pvMax}`, inline: true }
+                    { name: nomeJogadorAcao, value: `PV: ${pvAtualJogadorAcao}/${pvMaxJogadorAcao}\nPM: ${pmAtualJogadorAcao}/${pmMaxJogadorAcao}`, inline: true },
+                    { name: nomeMobAcao, value: `PV: ${pvAtualMobAcao}/${pvMaxMobAcao}`, inline: true }
                 );
 
             if (resultadoAcaoJogador.mobDerrotado) {
-                // O mob foi derrotado. Chamar finalizarCombate.
-                // A função finalizarCombate cuidará do XP, loot e atualização da missão.
-                const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true /* jogadorVenceuEsteMob */, resultadoAcaoJogador.dadosParaFinalizar.eUltimoMobDaMissao /* você precisará determinar isso */);
-
+                const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true, resultadoAcaoJogador.dadosParaFinalizar.eUltimoMobDaMissao);
                 embedCombateAtualizado.setTitle("🏆 Vitória! 🏆");
-                embedCombateAtualizado.setDescription(resultadoFinal.logCombateFinal.join('\n'));
-                embedCombateAtualizado.addFields({ name: "Recompensas", value: resultadoFinal.recompensasTextoFinal.join('\n') || "Nenhuma recompensa específica." });
-
+                embedCombateAtualizado.setDescription((resultadoFinal.logCombateFinal || []).join('\n'));
+                embedCombateAtualizado.addFields({ name: "Recompensas", value: (resultadoFinal.recompensasTextoFinal || ["Nenhuma recompensa específica."]).join('\n') });
                 await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
                 return;
             }
 
-            // -- Se o mob não foi derrotado, é a vez do MOB --
             if (resultadoAcaoJogador.proximoTurno === 'mob') {
                 const resultadoTurnoMob = await Arcadia.processarTurnoMobCombate(idCombate);
                 logCombateAtualizado.push(...(resultadoTurnoMob.logTurnoAnterior || []));
+                embedCombateAtualizado.setDescription(logCombateAtualizado.join('\n'));
+                
+                const jogadorEstadoTurnoMob = resultadoTurnoMob.estadoCombate.jogador;
+                const mobEstadoTurnoMob = resultadoTurnoMob.estadoCombate.mob;
+                const nomeJogadorTurnoMob = jogadorEstadoTurnoMob ? jogadorEstadoTurnoMob.nome : "Jogador";
+                const pvAtualJogadorTurnoMob = jogadorEstadoTurnoMob ? jogadorEstadoTurnoMob.pvAtual : "N/A";
+                const pvMaxJogadorTurnoMob = jogadorEstadoTurnoMob ? jogadorEstadoTurnoMob.pvMax : "N/A";
+                const pmAtualJogadorTurnoMob = jogadorEstadoTurnoMob ? jogadorEstadoTurnoMob.pmAtual : "N/A";
+                const pmMaxJogadorTurnoMob = jogadorEstadoTurnoMob ? jogadorEstadoTurnoMob.pmMax : "N/A";
+                const nomeMobTurnoMob = mobEstadoTurnoMob ? mobEstadoTurnoMob.nome : "Criatura";
+                const pvAtualMobTurnoMob = mobEstadoTurnoMob ? mobEstadoTurnoMob.pvAtual : "N/A";
+                const pvMaxMobTurnoMob = mobEstadoTurnoMob ? mobEstadoTurnoMob.pvMax : "N/A";
 
-                embedCombateAtualizado.setDescription(logCombateAtualizado.join('\n')); // Atualiza descrição com log do mob
-                // Atualiza PVs no embed após turno do mob
-                embedCombateAtualizado.setFields( // Substitui os campos antigos
-                    { name: resultadoTurnoMob.estadoCombate.jogador.nome, value: `PV: <span class="math-inline">\{resultadoTurnoMob\.estadoCombate\.jogador\.pvAtual\}/</span>{resultadoTurnoMob.estadoCombate.jogador.pvMax}\nPM: <span class="math-inline">\{resultadoTurnoMob\.estadoCombate\.jogador\.pmAtual\}/</span>{resultadoTurnoMob.estadoCombate.jogador.pmMax}`, inline: true },
-                    { name: resultadoTurnoMob.estadoCombate.mob.nome, value: `PV: <span class="math-inline">\{resultadoTurnoMob\.estadoCombate\.mob\.pvAtual\}/</span>{resultadoTurnoMob.estadoCombate.mob.pvMax}`, inline: true }
+                embedCombateAtualizado.setFields( 
+                    { name: nomeJogadorTurnoMob, value: `PV: ${pvAtualJogadorTurnoMob}/${pvMaxJogadorTurnoMob}\nPM: ${pmAtualJogadorTurnoMob}/${pmMaxJogadorTurnoMob}`, inline: true },
+                    { name: nomeMobTurnoMob, value: `PV: ${pvAtualMobTurnoMob}/${pvMaxMobTurnoMob}`, inline: true }
                 );
 
-                if (resultadoTurnoMob.combateTerminou && !resultadoTurnoMob.vencedorFinal) { // Jogador foi derrotado
+                if (resultadoTurnoMob.combateTerminou && !resultadoTurnoMob.vencedorFinal) { 
                     embedCombateAtualizado.setTitle("☠️ Derrota... ☠️");
-                    embedCombateAtualizado.setDescription(resultadoTurnoMob.logCombateFinal.join('\n'));
+                    embedCombateAtualizado.setDescription((resultadoTurnoMob.logCombateFinal || logCombateAtualizado).join('\n'));
                     await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
                     return;
-                } else if (resultadoTurnoMob.combateTerminou) { // Se por algum motivo o combate terminou aqui (ex: mob se auto-destruiu e jogador venceu)
+                } else if (resultadoTurnoMob.combateTerminou) { 
                     embedCombateAtualizado.setTitle(resultadoTurnoMob.vencedorFinal === "jogador" ? "🏆 Vitória Inesperada! 🏆" : "⚔️ Combate Encerrado ⚔️");
-                    embedCombateAtualizado.setDescription(resultadoTurnoMob.logCombateFinal.join('\n'));
+                    embedCombateAtualizado.setDescription((resultadoTurnoMob.logCombateFinal || logCombateAtualizado).join('\n'));
                     if(resultadoTurnoMob.recompensasTextoFinal && resultadoTurnoMob.recompensasTextoFinal.length > 0) {
                         embedCombateAtualizado.addFields({ name: "Recompensas", value: resultadoTurnoMob.recompensasTextoFinal.join('\n') });
                     }
@@ -871,44 +844,42 @@ if (iniciarCombateInfo) {
                 }
             }
 
-            // Se o combate continua, mostrar botões de ação do jogador novamente
             const combatActionRowContinuacao = new ActionRowBuilder()
                 .addComponents(
                     new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${idCombate}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
-                    new ButtonBuilder().setCustomId(`combate_USARFEITICO_${idCombate}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
-                    new ButtonBuilder().setCustomId(`combate_USARITEM_${idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success)
+                    new ButtonBuilder().setCustomId(`combate_USARFEITICO_${idCombate}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary).setDisabled(true),
+                    new ButtonBuilder().setCustomId(`combate_USARITEM_${idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
                 );
             await interaction.editReply({ embeds: [embedCombateAtualizado], components: [combatActionRowContinuacao] });
 
-        } 
-            // Adicione o tipoComponente 'conversa' para tratar o customId 'conversa_ENCERRAR_${npcId}_${idDialogoAtual}'
-            else if (tipoComponente === 'conversa') {
-                const acaoConversa = customIdParts[1]; // Deveria ser ENCERRAR
-                // const idNpcConversa = customIdParts[2];
-                // const idDialogoAtualConversa = customIdParts[3];
+        } // FECHA else if (tipoComponente === 'combate')
+         
+        else if (tipoComponente === 'conversa') {
+            const acaoConversa = customIdParts[1]; 
+            if (acaoConversa === 'ENCERRAR') {
+                await interaction.editReply({ content: "Conversa encerrada.", embeds: [], components: [] });
+                return;
+            } else {
+                await interaction.editReply({ content: `Ação de conversa "${acaoConversa}" não reconhecida.`, embeds:[], components: [] });
+            }
+        } // FECHA else if (tipoComponente === 'conversa')
+        
+        else { // Para tipoComponente não reconhecido
+            console.warn(`[AVISO BOTÃO] Tipo de componente não reconhecido no botão: ${tipoComponente} (customId: ${interaction.customId})`);
+            await interaction.editReply({ content: 'Ação de botão não reconhecida ou não implementada.', embeds:[], components: [] });
+        } // FECHA o else final da cadeia if/else if
 
-                if (acaoConversa === 'ENCERRAR') {
-                    await interaction.editReply({ content: "Conversa encerrada.", embeds: [], components: [] });
-                    return;
-                } else {
-                    await interaction.editReply({ content: `Ação de conversa "${acaoConversa}" não reconhecida.`, embeds:[], components: [] });
-                }
-            }
-             else {
-                console.warn(`[AVISO BOTÃO] Tipo de componente não reconhecido no botão: ${tipoComponente} (customId: ${interaction.customId})`);
-                await interaction.editReply({ content: 'Ação de botão não reconhecida ou não implementada.', embeds:[], components: [] });
-            }
-        } catch(buttonError) {
-            console.error(`Erro CRÍTICO ao processar botão ${interaction.customId} para ${interaction.user.username}:`, buttonError);
-            // Tenta editar a resposta com um erro, mas pode falhar se a interação já estiver muito antiga
-            try {
-                await interaction.editReply({ content: "Ocorreu um erro interno ao processar esta ação.", embeds: [], components: [] });
-            } catch (editError) {
-                console.error("Erro ao tentar editar a resposta do botão com mensagem de erro:", editError);
-            }
+    } catch(buttonError) { // FECHA o try principal
+        console.error(`Erro CRÍTICO ao processar botão ${interaction.customId} para ${interaction.user.username}:`, buttonError);
+        try {
+            await interaction.editReply({ content: "Ocorreu um erro interno ao processar esta ação.", embeds: [], components: [] });
+        } catch (editError) {
+            console.error("Erro ao tentar editar a resposta do botão com mensagem de erro:", editError);
         }
-        return;
     }
+    return; // Fim do manipulador de isButton
+} // FECHA else if (interaction.isButton())
+
     
     // Outros 'else if' para Modals, Select Menus, etc. podem vir aqui.
 
