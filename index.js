@@ -738,7 +738,6 @@ if (iniciarCombateInfo) {
     await interaction.editReply({ embeds: [embedConfirmacao], components: componentesResposta }); 
     await interaction.followUp({ embeds: [embedCombate], components: [combatActionRow] });
     return; 
-}
 // ... continue com o else para if (resultadoInicioCombate.sucesso) ...
     } else {
         // Se iniciarCombate falhar, adiciona a mensagem de erro ao embed de confirmação da missão
@@ -781,6 +780,7 @@ if (iniciarCombateInfo) {
                 } else {
                     await interaction.editReply({ content: `Ação de missão "${acaoMissao}" não reconhecida.`, embeds:[], components: [] });
                 }
+        }
 
         } else if (tipoComponente === 'combate') {
             const acaoCombate = customIdParts[1]; // Ex: ATAQUEBASICO, USARFEITICO
