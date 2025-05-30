@@ -4141,38 +4141,57 @@ async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspe
             console.warn(`[processarInteracaoComNPC] NPC não encontrado com a query: ${JSON.stringify(query)} para input original: "${inputOriginal}"`);
             return { erro: `NPC "${inputOriginal}" não encontrado em Arcádia.` };
         }
-        
+
         let dialogoParaMostrar = null;
-        let todosObjetivosRealmenteCompletosParaFinalizar = false; // Variável para controle
-        let recompensasConcedidasLinhas = []; // Para armazenar as linhas de texto das recompensas
+        let todosObjetivosRealmenteCompletosParaFinalizar = false; // Se você usa essa variável
+        let recompensasConcedidasLinhas = []; // Se você usa essa variável
 
         if (idDialogoEspecifico) {
-            dialogoParaMostrar = npcData.dialogos.find(d => d.idDialogo === idDialogoEspecifico);
-            if (dialogoParaMostrar) {
-                const condicoesOk = await verificarCondicoesDialogo(dialogoParaMostrar.condicoesParaMostrar, fichaJogador, npcData);
+            // Lógica para quando um BOTÃO foi clicado e um diálogo específico é solicitado
+            const dialogoAlvo = npcData.dialogos.find(d => d.idDialogo === idDialogoEspecifico);
+
+            if (dialogoAlvo) { // Se o diálogo específico foi encontrado nos dados do NPC
+                const condicoesOk = await verificarCondicoesDialogo(dialogoAlvo.condicoesParaMostrar, fichaJogador, npcData, dialogoAlvo.ofereceMissao);
+                
                 if (!condicoesOk) {
+                    // CONDIÇÕES NÃO CUMPRIDAS PARA O DIÁLOGO ESPECÍFICO
                     console.log(`[PROCESSAR NPC] Condições não cumpridas para diálogo específico "${idDialogoEspecifico}" do NPC "${npcData.nome}". Retornando mensagem de feedback.`);
                     return { 
                         erro: `${npcData.nome} parece pensar um pouco e responde: "Sinto que ainda não é o momento certo para seguirmos por esse caminho, ${fichaJogador.nomePersonagem}."`
                     };
+                } else {
+                    // Condições cumpridas, este é o diálogo para mostrar
+                    dialogoParaMostrar = dialogoAlvo;
+                }
+            } else {
+                // O idDialogoEspecifico solicitado não foi encontrado para este NPC
+                console.warn(`[PROCESSAR NPC] Diálogo específico "${idDialogoEspecifico}" NÃO encontrado para NPC "${npcData.nome}". Tentando saudação padrão.`);
+                dialogoParaMostrar = npcData.dialogos.find(d => d.tipo === "saudacao_padrao") || npcData.dialogos[0];
+            }
         } else {
+            // Lógica para INTERAÇÃO INICIAL (quando idDialogoEspecifico é null, vindo do comando /interagir)
+            console.log(`[PROCESSAR NPC] Interação inicial com "${npcData.nome}". Buscando diálogo priorizado...`);
             const dialogosPriorizados = npcData.dialogos.sort((a, b) => {
-                const prioridade = { "fim_missao": 1, "durante_missao": 2, "inicio_missao": 3, "saudacao_condicional": 4, "entrega_missao": 2, "saudacao_padrao": 5 }; // Adicionado entrega_missao
+                const prioridade = { "fim_missao": 1, "durante_missao": 2, "inicio_missao": 3, "saudacao_condicional": 4, "entrega_missao": 2, "saudacao_padrao": 5 };
                 return (prioridade[a.tipo] || 99) - (prioridade[b.tipo] || 99);
             });
 
             for (const diag of dialogosPriorizados) {
                 if (await verificarCondicoesDialogo(diag.condicoesParaMostrar, fichaJogador, npcData, diag.ofereceMissao)) {
                     dialogoParaMostrar = diag;
+                    console.log(`[PROCESSAR NPC] Diálogo priorizado encontrado: "${dialogoParaMostrar.idDialogo}" do tipo "${dialogoParaMostrar.tipo}"`);
                     break;
                 }
             }
-            if (!dialogoParaMostrar) {
-                dialogoParaMostrar = npcData.dialogos.find(d => d.tipo === "saudacao_padrao" || (d.idDialogo && d.idDialogo.includes("saudacao_inicial"))) || npcData.dialogos[0];
+            if (!dialogoParaMostrar) { // Fallback se nenhum diálogo priorizado com condições satisfeitas for encontrado
+                console.log(`[PROCESSAR NPC] Nenhum diálogo priorizado aplicável. Buscando saudação padrão para "${npcData.nome}".`);
+                dialogoParaMostrar = npcData.dialogos.find(d => d.tipo === "saudacao_padrao") || npcData.dialogos[0];
             }
         }
-        
+
+        // Verificação final (esta parte do seu código já está correta e deve ser mantida)
         if (!dialogoParaMostrar || !dialogoParaMostrar.texto) {
+            console.error(`[PROCESSAR NPC] ERRO FINAL: Nenhum dialogoParaMostrar válido encontrado para NPC "${npcData.nome}" (idDialogoEspecifico: ${idDialogoEspecifico}). Objeto dialogoParaMostrar:`, dialogoParaMostrar);
             return { erro: `NPC "${npcData.nome}" não possui um diálogo válido para esta situação.` };
         }
 
