@@ -737,13 +737,12 @@ if (iniciarCombateInfo) {
     // 'componentesResposta' já deve estar definida (vazia ou com algo, como corrigimos antes).
     await interaction.editReply({ embeds: [embedConfirmacao], components: componentesResposta }); 
     await interaction.followUp({ embeds: [embedCombate], components: [combatActionRow] });
-    return; 
+    return;
 // ... continue com o else para if (resultadoInicioCombate.sucesso) ...
     } else {
         // Se iniciarCombate falhar, adiciona a mensagem de erro ao embed de confirmação da missão
         embedConfirmacao.addFields({ name: "⚠️ Falha ao Iniciar Combate", value: resultadoInicioCombate.erro || "Não foi possível iniciar o combate." });
-    }
-}            
+}           
                         if (novoDialogoPosAceite && !novoDialogoPosAceite.erro && novoDialogoPosAceite.dialogoAtual) {
                             embedConfirmacao.addFields({name: `${novoDialogoPosAceite.nomeNPC} diz:`, value: novoDialogoPosAceite.dialogoAtual.texto});
                             
