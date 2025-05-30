@@ -656,7 +656,67 @@ else if (interaction.isButton()) {
                         const embedConfirmacao = Arcadia.gerarEmbedSucesso("Missão Aceita!", resultadoAceite.sucesso);
                         // Tenta obter um diálogo de feedback do NPC pós-aceite
                         const novoDialogoPosAceite = await Arcadia.processarInteracaoComNPC(idNpcMissao, fichaJogador, resultadoAceite.dialogoFeedbackId);
-                        
+
+let iniciarCombateInfo = null; // Para armazenar dados para iniciar o combate
+
+// Lógica para verificar se a missão recém-aceita inicia um combate
+if (idMissaoParaAceitar === "mVRatos") { // Exemplo específico para a missão dos ratos
+    const missaoDef = await Arcadia.missoesCollection.findOne({ _id: "mVRatos" }); // Busca a definição da missão
+    if (missaoDef && missaoDef.objetivos && missaoDef.objetivos[0] && missaoDef.objetivos[0].tipo === "COMBATE") {
+        const primeiroObjetivo = missaoDef.objetivos[0];
+        iniciarCombateInfo = {
+            idMob: primeiroObjetivo.alvo, // Ex: "Rato-Gigante"
+            idMissao: idMissaoParaAceitar,
+            idObjetivo: primeiroObjetivo.idObjetivo
+        };
+    }
+}
+// Adicionar mais 'else if' para outras missões que iniciam combate
+
+if (iniciarCombateInfo) {
+    const resultadoInicioCombate = await Arcadia.iniciarCombatePvE(
+        senderIdButton,
+        iniciarCombateInfo.idMob,
+        iniciarCombateInfo.idMissao,
+        iniciarCombateInfo.idObjetivo
+    );
+
+    if (resultadoInicioCombate.sucesso) {
+        const embedCombate = new EmbedBuilder()
+            .setColor(0xFF0000) // Cor de combate
+            .setTitle(`⚔️ Combate Iniciado! ⚔️`)
+            .setDescription(resultadoInicioCombate.mensagemInicial)
+            .addFields(
+                { name: fichaJogador.nomePersonagem, value: `PV: <span class="math-inline">\{resultadoInicioCombate\.estadoCombate\.jogador\.pvAtual\}/</span>{resultadoInicioCombate.estadoCombate.jogador.pvMax}\nPM: <span class="math-inline">\{resultadoInicioCombate\.estadoCombate\.jogador\.pmAtual\}/</span>{resultadoInicioCombate.estadoCombate.jogador.pmMax}`, inline: true },
+                { name: resultadoInicioCombate.estadoCombate.mob.nome, value: `PV: <span class="math-inline">\{resultadoInicioCombate\.estadoCombate\.mob\.pvAtual\}/</span>{resultadoInicioCombate.estadoCombate.mob.pvMax}`, inline: true }
+            );
+
+        const combatActionRow = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId(`combate_ATAQUEBASICO_${resultadoInicioCombate.idCombate}`)
+                    .setLabel("⚔️ Ataque Básico")
+                    .setStyle(ButtonStyle.Danger),
+                new ButtonBuilder()
+                    .setCustomId(`combate_USARFEITICO_${resultadoInicioCombate.idCombate}`)
+                    .setLabel("🔮 Usar Feitiço")
+                    .setStyle(ButtonStyle.Primary),
+                new ButtonBuilder()
+                    .setCustomId(`combate_USARITEM_${resultadoInicioCombate.idCombate}`)
+                    .setLabel("🎒 Usar Item")
+                    .setStyle(ButtonStyle.Success)
+                // Futuramente: Botão de Fugir
+            );
+
+        // Envia a mensagem de aceite da missão primeiro, e depois a de combate
+        await interaction.editReply({ embeds: [embedConfirmacao], components: componentesResposta });
+        await interaction.followUp({ embeds: [embedCombate], components: [combatActionRow] });
+        return; // Importante para não tentar editar a resposta novamente abaixo
+    } else {
+        // Se iniciarCombate falhar, adiciona a mensagem de erro ao embed de confirmação da missão
+        embedConfirmacao.addFields({ name: "⚠️ Falha ao Iniciar Combate", value: resultadoInicioCombate.erro || "Não foi possível iniciar o combate." });
+    }
+}            
                         let componentesResposta = [];
                         if (novoDialogoPosAceite && !novoDialogoPosAceite.erro && novoDialogoPosAceite.dialogoAtual) {
                             embedConfirmacao.addFields({name: `${novoDialogoPosAceite.nomeNPC} diz:`, value: novoDialogoPosAceite.dialogoAtual.texto});
@@ -695,6 +755,109 @@ else if (interaction.isButton()) {
                     await interaction.editReply({ content: `Ação de missão "${acaoMissao}" não reconhecida.`, embeds:[], components: [] });
                 }
             }
+
+        } else if (tipoComponente === 'combate') {
+            const acaoCombate = customIdParts[1]; // Ex: ATAQUEBASICO, USARFEITICO
+            const idCombate = customIdParts[2];
+            // customIdParts[3] em diante podem ser IDs de feitiços/itens, se aplicável
+
+            let resultadoAcaoJogador;
+
+            if (acaoCombate === 'ATAQUEBASICO') {
+                resultadoAcaoJogador = await Arcadia.processarAcaoJogadorCombate(idCombate, senderIdButton, "ATAQUE_BASICO");
+            } else if (acaoCombate === 'USARFEITICO') {
+                // Aqui, precisaríamos de uma forma de selecionar o feitiço.
+                // Por simplicidade AGORA, vamos apenas simular que o jogador tem um feitiço de ataque e o ID é conhecido.
+                // Em uma implementação completa, clicar em "Usar Feitiço" poderia abrir um SelectMenu ou pedir input.
+                // Para este exemplo, vamos assumir que o jogador está tentando usar um feitiço hipotético 'bola_de_fogo'.
+                // Este ID de feitiço deveria vir de um select menu ou de um botão específico para aquele feitiço.
+                // Por ora, esta parte é mais um placeholder para a lógica futura.
+                // const idFeiticoEscolhido = customIdParts[3]; // Se o ID do feitiço viesse do botão
+                await interaction.followUp({ content: "A seleção de feitiços em combate ainda será implementada. Use Ataque Básico por enquanto.", ephemeral: true });
+                // Não prossiga com o turno do mob se a ação do jogador não foi completada
+                return; // Sai da interação do botão aqui
+                // resultadoAcaoJogador = await Arcadia.processarAcaoJogadorCombate(idCombate, senderIdButton, "USAR_FEITICO", { idFeitico: idFeiticoEscolhido });
+            } else if (acaoCombate === 'USARITEM') {
+                // Similar ao feitiço, a seleção de item precisaria de uma UI.
+                await interaction.followUp({ content: "O uso de itens em combate ainda será implementado. Use Ataque Básico por enquanto.", ephemeral: true });
+                return; // Sai da interação do botão aqui
+            } else {
+                await interaction.editReply({ content: `Ação de combate "${acaoCombate}" desconhecida.`, components: [] });
+                return;
+            }
+
+            // -- Processar resultado da ação do jogador --
+            if (resultadoAcaoJogador.erro) {
+                await interaction.followUp({ content: `Erro na ação: ${resultadoAcaoJogador.erro}`, ephemeral: true });
+                // Não edita a mensagem principal do combate se for apenas um erro na ação,
+                // a menos que o erro indique que o combate terminou.
+                if (resultadoAcaoJogador.combateTerminou) {
+                     await interaction.editReply({ content: `Combate encerrado devido a um erro: ${resultadoAcaoJogador.erro}`, embeds: [], components: [] });
+                }
+                return;
+            }
+
+            let logCombateAtualizado = resultadoAcaoJogador.logTurnoAnterior || [];
+            let embedCombateAtualizado = new EmbedBuilder()
+                .setColor(0xFF0000)
+                .setTitle(`⚔️ Combate em Andamento ⚔️`)
+                .setDescription(logCombateAtualizado.join('\n') || "Ação processada.")
+                .addFields(
+                    { name: resultadoAcaoJogador.estadoCombate.jogador.nome, value: `PV: <span class="math-inline">\{resultadoAcaoJogador\.estadoCombate\.jogador\.pvAtual\}/</span>{resultadoAcaoJogador.estadoCombate.jogador.pvMax}\nPM: <span class="math-inline">\{resultadoAcaoJogador\.estadoCombate\.jogador\.pmAtual\}/</span>{resultadoAcaoJogador.estadoCombate.jogador.pmMax}`, inline: true },
+                    { name: resultadoAcaoJogador.estadoCombate.mob.nome, value: `PV: <span class="math-inline">\{resultadoAcaoJogador\.estadoCombate\.mob\.pvAtual\}/</span>{resultadoAcaoJogador.estadoCombate.mob.pvMax}`, inline: true }
+                );
+
+            if (resultadoAcaoJogador.mobDerrotado) {
+                // O mob foi derrotado. Chamar finalizarCombate.
+                // A função finalizarCombate cuidará do XP, loot e atualização da missão.
+                const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true /* jogadorVenceuEsteMob */, resultadoAcaoJogador.dadosParaFinalizar.eUltimoMobDaMissao /* você precisará determinar isso */);
+
+                embedCombateAtualizado.setTitle("🏆 Vitória! 🏆");
+                embedCombateAtualizado.setDescription(resultadoFinal.logCombateFinal.join('\n'));
+                embedCombateAtualizado.addFields({ name: "Recompensas", value: resultadoFinal.recompensasTextoFinal.join('\n') || "Nenhuma recompensa específica." });
+
+                await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
+                return;
+            }
+
+            // -- Se o mob não foi derrotado, é a vez do MOB --
+            if (resultadoAcaoJogador.proximoTurno === 'mob') {
+                const resultadoTurnoMob = await Arcadia.processarTurnoMobCombate(idCombate);
+                logCombateAtualizado.push(...(resultadoTurnoMob.logTurnoAnterior || []));
+
+                embedCombateAtualizado.setDescription(logCombateAtualizado.join('\n')); // Atualiza descrição com log do mob
+                // Atualiza PVs no embed após turno do mob
+                embedCombateAtualizado.setFields( // Substitui os campos antigos
+                    { name: resultadoTurnoMob.estadoCombate.jogador.nome, value: `PV: <span class="math-inline">\{resultadoTurnoMob\.estadoCombate\.jogador\.pvAtual\}/</span>{resultadoTurnoMob.estadoCombate.jogador.pvMax}\nPM: <span class="math-inline">\{resultadoTurnoMob\.estadoCombate\.jogador\.pmAtual\}/</span>{resultadoTurnoMob.estadoCombate.jogador.pmMax}`, inline: true },
+                    { name: resultadoTurnoMob.estadoCombate.mob.nome, value: `PV: <span class="math-inline">\{resultadoTurnoMob\.estadoCombate\.mob\.pvAtual\}/</span>{resultadoTurnoMob.estadoCombate.mob.pvMax}`, inline: true }
+                );
+
+                if (resultadoTurnoMob.combateTerminou && !resultadoTurnoMob.vencedorFinal) { // Jogador foi derrotado
+                    embedCombateAtualizado.setTitle("☠️ Derrota... ☠️");
+                    embedCombateAtualizado.setDescription(resultadoTurnoMob.logCombateFinal.join('\n'));
+                    await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
+                    return;
+                } else if (resultadoTurnoMob.combateTerminou) { // Se por algum motivo o combate terminou aqui (ex: mob se auto-destruiu e jogador venceu)
+                    embedCombateAtualizado.setTitle(resultadoTurnoMob.vencedorFinal === "jogador" ? "🏆 Vitória Inesperada! 🏆" : "⚔️ Combate Encerrado ⚔️");
+                    embedCombateAtualizado.setDescription(resultadoTurnoMob.logCombateFinal.join('\n'));
+                    if(resultadoTurnoMob.recompensasTextoFinal && resultadoTurnoMob.recompensasTextoFinal.length > 0) {
+                        embedCombateAtualizado.addFields({ name: "Recompensas", value: resultadoTurnoMob.recompensasTextoFinal.join('\n') });
+                    }
+                    await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
+                    return;
+                }
+            }
+
+            // Se o combate continua, mostrar botões de ação do jogador novamente
+            const combatActionRowContinuacao = new ActionRowBuilder()
+                .addComponents(
+                    new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${idCombate}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
+                    new ButtonBuilder().setCustomId(`combate_USARFEITICO_${idCombate}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
+                    new ButtonBuilder().setCustomId(`combate_USARITEM_${idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success)
+                );
+            await interaction.editReply({ embeds: [embedCombateAtualizado], components: [combatActionRowContinuacao] });
+
+        } 
             // Adicione o tipoComponente 'conversa' para tratar o customId 'conversa_ENCERRAR_${npcId}_${idDialogoAtual}'
             else if (tipoComponente === 'conversa') {
                 const acaoConversa = customIdParts[1]; // Deveria ser ENCERRAR
