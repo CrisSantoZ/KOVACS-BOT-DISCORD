@@ -3046,6 +3046,7 @@ let combatesAtivos = {};
         fichasCollection = db.collection(MONGODB_FICHAS_COLLECTION);
         npcsCollection = db.collection("npcs_arcadia"); 
         missoesCollection = db.collection("missoes_arcadia");
+console.log(">>> [arcadia_sistema.js | conectarMongoDB] missoesCollection foi atribuída:", typeof missoesCollection, !!missoesCollection);
         mobsCollection = db.collection("mobs_arcadia");
 
         console.log("Conectado com sucesso ao MongoDB Atlas e às coleções:", MONGODB_FICHAS_COLLECTION, ", npcs_arcadia, missoes_arcadia, e mobs_arcadia");
@@ -5328,6 +5329,7 @@ async function getTodosNPCsParaAutocomplete() {
 // =====================================================================================
 // EXPORTS DO MÓDULO
 // =====================================================================================
+console.log(">>> [arcadia_sistema.js | FIM DO ARQUIVO] Estado de missoesCollection ANTES do module.exports:", typeof missoesCollection, !!missoesCollection);
 module.exports = {
     // Dados e Constantes
     RACAS_ARCADIA, CLASSES_ARCADIA, CLASSES_ESPECIAIS_ARCADIA, REINOS_ARCADIA,
@@ -5344,7 +5346,7 @@ module.exports = {
     // Funções de Banco de Dados e Cache
     conectarMongoDB, carregarFichasDoDB, getFichaOuCarregar,
     atualizarFichaNoCacheEDb, calcularXpProximoNivel,
-    calcularPFGanhosNoNivel,npcsCollection,
+    calcularPFGanhosNoNivel,npcsCollection,missoesCollection,
 
     // Funções de Geração de Embeds Genéricas
     gerarEmbedErro, gerarEmbedSucesso, gerarEmbedAviso,
