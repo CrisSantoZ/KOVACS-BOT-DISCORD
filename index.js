@@ -677,7 +677,6 @@ const missaoDef = await missoesCol.findOne({ _id: "mVRatos" });
             idObjetivo: primeiroObjetivo.idObjetivo
         };
     }
-}
 // Adicionar mais 'else if' para outras missões que iniciam combate
 
 if (iniciarCombateInfo) {
@@ -742,7 +741,6 @@ if (iniciarCombateInfo) {
     } else {
         // Se iniciarCombate falhar, adiciona a mensagem de erro ao embed de confirmação da missão
         embedConfirmacao.addFields({ name: "⚠️ Falha ao Iniciar Combate", value: resultadoInicioCombate.erro || "Não foi possível iniciar o combate." });
-}           
                         if (novoDialogoPosAceite && !novoDialogoPosAceite.erro && novoDialogoPosAceite.dialogoAtual) {
                             embedConfirmacao.addFields({name: `${novoDialogoPosAceite.nomeNPC} diz:`, value: novoDialogoPosAceite.dialogoAtual.texto});
                             
