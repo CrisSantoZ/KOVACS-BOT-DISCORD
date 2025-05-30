@@ -5336,7 +5336,7 @@ module.exports = {
     NOME_CARGO_AVENTUREIRO, NOME_CARGO_VISITANTE,
     ID_CANAL_BOAS_VINDAS_RPG, ID_CANAL_RECRUTAMENTO, ID_CANAL_ATUALIZACAO_FICHAS,
     FEITICOS_BASE_ARCADIA, ITENS_BASE_ARCADIA, fichaModeloArcadia,
-    atributosValidos,
+    atributosValidos, iniciarCombatePvE, finalizarCombate,
     JACKPOT_PREMIOS_NOMES_COMUNS, JACKPOT_PREMIOS_NOMES_INCOMUNS, JACKPOT_PREMIOS_NOMES_RAROS,
     ATRIBUTOS_FOCO_POR_CLASSE,
     ATRIBUTOS_FOCO_POR_RACA,
@@ -5362,7 +5362,8 @@ module.exports = {
     processarAdminCriarFicha, processarAdminAddXP, processarAdminSetNivel,
     processarAdminAddMoedas, processarAdminAddItem, processarAdminDelItem,
     processarAdminSetAtributo, processarAdminAddPontosAtributo, processarAdminExcluirFicha,
-    processarUparFeitico,processarInteracaoComNPC, 
+    processarUparFeitico,processarInteracaoComNPC, processarAcaoJogadorCombate, processarTurnoMobCombate,
+    
 
     // Novas Funções de Autocomplete
     getMagiasConhecidasParaAutocomplete, // Mantida e ajustada
