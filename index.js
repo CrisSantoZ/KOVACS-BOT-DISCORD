@@ -681,44 +681,65 @@ const missaoDef = await missoesCol.findOne({ _id: "mVRatos" });
 // Adicionar mais 'else if' para outras missões que iniciam combate
 
 if (iniciarCombateInfo) {
-    const resultadoInicioCombate = await Arcadia.iniciarCombatePvE(
-        senderIdButton,
-        iniciarCombateInfo.idMob,
-        iniciarCombateInfo.idMissao,
-        iniciarCombateInfo.idObjetivo
-    );
+    // Para clareza e para garantir que os objetos e propriedades existem:
+    const jogadorEstado = resultadoInicioCombate.estadoCombate.jogador;
+    const mobEstado = resultadoInicioCombate.estadoCombate.mob;
 
-    if (resultadoInicioCombate.sucesso) {
-        const embedCombate = new EmbedBuilder()
-            .setColor(0xFF0000) // Cor de combate
-            .setTitle(`⚔️ Combate Iniciado! ⚔️`)
-            .setDescription(resultadoInicioCombate.mensagemInicial)
-            .addFields(
-                { name: fichaJogador.nomePersonagem, value: `PV: <span class="math-inline">\{resultadoInicioCombate\.estadoCombate\.jogador\.pvAtual\}/</span>{resultadoInicioCombate.estadoCombate.jogador.pvMax}\nPM: <span class="math-inline">\{resultadoInicioCombate\.estadoCombate\.jogador\.pmAtual\}/</span>{resultadoInicioCombate.estadoCombate.jogador.pmMax}`, inline: true },
-                { name: resultadoInicioCombate.estadoCombate.mob.nome, value: `PV: <span class="math-inline">\{resultadoInicioCombate\.estadoCombate\.mob\.pvAtual\}/</span>{resultadoInicioCombate.estadoCombate.mob.pvMax}`, inline: true }
-            );
+    // Verifica se os dados do jogador e do mob estão presentes
+    const nomeJogador = jogadorEstado ? jogadorEstado.nome : (fichaJogador.nomePersonagem || "Jogador");
+    const pvAtualJogador = jogadorEstado ? jogadorEstado.pvAtual : "N/A";
+    const pvMaxJogador = jogadorEstado ? jogadorEstado.pvMax : "N/A";
+    const pmAtualJogador = jogadorEstado ? jogadorEstado.pmAtual : "N/A";
+    const pmMaxJogador = jogadorEstado ? jogadorEstado.pmMax : "N/A";
 
-        const combatActionRow = new ActionRowBuilder()
-            .addComponents(
-                new ButtonBuilder()
-                    .setCustomId(`combate_ATAQUEBASICO_${resultadoInicioCombate.idCombate}`)
-                    .setLabel("⚔️ Ataque Básico")
-                    .setStyle(ButtonStyle.Danger),
-                new ButtonBuilder()
-                    .setCustomId(`combate_USARFEITICO_${resultadoInicioCombate.idCombate}`)
-                    .setLabel("🔮 Usar Feitiço")
-                    .setStyle(ButtonStyle.Primary),
-                new ButtonBuilder()
-                    .setCustomId(`combate_USARITEM_${resultadoInicioCombate.idCombate}`)
-                    .setLabel("🎒 Usar Item")
-                    .setStyle(ButtonStyle.Success)
-                // Futuramente: Botão de Fugir
-            );
+    const nomeMob = mobEstado ? mobEstado.nome : "Criatura Hostil";
+    const pvAtualMob = mobEstado ? mobEstado.pvAtual : "N/A";
+    const pvMaxMob = mobEstado ? mobEstado.pvMax : "N/A";
 
-        // Envia a mensagem de aceite da missão primeiro, e depois a de combate
-        await interaction.editReply({ embeds: [embedConfirmacao], components: componentesResposta });
-        await interaction.followUp({ embeds: [embedCombate], components: [combatActionRow] });
-        return; // Importante para não tentar editar a resposta novamente abaixo
+    const embedCombate = new EmbedBuilder()
+        .setColor(0xFF0000) // Cor de combate
+        .setTitle(`⚔️ Combate Iniciado! ⚔️`)
+        .setDescription(resultadoInicioCombate.mensagemInicial || "O combate começou!") // Mensagem inicial do combate
+        .addFields(
+            { 
+                name: nomeJogador, 
+                value: `PV: ${pvAtualJogador}/${pvMaxJogador}\nPM: ${pmAtualJogador}/${pmMaxJogador}`, 
+                inline: true 
+            },
+            { 
+                name: nomeMob, 
+                value: `PV: ${pvAtualMob}/${pvMaxMob}`, 
+                inline: true 
+            }
+        );
+
+    const combatActionRow = new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(`combate_ATAQUEBASICO_${resultadoInicioCombate.idCombate}`)
+                .setLabel("⚔️ Ataque Básico")
+                .setStyle(ButtonStyle.Danger),
+            new ButtonBuilder()
+                .setCustomId(`combate_USARFEITICO_${resultadoInicioCombate.idCombate}`)
+                .setLabel("🔮 Usar Feitiço")
+                .setStyle(ButtonStyle.Primary)
+                .setDisabled(true), // Desabilitado por enquanto, até implementarmos
+            new ButtonBuilder()
+                .setCustomId(`combate_USARITEM_${resultadoInicioCombate.idCombate}`)
+                .setLabel("🎒 Usar Item")
+                .setStyle(ButtonStyle.Success)
+                .setDisabled(true) // Desabilitado por enquanto, até implementarmos
+            // Futuramente: Botão de Fugir
+        );
+    
+    // A mensagem de "Missão Aceita!" é editada. Se o combate iniciar,
+    // provavelmente não queremos botões de diálogo nela.
+    // 'componentesResposta' já deve estar definida (vazia ou com algo, como corrigimos antes).
+    await interaction.editReply({ embeds: [embedConfirmacao], components: componentesResposta }); 
+    await interaction.followUp({ embeds: [embedCombate], components: [combatActionRow] });
+    return; 
+
+// ... continue com o else para if (resultadoInicioCombate.sucesso) ...
     } else {
         // Se iniciarCombate falhar, adiciona a mensagem de erro ao embed de confirmação da missão
         embedConfirmacao.addFields({ name: "⚠️ Falha ao Iniciar Combate", value: resultadoInicioCombate.erro || "Não foi possível iniciar o combate." });
