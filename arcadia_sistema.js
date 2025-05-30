@@ -2951,8 +2951,8 @@ const fichaModeloArcadia = {
     defesaBase: 0,
     resistenciaMagica: 0, // Novo atributo base para cálculo
     reputacao: {},
-    florinsDeOuro: 50,
-    essenciaDeArcadia: 0,
+    florinsDeOuro: 100,
+    essenciaDeArcadia: 10,
     pontosDeFeitico:0,
     habilidadesEspeciais: [],
     pericias: [],
@@ -3245,6 +3245,12 @@ async function processarCriarFichaSlash(idJogadorDiscord, nomeJogadorDiscord, no
     novaFicha.raca = racaValida.nome;
     novaFicha.classe = classeValida.nome;
     novaFicha.origemReino = reinoValido.nome;
+
+    novaFicha.pvMax = (novaFicha.atributos.vitalidade * 5) + (novaFicha.nivel * 5) + 20;
+    novaFicha.pmMax = (novaFicha.atributos.manabase * 5) + (novaFicha.nivel * 3) + 10;
+
+    novaFicha.pvAtual = novaFicha.pvMax;
+    novaFicha.pmAtual = novaFicha.pmMax;
 
     await atualizarFichaNoCacheEDb(idJogadorDiscord, novaFicha);
 
