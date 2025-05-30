@@ -754,7 +754,6 @@ if (iniciarCombateInfo) {
                 } else {
                     await interaction.editReply({ content: `Ação de missão "${acaoMissao}" não reconhecida.`, embeds:[], components: [] });
                 }
-            }
 
         } else if (tipoComponente === 'combate') {
             const acaoCombate = customIdParts[1]; // Ex: ATAQUEBASICO, USARFEITICO
