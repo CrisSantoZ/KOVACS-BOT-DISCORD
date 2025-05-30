@@ -656,7 +656,7 @@ else if (interaction.isButton()) {
                         const embedConfirmacao = Arcadia.gerarEmbedSucesso("Missão Aceita!", resultadoAceite.sucesso);
                         // Tenta obter um diálogo de feedback do NPC pós-aceite
                         const novoDialogoPosAceite = await Arcadia.processarInteracaoComNPC(idNpcMissao, fichaJogador, resultadoAceite.dialogoFeedbackId);
-
+let componentesResposta = [];
 let iniciarCombateInfo = null; // Para armazenar dados para iniciar o combate
 
 // Lógica para verificar se a missão recém-aceita inicia um combate
@@ -724,7 +724,6 @@ if (iniciarCombateInfo) {
         embedConfirmacao.addFields({ name: "⚠️ Falha ao Iniciar Combate", value: resultadoInicioCombate.erro || "Não foi possível iniciar o combate." });
     }
 }            
-                        let componentesResposta = [];
                         if (novoDialogoPosAceite && !novoDialogoPosAceite.erro && novoDialogoPosAceite.dialogoAtual) {
                             embedConfirmacao.addFields({name: `${novoDialogoPosAceite.nomeNPC} diz:`, value: novoDialogoPosAceite.dialogoAtual.texto});
                             
