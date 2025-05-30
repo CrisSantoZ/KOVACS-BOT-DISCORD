@@ -3670,7 +3670,7 @@ async function iniciarCombatePvE(idJogador, idMob, idMissaoVinculada = null, idO
         mobInstancia: mobInstancia,
         idMissaoVinculada: idMissaoVinculada,
         idObjetivoVinculado: idObjetivoVinculado,
-        log: [`⚔️ ${ficha.nomePersonagem} (PV: <span class="math-inline">\{ficha\.pvAtual\}/</span>{ficha.pvMax}) encontra ${mobInstancia.nome} (PV: <span class="math-inline">\{mobInstancia\.pvAtual\}/</span>{mobInstancia.atributos.pvMax})!`],
+        log: [`⚔️ ${ficha.nomePersonagem} (PV: ${ficha.pvAtual}/${ficha.pvMax}) encontra ${mobInstancia.nome} (PV: ${mobInstancia.pvAtual}/${mobInstancia.atributos.pvMax})! ⚔️`],
         turnoDoJogador: true, // Jogador sempre começa
         numeroMobsDerrotadosNaMissao: 0 // Para missões de matar X monstros
     };
