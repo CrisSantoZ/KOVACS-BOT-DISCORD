@@ -4154,7 +4154,7 @@ async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspe
                     console.log(`[PROCESSAR NPC] Condições não cumpridas para diálogo específico "${idDialogoEspecifico}" do NPC "${npcData.nome}". Retornando mensagem de feedback.`);
                     return { 
                         erro: `${npcData.nome} parece pensar um pouco e responde: "Sinto que ainda não é o momento certo para seguirmos por esse caminho, ${fichaJogador.nomePersonagem}."`
-                    };
+                    }
             }
         } else {
             const dialogosPriorizados = npcData.dialogos.sort((a, b) => {
