@@ -3024,6 +3024,7 @@ let npcsCollection; // Declarada aqui, no escopo do módulo
 let missoesCollection; // Adicionando para futuras missões
 let todasAsFichas = {}; // Cache local das fichas
 let mobsCollection;
+let combatesAtivos = {};
 
 
 
@@ -3638,6 +3639,319 @@ async function getFeiticosUparaveisParaAutocomplete(idJogador) {
     return feitiçosUparaveis;
 }
 
+async function iniciarCombatePvE(idJogador, idMob, idMissaoVinculada = null, idObjetivoVinculado = null) {
+    const ficha = await getFichaOuCarregar(idJogador);
+    if (!ficha) return { erro: "Sua ficha não foi encontrada para iniciar o combate." };
+    if (ficha.pvAtual <= 0) return { erro: `${ficha.nomePersonagem} está incapacitado e não pode iniciar um combate.` };
+
+    if (!mobsCollection) {
+        console.error("[COMBATE PvE] mobsCollection não está inicializada!");
+        await conectarMongoDB();
+        if (!mobsCollection) return { erro: "Sistema de combate indisponível (mobs)." };
+    }
+    const mobBase = await mobsCollection.findOne({ _id: idMob });
+    if (!mobBase) return { erro: `A criatura hostil "${idMob}" não foi encontrada nos registros de Arcádia.` };
+
+    // Cria uma instância do mob para este combate
+    const mobInstancia = JSON.parse(JSON.stringify(mobBase));
+    mobInstancia.pvAtual = mobInstancia.atributos.pvMax; // Garante PV cheio no início
+
+    const idCombate = `<span class="math-inline">\{idJogador\}\_</span>{idMob}_${Date.now()}`;
+    combatesAtivos[idCombate] = {
+        idJogador: idJogador,
+        fichaJogador: ficha, 
+        mobOriginalId: idMob, // Guardar o ID original do mob base
+        mobInstancia: mobInstancia,
+        idMissaoVinculada: idMissaoVinculada,
+        idObjetivoVinculado: idObjetivoVinculado,
+        log: [`⚔️ ${ficha.nomePersonagem} (PV: <span class="math-inline">\{ficha\.pvAtual\}/</span>{ficha.pvMax}) encontra ${mobInstancia.nome} (PV: <span class="math-inline">\{mobInstancia\.pvAtual\}/</span>{mobInstancia.atributos.pvMax})!`],
+        turnoDoJogador: true, // Jogador sempre começa
+        numeroMobsDerrotadosNaMissao: 0 // Para missões de matar X monstros
+    };
+    console.log(`[COMBATE PvE] Combate ${idCombate} iniciado: ${ficha.nomePersonagem} vs ${mobInstancia.nome}`);
+    return { 
+        sucesso: true, 
+        idCombate: idCombate, 
+        mensagemInicial: combatesAtivos[idCombate].log[0],
+        estadoCombate: {
+            jogador: { nome: ficha.nomePersonagem, pvAtual: ficha.pvAtual, pvMax: ficha.pvMax, pmAtual: ficha.pmAtual, pmMax: ficha.pmMax },
+            mob: { nome: mobInstancia.nome, pvAtual: mobInstancia.pvAtual, pvMax: mobInstancia.atributos.pvMax }
+        }
+    };
+}
+
+async function processarTurnoMobCombate(idCombate) {
+    const combate = combatesAtivos[idCombate];
+    if (!combate) return { erro: "Combate não encontrado ou já finalizado.", combateTerminou: true };
+    if (combate.turnoDoJogador) return { erro: "Ainda é o turno do jogador!", combateTerminou: false };
+    if (combate.mobInstancia.pvAtual <= 0) return { erro: "Oponente já derrotado.", combateTerminou: true, vencedor: "jogador" }
+
+    const fichaJogador = combate.fichaJogador;
+    const mob = combate.mobInstancia;
+    let logDoTurno = [];
+
+    // Ação do Mob (Ataque Básico)
+    const ataqueMob = mob.atributos.ataqueBase || 5;
+    // Calcula defesa do jogador (considerando item equipado, se houver)
+    let defesaJogador = fichaJogador.atributos.defesaBase || 0;
+    if (fichaJogador.equipamento) {
+        for (const slot in fichaJogador.equipamento) {
+            if (fichaJogador.equipamento[slot] && fichaJogador.equipamento[slot].efeitoEquipamento && fichaJogador.equipamento[slot].efeitoEquipamento.bonusAtributos && fichaJogador.equipamento[slot].efeitoEquipamento.bonusAtributos.defesaBase) {
+                defesaJogador += fichaJogador.equipamento[slot].efeitoEquipamento.bonusAtributos.defesaBase;
+            }
+        }
+    }
+    const danoCausadoAoJogador = Math.max(1, ataqueMob - defesaJogador);
+
+    fichaJogador.pvAtual = Math.max(0, fichaJogador.pvAtual - danoCausadoAoJogador);
+    logDoTurno.push(`💢 ${mob.nome} ataca ${fichaJogador.nomePersonagem}, causando ${danoCausadoAoJogador} de dano!`);
+    logDoTurno.push(`❤️ ${fichaJogador.nomePersonagem} agora tem <span class="math-inline">\{fichaJogador\.pvAtual\}/</span>{fichaJogador.pvMax} PV.`);
+    
+    combate.log.push(...logDoTurno);
+    await atualizarFichaNoCacheEDb(combate.idJogador, fichaJogador); // Salva o PV do jogador
+
+    if (fichaJogador.pvAtual <= 0) {
+        logDoTurno.push(`☠️ ${fichaJogador.nomePersonagem} foi derrotado!`);
+        const resultadoFinal = await finalizarCombate(idCombate, combate.idJogador, false); // false = jogador perdeu
+        return { 
+            ...resultadoFinal, 
+            log: [...combate.log] 
+        };
+    }
+
+    combate.turnoDoJogador = true; // Passa o turno para o jogador
+
+    return { 
+        sucesso: true, 
+        idCombate: idCombate,
+        logTurnoAnterior: logDoTurno,
+        proximoTurno: "jogador",
+        estadoCombate: getEstadoCombateParaRetorno(combate)
+    };
+}
+
+async function processarAcaoJogadorCombate(idCombate, idJogadorAcao, tipoAcao = "ATAQUE_BASICO", detalhesAcao = {}) {
+    const combate = combatesAtivos[idCombate];
+    if (!combate) return { erro: "Combate não encontrado ou já finalizado.", combateTerminou: true };
+    if (combate.idJogador !== idJogadorAcao) return { erro: "Não é você quem está neste combate.", combateTerminou: false }; // Não encerra, só avisa
+    if (!combate.turnoDoJogador) return { erro: "Aguarde, não é o seu turno de agir!", combateTerminou: false };
+
+    const fichaJogador = combate.fichaJogador;
+    const mob = combate.mobInstancia;
+    let logDoTurno = []; // Log específico desta ação e suas consequências imediatas
+
+    if (fichaJogador.pvAtual <= 0) { // Checagem extra
+        return { erro: "Você está incapacitado!", terminou: true, vencedor: "mob", logCombate: combate.log, recompensasTexto: [] };
+    }
+
+    if (tipoAcao === "ATAQUE_BASICO") {
+        const ataqueJogador = (fichaJogador.atributos.forca || 5) + (fichaJogador.ataqueBase || 0) + (fichaJogador.equipamento?.maoDireita?.efeitoEquipamento?.bonusAtributos?.ataqueBase || 0);
+        const defesaMob = mob.atributos.defesaBase || 0;
+        const danoCausado = Math.max(1, ataqueJogador - defesaMob);
+
+        mob.pvAtual = Math.max(0, mob.pvAtual - danoCausado);
+        logDoTurno.push(`💥 ${fichaJogador.nomePersonagem} ataca ${mob.nome}, causando ${danoCausado} de dano!`);
+        logDoTurno.push(`🩸 ${mob.nome} agora tem <span class="math-inline">\{mob\.pvAtual\}/</span>{mob.atributos.pvMax} PV.`);
+    } 
+    // Futuramente: else if (tipoAcao === "USAR_FEITICO") { ... }
+    // Futuramente: else if (tipoAcao === "USAR_ITEM") { ... }
+    else {
+        logDoTurno.push(`Ação "${tipoAcao}" ainda não é suportada.`);
+        combate.log.push(...logDoTurno); // Adiciona ao log principal
+        return { 
+            sucesso: false, 
+            erro: `Ação "${tipoAcao}" não suportada.`,
+            idCombate: idCombate,
+            logTurnoAnterior: logDoTurno, // Renomeado para clareza
+            proximoTurno: "jogador", // Devolve o turno se a ação falhou
+            estadoCombate: getEstadoCombateParaRetorno(combate)
+        };
+    }
+    
+    combate.log.push(...logDoTurno);
+
+    if (mob.pvAtual <= 0) {
+        logDoTurno.push(`🏆 ${mob.nome} foi derrotado!`);
+        combate.numeroMobsDerrotadosNaMissao = (combate.numeroMobsDerrotadosNaMissao || 0) + 1;
+        // finalizarCombate agora será chamado pelo index.js após verificar se mais mobs são necessários para a missão
+        return { 
+            sucesso: true,
+            mobDerrotado: true,
+            idCombate: idCombate,
+            logTurnoAnterior: logDoTurno,
+            estadoCombate: getEstadoCombateParaRetorno(combate),
+            dadosParaFinalizar: { // Passa dados para finalizar, se for o caso
+                idJogador: combate.idJogador,
+                mobInstancia: mob, // Mob derrotado
+                idMissaoVinculada: combate.idMissaoVinculada,
+                idObjetivoVinculado: combate.idObjetivoVinculado,
+                numeroMobsJaDerrotados: combate.numeroMobsDerrotadosNaMissao
+            }
+        };
+    }
+
+    combate.turnoDoJogador = false; 
+
+    return { 
+        sucesso: true, 
+        idCombate: idCombate,
+        logTurnoAnterior: logDoTurno,
+        proximoTurno: "mob", 
+        estadoCombate: getEstadoCombateParaRetorno(combate)
+    };
+}
+
+async function finalizarCombate(idCombate, idJogadorFicha, jogadorVenceuEsteMob, eUltimoMobDaMissao = true) {
+    const combate = combatesAtivos[idCombate];
+    if (!combate) {
+        console.warn(`[FINALIZAR COMBATE] Tentativa de finalizar combate inexistente: ${idCombate}`);
+        return { erro: "Combate não encontrado para finalizar.", combateRealmenteTerminou: true };
+    }
+
+    const ficha = await getFichaOuCarregar(idJogadorFicha); // Recarrega a ficha para ter os dados mais atuais
+    const mob = combate.mobInstancia; // O mob que foi derrotado (ou derrotou o jogador)
+    let mensagemResultado = "";
+    let recompensasTextoArray = [];
+
+    if (jogadorVenceuEsteMob) {
+        mensagemResultado = `Você derrotou ${mob.nome}!`;
+        
+        // Adicionar XP pelo mob derrotado
+        const xpGanhoMob = mob.xpRecompensa || 0;
+        if (xpGanhoMob > 0) {
+            const { subiuNivel, pontosAtributoGanhosTotal, pontosFeiticoGanhosTotal, ultimoNivelAlcancado } = await adicionarXPELevelUp(ficha, xpGanhoMob);
+            recompensasTextoArray.push(`✨ +${xpGanhoMob} XP por ${mob.nome}`);
+            if(subiuNivel) {
+                recompensasTextoArray.push(`🎉 SUBIU PARA O NÍVEL ${ultimoNivelAlcancado}!`);
+                if(pontosAtributoGanhosTotal > 0) recompensasTextoArray.push(`💪 +${pontosAtributoGanhosTotal} Pontos de Atributo!`);
+                if(pontosFeiticoGanhosTotal > 0) recompensasTextoArray.push(`🔮 +${pontosFeiticoGanhosTotal} Pontos de Feitiço!`);
+            }
+        }
+        // Adicionar Florins pelo mob derrotado
+        const florinsGanhosMob = mob.florinsRecompensaMin !== undefined && mob.florinsRecompensaMax !== undefined ? 
+            Math.floor(Math.random() * (mob.florinsRecompensaMax - mob.florinsRecompensaMin + 1)) + mob.florinsRecompensaMin : 0;
+        if (florinsGanhosMob > 0) {
+            ficha.florinsDeOuro = (ficha.florinsDeOuro || 0) + florinsGanhosMob;
+            recompensasTextoArray.push(`🪙 +${florinsGanhosMob} Florins de Ouro de ${mob.nome}`);
+        }
+        // Adicionar Loot do mob derrotado
+        if (mob.lootTable && mob.lootTable.length > 0) {
+            for (const itemLoot of mob.lootTable) {
+                if (Math.random() < (itemLoot.chanceDrop || 0)) {
+                    const qtdDrop = Math.floor(Math.random() * ((itemLoot.quantidadeMax || 1) - (itemLoot.quantidadeMin || 1) + 1)) + (itemLoot.quantidadeMin || 1);
+                    if (qtdDrop > 0) {
+                        await adicionarItemAoInventario(ficha, itemLoot.itemId, qtdDrop); 
+                        const nomeItemDropado = ITENS_BASE_ARCADIA[itemLoot.itemId.toLowerCase()]?.itemNome || itemLoot.itemNomeOverride || itemLoot.itemId;
+                        recompensasTextoArray.push(`🛍️ Recebeu ${qtdDrop}x ${nomeItemDropado} de ${mob.nome}!`);
+                    }
+                }
+            }
+        }
+
+        // Atualizar objetivo da missão se houver E se for o último mob necessário
+        if (combate.idMissaoVinculada && combate.idObjetivoVinculado && eUltimoMobDaMissao) {
+            await atualizarProgressoMissao(combate.idJogador, combate.idMissaoVinculada, combate.idObjetivoVinculado, { quantidadeMortos: combate.numeroMobsDerrotadosNaMissao });
+            // A função atualizarProgressoMissao marcará como 'concluido' se a quantidade total for atingida
+        }
+        await atualizarFichaNoCacheEDb(combate.idJogador, ficha);
+
+    } else { // Jogador foi derrotado
+        mensagemResultado = `Você foi derrotado por ${mob.nome}...`;
+        // Penalidades de derrota (a implementar):
+        // ficha.pvAtual = 1; // Deixar com 1 PV, por exemplo.
+        // Perder XP? Perder Florins? Voltar para um "ponto seguro"?
+        // await atualizarFichaNoCacheEDb(combate.idJogador, ficha); // Salva o estado pós-derrota
+    }
+    
+    // Somente deleta o combate se a luta realmente acabou (jogador derrotado OU último mob da missão derrotado)
+    if (!jogadorVenceuEsteMob || eUltimoMobDaMissao) {
+        delete combatesAtivos[idCombate]; 
+        console.log(`[COMBATE PvE] Combate ${idCombate} COMPLETAMENTE finalizado. Vencedor geral: ${jogadorVenceuEsteMob ? ficha.nomePersonagem : mob.nome}`);
+        return { 
+            combateRealmenteTerminou: true, 
+            vencedorFinal: jogadorVenceuEsteMob ? "jogador" : "mob", 
+            logCombateFinal: [...combate.log, mensagemResultado, ...recompensasTextoArray], 
+            recompensasTextoFinal: recompensasTextoArray 
+        };
+    } else {
+        // Jogador venceu este mob, mas pode haver mais para a missão
+        return {
+            combateRealmenteTerminou: false, // O ciclo de combate com ESTE mob terminou, mas a "batalha" da missão pode continuar
+            mobDerrotadoInfo: mensagemResultado,
+            recompensasMobTexto: recompensasTextoArray,
+            logParcialCombate: [...combate.log],
+            proximoTurno: "jogador" // Jogador pode ter a opção de procurar o próximo mob
+        };
+    }
+}
+
+// Função auxiliar para estado do combate (evita repetição)
+function getEstadoCombateParaRetorno(combate) {
+    return {
+        jogador: { 
+            nome: combate.fichaJogador.nomePersonagem, 
+            pvAtual: combate.fichaJogador.pvAtual, 
+            pvMax: combate.fichaJogador.pvMax,
+            pmAtual: combate.fichaJogador.pmAtual,
+            pmMax: combate.fichaJogador.pmMax
+        },
+        mob: { 
+            nome: combate.mobInstancia.nome, 
+            pvAtual: combate.mobInstancia.pvAtual, 
+            pvMax: combate.mobInstancia.atributos.pvMax 
+        }
+    };
+}
+
+// Função auxiliar para adicionar XP e tratar level up (REVISADA E MELHORADA)
+async function adicionarXPELevelUp(ficha, xpAdicionar) {
+    if (xpAdicionar <= 0) return { subiuNivel: false };
+
+    const nivelOriginal = ficha.nivel;
+    ficha.xpAtual = (ficha.xpAtual || 0) + xpAdicionar;
+    let subiuNivelFlag = false;
+    let pontosAtributoGanhosNesteLevelUp = 0;
+    let pontosFeiticoGanhosNesteLevelUp = 0;
+    let ultimoNivelAlcancadoNaLogica = nivelOriginal;
+    let logDetalhadoLevelUp = [];
+
+    while (ficha.xpAtual >= ficha.xpProximoNivel && (ficha.xpProximoNivel || 0) > 0 && ficha.nivel < 200) {
+        subiuNivelFlag = true;
+        ficha.xpAtual -= ficha.xpProximoNivel;
+        ficha.nivel++;
+        ultimoNivelAlcancadoNaLogica = ficha.nivel;
+        
+        const paGanhos = 2; 
+        const pfGanhos = calcularPFGanhosNoNivel(ficha.nivel);
+        
+        ficha.atributos.pontosParaDistribuir = (ficha.atributos.pontosParaDistribuir || 0) + paGanhos;
+        pontosAtributoGanhosNesteLevelUp += paGanhos;
+        ficha.pontosDeFeitico = (ficha.pontosDeFeitico || 0) + pfGanhos;
+        pontosFeiticoGanhosNesteLevelUp += pfGanhos;
+        
+        logDetalhadoLevelUp.push(`Atingiu Nível ${ficha.nivel}! Ganhou: ${paGanhos} Pontos de Atributo, ${pfGanhos} Pontos de Feitiço.`);
+        
+        // Recalcular PV/PM Max e encher
+        ficha.pvMax = (ficha.atributos.vitalidade * 5) + (ficha.nivel * 5) + 20;
+        ficha.pmMax = (ficha.atributos.manabase * 5) + (ficha.nivel * 3) + 10;
+        ficha.pvAtual = ficha.pvMax;
+        ficha.pmAtual = ficha.pmMax;
+        
+        ficha.xpProximoNivel = calcularXpProximoNivel(ficha.nivel);
+    }
+
+    if (subiuNivelFlag) {
+        console.log(`[LEVEL UP] ${ficha.nomePersonagem} (ID: <span class="math-inline">\{ficha\.\_id\}\) de Nv\.</span>{nivelOriginal} para Nv.${ultimoNivelAlcancadoNaLogica}.\nDetalhes: ${logDetalhadoLevelUp.join(" | ")}`);
+    }
+    // Não precisa chamar atualizarFichaNoCacheEDb aqui, pois finalizarCombate fará isso.
+    return { 
+        subiuNivel: subiuNivelFlag, 
+        pontosAtributoGanhosTotal: pontosAtributoGanhosNesteLevelUp, 
+        pontosFeiticoGanhosTotal: pontosFeiticoGanhosNesteLevelUp, 
+        ultimoNivelAlcancado: ultimoNivelAlcancadoNaLogica, 
+        nivelOriginal: nivelOriginal 
+    };
+}
 
 async function processarMeusFeiticos(idJogador) {
     const ficha = await getFichaOuCarregar(idJogador);
