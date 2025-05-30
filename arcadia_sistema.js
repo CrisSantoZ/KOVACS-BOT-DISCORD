@@ -3904,7 +3904,8 @@ function getEstadoCombateParaRetorno(combate) {
         mob: { 
             nome: combate.mobInstancia.nome, 
             pvAtual: combate.mobInstancia.pvAtual, 
-            pvMax: combate.mobInstancia.atributos.pvMax 
+            pvMax: combate.mobInstancia.atributos.pvMax,
+            nivel: combate.mobInstancia.nivel
         }
     };
 }
