@@ -661,7 +661,14 @@ let iniciarCombateInfo = null; // Para armazenar dados para iniciar o combate
 
 // Lógica para verificar se a missão recém-aceita inicia um combate
 if (idMissaoParaAceitar === "mVRatos") { // Exemplo específico para a missão dos ratos
-    const missaoDef = await Arcadia.missoesCollection.findOne({ _id: "mVRatos" }); // Busca a definição da missão
+    const missoesCol = Arcadia.getMissoesCollection(); // Chama a função getter
+if (!missoesCol) {
+    console.error(">>> ERRO FATAL no index.js: getMissoesCollection() retornou undefined!");
+    // Você precisa tratar este erro, talvez enviando uma mensagem ao usuário
+    await interaction.editReply({ embeds: [Arcadia.gerarEmbedErro("Erro de Sistema", "Não foi possível acessar os dados da missão. Tente novamente mais tarde.")] });
+    return; // Aborta a execução se a coleção não estiver disponível
+}
+const missaoDef = await missoesCol.findOne({ _id: "mVRatos" });
     if (missaoDef && missaoDef.objetivos && missaoDef.objetivos[0] && missaoDef.objetivos[0].tipo === "COMBATE") {
         const primeiroObjetivo = missaoDef.objetivos[0];
         iniciarCombateInfo = {
