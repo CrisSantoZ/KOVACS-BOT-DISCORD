@@ -738,7 +738,7 @@ if (iniciarCombateInfo) {
     await interaction.editReply({ embeds: [embedConfirmacao], components: componentesResposta }); 
     await interaction.followUp({ embeds: [embedCombate], components: [combatActionRow] });
     return; 
-
+}
 // ... continue com o else para if (resultadoInicioCombate.sucesso) ...
     } else {
         // Se iniciarCombate falhar, adiciona a mensagem de erro ao embed de confirmação da missão
