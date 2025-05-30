@@ -678,38 +678,56 @@ else if (interaction.isButton()) {
                             iniciarCombateInfo.idObjetivo
                         );
 
-                        if (resultadoInicioCombate.sucesso) {
-                            const jogadorEstado = resultadoInicioCombate.estadoCombate.jogador;
-                            const mobEstado = resultadoInicioCombate.estadoCombate.mob;
-                            const nomeJogador = jogadorEstado ? jogadorEstado.nome : (fichaJogador.nomePersonagem || "Jogador");
-                            const pvAtualJogador = jogadorEstado ? jogadorEstado.pvAtual : "N/A";
-                            const pvMaxJogador = jogadorEstado ? jogadorEstado.pvMax : "N/A";
-                            const pmAtualJogador = jogadorEstado ? jogadorEstado.pmAtual : "N/A";
-                            const pmMaxJogador = jogadorEstado ? jogadorEstado.pmMax : "N/A";
-                            const nomeMob = mobEstado ? mobEstado.nome : "Criatura Hostil";
-                            const pvAtualMob = mobEstado ? mobEstado.pvAtual : "N/A";
-                            const pvMaxMob = mobEstado ? mobEstado.pvMax : "N/A";
+                    if (resultadoInicioCombate.sucesso) {
+                        const jogadorEstado = resultadoInicioCombate.estadoCombate.jogador;
+                        const mobEstado = resultadoInicioCombate.estadoCombate.mob;
 
-                            const embedCombate = new EmbedBuilder()
-                                .setColor(0xFF0000)
-                                .setTitle(`⚔️ Combate Iniciado! ⚔️`)
-                                .setDescription(resultadoInicioCombate.mensagemInicial || "O combate começou!")
-                                .addFields(
-                                    { name: nomeJogador, value: `PV: ${pvAtualJogador}/${pvMaxJogador}\nPM: ${pmAtualJogador}/${pmMaxJogador}`, inline: true },
-                                    { name: nomeMob, value: `PV: ${pvAtualMob}/${pvMaxMob}`, inline: true }
-                                );
+                        const nomeJogador = jogadorEstado.nome || (fichaJogador.nomePersonagem || "Jogador");
+                        const pvAtualJogador = jogadorEstado.pvAtual;
+                        const pvMaxJogador = jogadorEstado.pvMax;
+                        const pmAtualJogador = jogadorEstado.pmAtual;
+                        const pmMaxJogador = jogadorEstado.pmMax;
 
-                            const combatActionRow = new ActionRowBuilder()
-                                .addComponents(
-                                    new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${resultadoInicioCombate.idCombate}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
-                                    new ButtonBuilder().setCustomId(`combate_USARFEITICO_${resultadoInicioCombate.idCombate}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary).setDisabled(true),
-                                    new ButtonBuilder().setCustomId(`combate_USARITEM_${resultadoInicioCombate.idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
-                                );
-                            
-                            // Se o combate iniciar, a mensagem de confirmação da missão não terá botões de diálogo adicionais
-                            await interaction.editReply({ embeds: [embedConfirmacao], components: [] }); 
-                            await interaction.followUp({ embeds: [embedCombate], components: [combatActionRow] });
-                            return; 
+                        const nomeMob = mobEstado.nome || "Criatura Hostil";
+                        const pvAtualMob = mobEstado.pvAtual;
+                        const pvMaxMob = mobEstado.pvMax;
+                        const nivelMob = mobEstado.nivel || '?'; // Pega o nível do mob
+
+                        // Mensagem de descrição mais elaborada
+                        let descricaoCombate = `📜 **Missão:** Infestação no Armazém\n\n`; // Exemplo, idealmente pegar o título da missão dinamicamente
+                        descricaoCombate += `*${resultadoInicioCombate.mensagemInicial || "O combate começou!"}*\n\n`;
+                        descricaoCombate += `**Turno de:** ${nomeJogador}`;
+
+                        const embedCombate = new EmbedBuilder()
+                            .setColor(0xDC143C) // Um vermelho mais "sangue" (Crimson)
+                            .setTitle(`⚔️ COMBATE IMINENTE! ⚔️`)
+                            .setDescription(descricaoCombate)
+                            // .setThumbnail("URL_DE_UMA_IMAGEM_DE_ESPADA_GENERICA_OU_LOGO") // Opcional: adicione uma imagem
+                            .addFields(
+                                { 
+                                    name: `👤 ${nomeJogador}`, 
+                                    value: `❤️ PV: <span class="math-inline">\{pvAtualJogador\}/</span>{pvMaxJogador}\n💧 PM: <span class="math-inline">\{pmAtualJogador\}/</span>{pmMaxJogador}`, 
+                                    inline: true 
+                                },
+                                { 
+                                    name: `👹 ${nomeMob} (Nível ${nivelMob})`, 
+                                    value: `❤️ PV: <span class="math-inline">\{pvAtualMob\}/</span>{pvMaxMob}`, 
+                                    inline: true 
+                                }
+                            )
+                            .setFooter({ text: "Prepare-se para a batalha!" });
+
+                        const combatActionRow = new ActionRowBuilder()
+                            .addComponents(
+                                new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${resultadoInicioCombate.idCombate}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
+                                new ButtonBuilder().setCustomId(`combate_USARFEITICO_${resultadoInicioCombate.idCombate}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary).setDisabled(true),
+                                new ButtonBuilder().setCustomId(`combate_USARITEM_${resultadoInicioCombate.idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
+                            );
+
+                        await interaction.editReply({ embeds: [embedConfirmacao], components: [] }); 
+                        await interaction.followUp({ embeds: [embedCombate], components: [combatActionRow] });
+                        return; 
+                        
                         } else {
                             embedConfirmacao.addFields({ name: "⚠️ Falha ao Iniciar Combate", value: resultadoInicioCombate.erro || "Não foi possível iniciar o combate." });
                         }
