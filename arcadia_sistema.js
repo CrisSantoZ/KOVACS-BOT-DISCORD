@@ -3015,6 +3015,7 @@ let fichasCollection;
 let npcsCollection; // Declarada aqui, no escopo do módulo
 let missoesCollection; // Adicionando para futuras missões
 let todasAsFichas = {}; // Cache local das fichas
+let mobsCollection;
 
 
 
@@ -3036,8 +3037,9 @@ let todasAsFichas = {}; // Cache local das fichas
         fichasCollection = db.collection(MONGODB_FICHAS_COLLECTION);
         npcsCollection = db.collection("npcs_arcadia"); 
         missoesCollection = db.collection("missoes_arcadia");
+        mobsCollection = db.collection("mobs_arcadia");
 
-        console.log("Conectado com sucesso ao MongoDB Atlas e às coleções:", MONGODB_FICHAS_COLLECTION, ", npcs_arcadia, e missoes_arcadia"); 
+        console.log("Conectado com sucesso ao MongoDB Atlas e às coleções:", MONGODB_FICHAS_COLLECTION, ", npcs_arcadia, missoes_arcadia, e mobs_arcadia");
 
     } catch (error) {
         console.error("ERRO CRÍTICO ao conectar ao MongoDB:", error);
