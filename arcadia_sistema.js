@@ -239,6 +239,14 @@ const ITENS_BASE_ARCADIA = {
         efeito: { "tipoEfeito": "CURA_HP", "valor": 5, "mensagemAoUsar": "Você bebe o hidromel e sente um leve calor." },
         cooldownSegundos: 60
     },
+
+"pelederatorustica": { 
+    itemNome: "Pele de Rato Rústica", 
+    tipo: "Material", 
+    descricao: "Uma pele grossa e um tanto fedida, útil para artesanato simples.", 
+    usavel: false, 
+    equipavel: false 
+},
         
     // ... (o restante dos seus itens) ...
     
