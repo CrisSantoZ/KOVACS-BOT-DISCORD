@@ -3188,6 +3188,11 @@ function calcularPFGanhosNoNivel(novoNivelPersonagem) {
     return pfGanhosBase;
 }
 
+function getFichasCollection() { return fichasCollection; }
+function getNpcsCollection() { return npcsCollection; }
+function getMissoesCollection() { return missoesCollection; }
+function getMobsCollection() { return mobsCollection; }
+
 // =====================================================================================
 // FUNÇÕES DE LÓGICA DE COMANDOS
 // =====================================================================================
@@ -5346,8 +5351,13 @@ module.exports = {
     // Funções de Banco de Dados e Cache
     conectarMongoDB, carregarFichasDoDB, getFichaOuCarregar,
     atualizarFichaNoCacheEDb, calcularXpProximoNivel,
-    calcularPFGanhosNoNivel,npcsCollection,missoesCollection,
+    calcularPFGanhosNoNivel,
 
+getFichasCollection,
+    getNpcsCollection,
+    getMissoesCollection,
+    getMobsCollection,
+    
     // Funções de Geração de Embeds Genéricas
     gerarEmbedErro, gerarEmbedSucesso, gerarEmbedAviso,
 
