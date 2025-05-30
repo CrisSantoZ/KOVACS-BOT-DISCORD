@@ -266,6 +266,37 @@ const JACKPOT_PREMIOS_NOMES_COMUNS = ["poção de cura menor", "rações de viag
 const JACKPOT_PREMIOS_NOMES_INCOMUNS = ["poção de mana menor", "poção de cura média", "pedra de amolar"];
 const JACKPOT_PREMIOS_NOMES_RAROS = ["adaga simples", "essência de arcádia", "poção de cura maior"];
 
+
+// Em arcadia_sistema.js
+const MOB_MODELO_BASE = {
+    _id: "", // ID único do mob, ex: "ratoGiganteNivel1", "goblinBatedor" (curto e sem underscores)
+    nome: "Nome do Monstro",
+    nivel: 1,
+    descricao: "Uma breve descrição do monstro.", // Para ser usada em embeds de combate ou informações
+    imagemUrl: null, // URL para a imagem do monstro (vamos adicionar depois)
+    atributos: {
+        pvMax: 30,
+        pvAtual: 30, // Mobs geralmente começam com PV cheio
+        ataqueBase: 5,   // Dano que o mob causa com ataque básico
+        defesaBase: 2,   // Redução de dano que o mob tem
+        agilidade: 10, // Para futura ordem de turno ou esquiva
+        precisao: 75,  // Chance base de acertar um ataque (em %)
+        // Outros atributos podem ser adicionados depois: pmMax, intelecto, resistencias, etc.
+    },
+    habilidades: [ 
+        // Futuramente: { idHabilidade: "mordidaToxica", chanceDeUso: 0.25 }
+    ],
+    lootTable: [
+        // Ex: { itemId: "peleDeRato", quantidadeMin: 1, quantidadeMax: 1, chanceDrop: 0.7 }
+        // itemId deve corresponder a uma chave em ITENS_BASE_ARCADIA
+    ],
+    xpRecompensa: 10,
+    florinsRecompensaMin: 1,
+    florinsRecompensaMax: 5
+};
+
+
+
 const FEITICOS_BASE_ARCADIA = {
     // --- FEITIÇOS DE RAÇA: ELDARI ---
 "raca_eldari_toque_da_floresta": {
