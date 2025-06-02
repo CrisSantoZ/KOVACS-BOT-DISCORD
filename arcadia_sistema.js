@@ -3679,8 +3679,7 @@ async function iniciarCombatePvE(idJogador, idMob, idMissaoVinculada = null, idO
         sucesso: true, 
         idCombate: idCombate, 
         mensagemInicial: combatesAtivos[idCombate].log[0],
-        estadoCombate: { getEstadoCombateParaRetorno(combatesAtivos[idCombate])  
-    }
+        estadoCombate: getEstadoCombateParaRetorno(combatesAtivos[idCombate])  
     };
 }
 
