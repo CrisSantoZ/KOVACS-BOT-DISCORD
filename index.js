@@ -690,7 +690,7 @@ else if (interaction.isButton()) {
                         const nomeMob = mobEstado.nome || "Criatura Hostil";
                         const pvAtualMob = mobEstado.pvAtual;
                         const pvMaxMob = mobEstado.pvMax;
-                        const nivelMob = mobEstado.nivel || '?'; // Pega o nível do mob
+                        const nivelMob = mobEstado && typeof mobEstado.nivel === 'number' && mobEstado.nivel > 0 ? mobEstado.nivel : '?'; 
 
                         // Mensagem de descrição mais elaborada
                         let descricaoCombate = `📜 **Missão:** Infestação no Armazém\n\n`; // Exemplo, idealmente pegar o título da missão dinamicamente
