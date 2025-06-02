@@ -3893,6 +3893,8 @@ async function finalizarCombate(idCombate, idJogadorFicha, jogadorVenceuEsteMob,
 
 // Função auxiliar para estado do combate (evita repetição)
 function getEstadoCombateParaRetorno(combate) {
+    console.log(">>> [SISTEMA | getEstadoCombate] combate.mobInstancia É:", combate.mobInstancia); 
+    console.log(">>> [SISTEMA | getEstadoCombate] combate.mobInstancia.nivel É:", combate.mobInstancia.nivel, "(Tipo:", typeof combate.mobInstancia.nivel, ")"); 
     return {
         jogador: { 
             nome: combate.fichaJogador.nomePersonagem, 
