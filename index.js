@@ -784,7 +784,7 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
         // "else if (tipoComponente === 'combate') { ... }"
 else if (tipoComponente === 'combate') {
     const acaoCombate = customIdParts[1]; 
-    const idCombate = customIdParts[2];
+const idCombate = customIdParts.slice(2).join('_');
     let resultadoAcaoJogador; // Declarada aqui, mas só será usada significativamente se a ação for válida
 
     if (acaoCombate === 'ATAQUEBASICO') {
