@@ -704,17 +704,26 @@ else if (interaction.isButton()) {
                             .setDescription(descricaoCombate)
                             // .setThumbnail("URL_DE_UMA_IMAGEM_DE_ESPADA_GENERICA_OU_LOGO") // Opcional: adicione uma imagem
                             .addFields(
-                                { 
-                                    name: `👤 ${nomeJogador}`, 
-                                    value: `❤️ PV: <span class="math-inline">\{pvAtualJogador\}/</span>{pvMaxJogador}\n💧 PM: <span class="math-inline">\{pmAtualJogador\}/</span>{pmMaxJogador}`, 
-                                    inline: true 
-                                },
-                                { 
-                                    name: `👹 ${nomeMob} (Nível ${nivelMob})`, 
-                                    value: `❤️ PV: <span class="math-inline">\{pvAtualMob\}/</span>{pvMaxMob}`, 
-                                    inline: true 
-                                }
-                            )
+    { 
+        name: `👤 ${nomeJogador}`, 
+        // V---- Verifique estas linhas com atenção ----V
+        value: `❤️ PV: **${pvAtualJogador}/${pvMaxJogador}**\n💧 PM: **${pmAtualJogador}/${pmMaxJogador}**`, 
+        // ^---- Verifique estas linhas com atenção ----^
+        inline: true 
+    },
+    { 
+        name: `\u200B`, // Campo invisível para espaçamento
+        value: `\u200B`,
+        inline: true
+    },
+    { 
+        name: `👹 ${nomeMob} (Nv. ${nivelMob})`, 
+        // V---- Verifique esta linha com atenção ----V
+        value: `❤️ PV: **${pvAtualMob}/${pvMaxMob}**`, 
+        // ^---- Verifique esta linha com atenção ----^
+        inline: true 
+    }
+)
                             .setFooter({ text: "Prepare-se para a batalha!" });
 
                         const combatActionRow = new ActionRowBuilder()
