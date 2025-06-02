@@ -3679,10 +3679,8 @@ async function iniciarCombatePvE(idJogador, idMob, idMissaoVinculada = null, idO
         sucesso: true, 
         idCombate: idCombate, 
         mensagemInicial: combatesAtivos[idCombate].log[0],
-        estadoCombate: {
-            jogador: { nome: ficha.nomePersonagem, pvAtual: ficha.pvAtual, pvMax: ficha.pvMax, pmAtual: ficha.pmAtual, pmMax: ficha.pmMax },
-            mob: { nome: mobInstancia.nome, pvAtual: mobInstancia.pvAtual, pvMax: mobInstancia.atributos.pvMax }
-        }
+        estadoCombate: { getEstadoCombateParaRetorno(combatesAtivos[idCombate])
+            }    
     };
 }
 
