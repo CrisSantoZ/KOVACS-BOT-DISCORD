@@ -3662,7 +3662,7 @@ async function iniciarCombatePvE(idJogador, idMob, idMissaoVinculada = null, idO
     const mobInstancia = JSON.parse(JSON.stringify(mobBase));
     mobInstancia.pvAtual = mobInstancia.atributos.pvMax; // Garante PV cheio no início
 
-    const idCombate = `<span class="math-inline">\{idJogador\}\_</span>{idMob}_${Date.now()}`;
+    const idCombate = `${idJogador}_${idMob}_${Date.now()}`;
     combatesAtivos[idCombate] = {
         idJogador: idJogador,
         fichaJogador: ficha, 
@@ -3680,8 +3680,8 @@ async function iniciarCombatePvE(idJogador, idMob, idMissaoVinculada = null, idO
         idCombate: idCombate, 
         mensagemInicial: combatesAtivos[idCombate].log[0],
         estadoCombate: { getEstadoCombateParaRetorno(combatesAtivos[idCombate])  
-    };
     }
+    };
 }
 
 async function processarTurnoMobCombate(idCombate) {
