@@ -3708,7 +3708,7 @@ async function processarTurnoMobCombate(idCombate) {
 
     fichaJogador.pvAtual = Math.max(0, fichaJogador.pvAtual - danoCausadoAoJogador);
     logDoTurno.push(`💢 ${mob.nome} ataca ${fichaJogador.nomePersonagem}, causando ${danoCausadoAoJogador} de dano!`);
-    logDoTurno.push(`❤️ ${fichaJogador.nomePersonagem} agora tem <span class="math-inline">\{fichaJogador\.pvAtual\}/</span>{fichaJogador.pvMax} PV.`);
+logDoTurno.push(\❤️ ${fichaJogador.nomePersonagem} agora tem ${fichaJogador.pvAtual}/${fichaJogador.pvMax} PV.`);`
     
     combate.log.push(...logDoTurno);
     await atualizarFichaNoCacheEDb(combate.idJogador, fichaJogador); // Salva o PV do jogador
@@ -3754,7 +3754,7 @@ async function processarAcaoJogadorCombate(idCombate, idJogadorAcao, tipoAcao = 
 
         mob.pvAtual = Math.max(0, mob.pvAtual - danoCausado);
         logDoTurno.push(`💥 ${fichaJogador.nomePersonagem} ataca ${mob.nome}, causando ${danoCausado} de dano!`);
-        logDoTurno.push(`🩸 ${mob.nome} agora tem <span class="math-inline">\{mob\.pvAtual\}/</span>{mob.atributos.pvMax} PV.`);
+        logDoTurno.push(\🩸 ${mob.nome} agora tem ${mob.pvAtual}/${mob.atributos.pvMax} PV.`);`
     } 
     // Futuramente: else if (tipoAcao === "USAR_FEITICO") { ... }
     // Futuramente: else if (tipoAcao === "USAR_ITEM") { ... }
