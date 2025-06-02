@@ -680,7 +680,9 @@ else if (interaction.isButton()) {
                     if (resultadoInicioCombate.sucesso) {
                         const jogadorEstado = resultadoInicioCombate.estadoCombate.jogador;
                         const mobEstado = resultadoInicioCombate.estadoCombate.mob;
-
+console.log(">>> [INDEX | Início Combate] resultadoInicioCombate.estadoCombate.mob (mobEstado) É:", mobEstado);
+    console.log(">>> [INDEX | Início Combate] mobEstado.nivel É:", mobEstado ? mobEstado.nivel : "mobEstado é undefined/null", "(Tipo:", mobEstado ? typeof mobEstado.nivel : "N/A", ")");
+                        
                         const nomeJogador = jogadorEstado.nome || (fichaJogador.nomePersonagem || "Jogador");
                         const pvAtualJogador = jogadorEstado.pvAtual;
                         const pvMaxJogador = jogadorEstado.pvMax;
@@ -691,7 +693,9 @@ else if (interaction.isButton()) {
                         const pvAtualMob = mobEstado.pvAtual;
                         const pvMaxMob = mobEstado.pvMax;
                         const nivelMob = mobEstado && typeof mobEstado.nivel === 'number' && mobEstado.nivel > 0 ? mobEstado.nivel : '?'; 
-
+console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED É:", nivelMob);
+                        
+                        
                         // Mensagem de descrição mais elaborada
                         let descricaoCombate = `📜 **Missão:** Infestação no Armazém\n\n`; // Exemplo, idealmente pegar o título da missão dinamicamente
                         descricaoCombate += `*${resultadoInicioCombate.mensagemInicial || "O combate começou!"}*\n\n`;
