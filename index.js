@@ -250,7 +250,9 @@ client.on('interactionCreate', async interaction => {
                         const racaNomeInput = options.getString('raca');
                         const classeNomeInput = options.getString('classe');
                         const reinoNomeInput = options.getString('reino');
-                        const resultadoCriacao = await Arcadia.processarCriarFichaSlash(senderId, senderUsername, nomePersonagem, racaNomeInput, classeNomeInput, reinoNomeInput);
+                        const imagemUrl = options.getString('imagem');
+                        
+                        const resultadoCriacao = await Arcadia.processarCriarFichaSlash(senderId, senderUsername, nomePersonagem, racaNomeInput, classeNomeInput, reinoNomeInput, imagemUrl);
 
                         // Lógica de cargos após criação
                         if (resultadoCriacao && typeof resultadoCriacao.setTitle === 'function' && resultadoCriacao.data && resultadoCriacao.data.title && resultadoCriacao.data.title.includes("🎉 Personagem Criado! 🎉")) {
