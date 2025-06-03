@@ -99,7 +99,8 @@ new SlashCommandBuilder().setName('uparfeitico')
         )
         .addStringOption(o => o.setName('reino').setDescription('O reino de origem do seu personagem.').setRequired(true)
             .addChoices(...formatChoicesFromArray(REINOS_ARCADIA))
-        ),
+        )
+    .addStringOption(o =>o.setName('imagem').setDescription('URL da imagem do personagem (opcional)').setRequired(false)),
 
     new SlashCommandBuilder().setName('ficha')
         .setDescription('Exibe a ficha do seu personagem ou de outro jogador (admin).')
