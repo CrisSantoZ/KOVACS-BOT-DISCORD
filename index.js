@@ -785,6 +785,18 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
 else if (tipoComponente === 'combate') {
     const acaoCombate = customIdParts[1]; 
 const idCombate = customIdParts.slice(2).join('_');
+// --- BEGIN: Checagem de jogador responsável pelo combate ---
+const combate = combatesAtivos && combatesAtivos[idCombate];
+if (!combate) {
+    await interaction.reply({ content: "Esse combate não está mais ativo!", ephemeral: true });
+    return;
+}
+if (interaction.user.id !== combate.idJogadorTurno) {
+    await interaction.reply({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
+    return;
+}
+// --- END: Checagem de jogador responsável pelo combate ---
+    
     let resultadoAcaoJogador; // Declarada aqui, mas só será usada significativamente se a ação for válida
 
     if (acaoCombate === 'ATAQUEBASICO') {
@@ -809,6 +821,7 @@ const idCombate = customIdParts.slice(2).join('_');
                 return;
             }
 
+            
             // Se chegou aqui, resultadoAcaoJogador é válido e não tem erro direto da ação.
             // Montar o embed atualizado
             const jogadorEstadoAcao = resultadoAcaoJogador.estadoCombate.jogador;
@@ -1098,6 +1111,18 @@ else if (interaction.isStringSelectMenu()) {
         const idFeiticoEscolhido = interaction.values[0];
         const senderIdButton = interaction.user.id;
 
+        // --- BEGIN: Checagem de jogador responsável pelo combate ---
+const combate = combatesAtivos && combatesAtivos[idCombate];
+if (!combate) {
+    await interaction.reply({ content: "Esse combate não está mais ativo!", ephemeral: true });
+    return;
+}
+if (interaction.user.id !== combate.idJogadorTurno) {
+    await interaction.reply({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
+    return;
+}
+// --- END: Checagem de jogador responsável pelo combate ---
+
         // Executa o feitiço escolhido
         const resultado = await Arcadia.processarAcaoJogadorCombate(idCombate, senderIdButton, "USAR_FEITICO", { idFeitico: idFeiticoEscolhido });
 
@@ -1113,6 +1138,18 @@ else if (interaction.isStringSelectMenu()) {
             }
             return;
         }
+
+        // --- BEGIN: Checagem de jogador responsável pelo combate ---
+const combate = combatesAtivos && combatesAtivos[idCombate];
+if (!combate) {
+    await interaction.reply({ content: "Esse combate não está mais ativo!", ephemeral: true });
+    return;
+}
+if (interaction.user.id !== combate.idJogadorTurno) {
+    await interaction.reply({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
+    return;
+}
+// --- END: Checagem de jogador responsável pelo combate ---
 
         // Atualiza embed de combate (igual Ataque Básico)
         const jogadorEstadoAcao = resultado.estadoCombate.jogador;
@@ -1204,7 +1241,7 @@ else if (interaction.isStringSelectMenu()) {
                 return;
             }
         }
-
+        
         // Se o combate continua e é turno do jogador, mostrar botões de ação novamente
         const combatActionRowContinuacao = new ActionRowBuilder()
             .addComponents(
