@@ -1139,18 +1139,6 @@ if (interaction.user.id !== combate.idJogadorTurno) {
             return;
         }
 
-        // --- BEGIN: Checagem de jogador responsável pelo combate ---
-const combate = combatesAtivos && combatesAtivos[idCombate];
-if (!combate) {
-    await interaction.reply({ content: "Esse combate não está mais ativo!", ephemeral: true });
-    return;
-}
-if (interaction.user.id !== combate.idJogadorTurno) {
-    await interaction.reply({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
-    return;
-}
-// --- END: Checagem de jogador responsável pelo combate ---
-
         // Atualiza embed de combate (igual Ataque Básico)
         const jogadorEstadoAcao = resultado.estadoCombate.jogador;
         const mobEstadoAcao = resultado.estadoCombate.mob;
