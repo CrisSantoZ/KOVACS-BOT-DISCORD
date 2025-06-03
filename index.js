@@ -920,7 +920,7 @@ const idCombate = customIdParts.slice(2).join('_');
             const combatActionRowContinuacao = new ActionRowBuilder()
                 .addComponents(
                     new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${idCombate}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
-                    new ButtonBuilder().setCustomId(`combate_USARFEITICO_${idCombate}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary).setDisabled(true),
+                    new ButtonBuilder().setCustomId(`combate_USARFEITICO_${idCombate}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
                     new ButtonBuilder().setCustomId(`combate_USARITEM_${idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
                 );
             await interaction.editReply({ embeds: [embedCombateAtualizado], components: [combatActionRowContinuacao] });
