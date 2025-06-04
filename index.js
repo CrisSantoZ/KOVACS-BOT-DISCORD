@@ -408,7 +408,7 @@ if (resultadoInteracao.dialogoAtual.respostasJogador && resultadoInteracao.dialo
         actionRow.addComponents(
             new ButtonBuilder()
                 // ADICIONE "CONTINUAR" AQUI E USE MAIÚSCULAS PARA A AÇÃO
-                .setCustomId(`dialogo_CONTINUAR_${resultadoInteracao.npcId}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}`)
+                .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
                 .setLabel(opcao.textoResposta.substring(0, 80))
                 .setStyle(ButtonStyle.Primary)
         );
@@ -421,7 +421,7 @@ if (resultadoInteracao.dialogoAtual.ofereceMissao && !resultadoInteracao.missaoR
                                 if ((!missaoLog || (missaoLog.status !== 'aceita' && missaoLog.status !== 'concluida')) && actionRow.components.length < 5) {
                                     actionRow.addComponents(
                                         new ButtonBuilder()
-                                            .setCustomId(`missao_ACEITAR_${resultadoInteracao.npcId}_${resultadoInteracao.dialogoAtual.ofereceMissao}`)
+                                            .setCustomId(`missao_ACEITAR_${idNpc}_${resultadoInteracao.dialogoAtual.ofereceMissao}_${interaction.user.id}`)
                                             .setLabel("Aceitar Missão")
                                             .setStyle(ButtonStyle.Success)
                                     );
@@ -433,7 +433,7 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
      actionRow.addComponents(
         new ButtonBuilder()
             // USE "ENCERRAR" EM MAIÚSCULAS
-            .setCustomId(`dialogo_ENCERRAR_${resultadoInteracao.npcId}_${resultadoInteracao.dialogoAtual.idDialogo}`)
+            .setCustomId(`dialogo_ENCERRAR_${idNpc}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
             .setLabel(temOpcoesParaBotoes && resultadoInteracao.dialogoAtual.encerraDialogo ? "Finalizar" : "Encerrar Conversa")
             .setStyle(ButtonStyle.Secondary)
     );
@@ -601,7 +601,7 @@ else if (interaction.isButton()) {
                         resultadoInteracao.dialogoAtual.respostasJogador.slice(0, 4).forEach(opcao => {
                             novaActionRow.addComponents(
                                 new ButtonBuilder()
-                                    .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}`)
+                                    .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
                                     .setLabel(opcao.textoResposta.substring(0, 80))
                                     .setStyle(ButtonStyle.Primary)
                             );
@@ -614,7 +614,7 @@ else if (interaction.isButton()) {
                         if ((!missaoLog || (missaoLog.status !== 'aceita' && missaoLog.status !== 'concluida')) && novaActionRow.components.length < 5 ) {
                              novaActionRow.addComponents(
                                 new ButtonBuilder()
-                                    .setCustomId(`missao_ACEITAR_${idNpc}_${resultadoInteracao.dialogoAtual.ofereceMissao}`)
+                                    .setCustomId(`missao_ACEITAR_${idNpc}_${resultadoInteracao.dialogoAtual.ofereceMissao}_${interaction.user.id}`)
                                     .setLabel("Aceitar Missão")
                                     .setStyle(ButtonStyle.Success)
                             );
