@@ -720,7 +720,8 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                             .setTitle(`⚔️ COMBATE IMINENTE! ⚔️`)
                             .setDescription(descricaoCombate)
                             if (mobEstado.imagem) embedCombate.setThumbnail(mobEstado.imagem);
-                            .addFields(
+                            
+                        embedCombate.addFields(
     { 
         name: `👤 ${nomeJogador}`, 
         // V---- Verifique estas linhas com atenção ----V
