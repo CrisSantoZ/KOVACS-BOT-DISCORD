@@ -3363,6 +3363,9 @@ async function processarVerFichaEmbed(idAlvoDiscord, isAdminConsultandoOutro, id
 
             { name: '💰 Moedas', value: `🪙 ${ficha.florinsDeOuro || 0} Florins de Ouro\n💎 ${ficha.essenciaDeArcadia || 0} Essências de Arcádia`, inline: false }
         );
+    if (ficha.imagem) {
+        embed.setThumbnail(ficha.imagem);
+    }
 
     let atributosStr = "";
     if (ficha.atributos) {
