@@ -564,6 +564,16 @@ else if (interaction.isButton()) {
     const senderIdButton = interaction.user.id;
     const fichaJogador = await Arcadia.getFichaOuCarregar(senderIdButton);
 
+// Checagem de autorização para diálogo/missão
+const idJogadorAutorizado = customIdParts[customIdParts.length - 1];
+if (
+    (tipoComponente === 'dialogo' || tipoComponente === 'missao') &&
+    interaction.user.id !== idJogadorAutorizado
+) {
+    await interaction.reply({ content: "Apenas quem iniciou a interação pode clicar aqui.", ephemeral: true });
+    return;
+}
+    
     if (!fichaJogador) {
         await interaction.editReply({ content: "Sua ficha não foi encontrada para continuar a interação.", embeds: [], components: [] });
         return;
