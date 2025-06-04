@@ -625,7 +625,7 @@ else if (interaction.isButton()) {
                     if (novaActionRow.components.length < 5 && (!novasOpcoes || resultadoInteracao.dialogoAtual.encerraDialogo)) {
                          novaActionRow.addComponents(
                             new ButtonBuilder()
-                                .setCustomId(`dialogo_ENCERRAR_${idNpc}_${resultadoInteracao.dialogoAtual.idDialogo}`)
+                                .setCustomId(`dialogo_ENCERRAR_${idNpc}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
                                 .setLabel(novasOpcoes && resultadoInteracao.dialogoAtual.encerraDialogo ? "Finalizar" : "Encerrar Conversa")
                                 .setStyle(ButtonStyle.Secondary)
                         );
@@ -756,7 +756,7 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                             novoDialogoPosAceite.dialogoAtual.respostasJogador.slice(0,4).forEach(opcao => {
                                 proximaActionRow.addComponents(
                                     new ButtonBuilder()
-                                        .setCustomId(`dialogo_CONTINUAR_${idNpcMissao}_${opcao.levaParaDialogoId || 'sem_acao'}_${novoDialogoPosAceite.dialogoAtual.idDialogo}`)
+                                        .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${novoDialogoPosAceite.dialogoAtual.idDialogo}_${interaction.user.id}`)
                                         .setLabel(opcao.textoResposta.substring(0,80))
                                         .setStyle(ButtonStyle.Primary)
                                 );
@@ -766,7 +766,7 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                          if (proximaActionRow.components.length < 5 && (!temProximasOpcoes || novoDialogoPosAceite.dialogoAtual.encerraDialogo)) {
                             proximaActionRow.addComponents(
                                 new ButtonBuilder()
-                                    .setCustomId(`dialogo_ENCERRAR_${idNpcMissao}_${novoDialogoPosAceite.dialogoAtual.idDialogo}`)
+                                    .setCustomId(`dialogo_ENCERRAR_${idNpc}_${novoDialogoPosAceite.dialogoAtual.idDialogo}_${interaction.user.id}`)
                                     .setLabel("Encerrar Conversa")
                                     .setStyle(ButtonStyle.Secondary)
                             );
