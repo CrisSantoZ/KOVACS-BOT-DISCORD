@@ -3927,7 +3927,8 @@ function getEstadoCombateParaRetorno(combate) {
             nome: combate.mobInstancia.nome, 
             pvAtual: combate.mobInstancia.pvAtual, 
             pvMax: combate.mobInstancia.atributos.pvMax,
-            nivel: combate.mobInstancia.nivel
+            nivel: combate.mobInstancia.nivel,
+            imagem: combate.mobInstancia.imagem
         }
     };
 }
@@ -4690,6 +4691,7 @@ if (escapedName.length > 0) {
             idNPC: npcData._id,
             nomeNPC: npcData.nome,
             tituloNPC: npcData.titulo,
+            imagem: npcData.imagem,
             descricaoVisualNPC: npcData.descricaoVisual,
             dialogoAtual: dialogoParaMostrar,
             recompensasConcedidasTexto: recompensasConcedidasLinhas, // Novo campo para o index.js usar
@@ -4916,6 +4918,7 @@ async function aceitarMissao(idJogador, idMissao, idNpcQueOfereceu) {
     const novaEntradaLogMissao = {
         idMissao: idMissao,
         tituloMissao: definicaoMissao.titulo,
+        imagemMissao: missaoData.imagem,
         status: "aceita",
         dataInicio: new Date().toISOString(),
         objetivos: definicaoMissao.objetivos.map(objDef => ({ // Copia os objetivos da definição da missão
