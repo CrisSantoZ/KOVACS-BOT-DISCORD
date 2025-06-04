@@ -4918,7 +4918,7 @@ async function aceitarMissao(idJogador, idMissao, idNpcQueOfereceu) {
     const novaEntradaLogMissao = {
         idMissao: idMissao,
         tituloMissao: definicaoMissao.titulo,
-        imagemMissao: missaoData.imagem,
+        imagemMissao: definicaoMissao.imagem,
         status: "aceita",
         dataInicio: new Date().toISOString(),
         objetivos: definicaoMissao.objetivos.map(objDef => ({ // Copia os objetivos da definição da missão
