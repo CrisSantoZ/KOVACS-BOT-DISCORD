@@ -388,6 +388,8 @@ if (resultadoInteracao.erro) {
                             if (resultadoInteracao.descricaoVisualNPC) {
                                 embedNPC.setDescription(resultadoInteracao.descricaoVisualNPC);
                             }
+    if (resultadoInteracao.imagem) embedNPC.setThumbnail(resultadoInteracao.imagem);
+    if (resultadoInteracao.imagemMissao) embedNPC.setImage(resultadoInteracao.imagemMissao);
 
                             embedNPC.addFields({ name: "Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*Este personagem não diz nada no momento.*" });
 
@@ -717,7 +719,7 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                             .setColor(0xDC143C) // Um vermelho mais "sangue" (Crimson)
                             .setTitle(`⚔️ COMBATE IMINENTE! ⚔️`)
                             .setDescription(descricaoCombate)
-                            // .setThumbnail("URL_DE_UMA_IMAGEM_DE_ESPADA_GENERICA_OU_LOGO") // Opcional: adicione uma imagem
+                            if (mobEstado.imagem) embedCombate.setThumbnail(mobEstado.imagem);
                             .addFields(
     { 
         name: `👤 ${nomeJogador}`, 
