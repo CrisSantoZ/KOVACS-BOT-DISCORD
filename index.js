@@ -376,7 +376,8 @@ client.on('interactionCreate', async interaction => {
                         }
 
                         const resultadoInteracao = await Arcadia.processarInteracaoComNPC(nomeNPCInput, fichaJogador); // Passa ficha para lógica de condições
-
+const idNpc = resultadoInteracao.idNPC || resultadoInteracao.idNpc || resultadoInteracao.nomeNPC || resultadoInteracao.nomeNpc;
+                        
 if (resultadoInteracao.erro) {
                             await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Interação Falhou", resultadoInteracao.erro)] });
                         } else {
