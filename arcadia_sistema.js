@@ -4682,7 +4682,7 @@ async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspe
         // ---- FIM DA LÓGICA DE FINALIZAÇÃO DE MISSÃO ----
 
         return {
-            npcId: npcData._id,
+            idNPC: npcData._id,
             nomeNPC: npcData.nome,
             tituloNPC: npcData.titulo,
             descricaoVisualNPC: npcData.descricaoVisual,
