@@ -147,6 +147,15 @@ new SlashCommandBuilder().setName('uparfeitico')
         .addStringOption(o => o.setName('item').setDescription('O nome exato do item a ser usado (comece a digitar).').setRequired(true).setAutocomplete(true))
         .addIntegerOption(o => o.setName('quantidade').setDescription('Quantos usar (Padrão: 1).').setMinValue(1).setRequired(false)),
 
+new SlashCommandBuilder().setName('interagir')
+    .setDescription('Interage com um personagem (NPC) em Arcádia.')
+    .addStringOption(option =>
+        option.setName('npc')
+            .setDescription('O nome do NPC com quem você quer falar.')
+            .setRequired(true)
+            .setAutocomplete(true)
+    ),
+    
 
     // --- Comandos de Admin ---
     new SlashCommandBuilder().setName('admincriar')
