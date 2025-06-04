@@ -4514,14 +4514,19 @@ async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspe
         } else {
             // Se não há idDialogoEspecifico, é uma interação inicial via /interagir,
             // então nomeOuIdNPC é o NOME do NPC.
-            const escapedName = inputOriginal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            if (escapedName && escapedName.length > 0) {
-                query = { nome: new RegExp(`^${escapedName}$`, 'i') };
-                console.log(`[DEBUG] Buscando NPC por NOME (interação inicial): "${escapedName}"`);
-            } else {
-                console.error(`[DEBUG] ERRO: Nome do NPC para busca inicial está vazio ou inválido! Input original era: "${nomeOuIdNPC}"`);
-                return { erro: `Nome do NPC fornecido é inválido ou vazio.` };
-            }
+            const inputOriginal = String(nomeOuIdNPC || '').trim();
+if (!inputOriginal) {
+    console.error(`[DEBUG] ERRO: Nome do NPC para busca inicial está vazio ou inválido! Input original era: "${nomeOuIdNPC}"`);
+    return { erro: `Nome do NPC fornecido é inválido ou vazio.` };
+}
+const escapedName = inputOriginal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+if (escapedName.length > 0) {
+    query = { nome: new RegExp(`^${escapedName}$`, 'i') };
+    console.log(`[DEBUG] Buscando NPC por NOME (interação inicial): "${escapedName}"`);
+} else {
+    console.error(`[DEBUG] ERRO: Nome do NPC para busca inicial está vazio ou inválido! Input original era: "${nomeOuIdNPC}"`);
+    return { erro: `Nome do NPC fornecido é inválido ou vazio.` };
+}
         }
         
         console.log(`[processarInteracaoComNPC] Query MongoDB final: ${JSON.stringify(query)}`);
