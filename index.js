@@ -965,7 +965,7 @@ if (interaction.user.id !== combate.idJogadorTurno) {
             await interaction.editReply({ content: "Ocorreu um erro crítico severo ao processar seu ataque.", components: [], embeds:[] });
             // Considerar finalizar o combate aqui ou notificar o DM
             if (idCombate && combatesAtivos[idCombate]) { // Tenta limpar o combate ativo se possível
-                delete combatesAtivos[idCombate];
+    
                  console.log(`[COMBATE PvE] Combate ${idCombate} deletado devido a erro crítico no processamento da ação do jogador.`);
             }
             return; 
