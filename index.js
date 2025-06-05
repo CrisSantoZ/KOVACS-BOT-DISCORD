@@ -5,7 +5,6 @@ require('dotenv').config();
 const Arcadia = require('./arcadia_sistema.js');
 
 const combatesAtivos = {};
-console.log("[DEBUG] Novo processo iniciado, combatesAtivos está vazio.");
 
 process.on('unhandledRejection', error => {
     console.error('GRAVE: Unhandled promise rejection:', error);
@@ -564,23 +563,24 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
 
 // --- TRATAMENTO DE INTERAÇÕES DE BOTÃO ---
 else if (interaction.isButton()) {
+    await interaction.deferUpdate(); // Acknowledge a interação rapidamente
     const customIdParts = interaction.customId.split('_');
     const tipoComponente = customIdParts[0];
     const senderIdButton = interaction.user.id;
     const fichaJogador = await Arcadia.getFichaOuCarregar(senderIdButton);
-    
+
 // Checagem de autorização para diálogo/missão
 const idJogadorAutorizado = customIdParts[customIdParts.length - 1];
-    if (
-        (tipoComponente === 'dialogo' || tipoComponente === 'missao') &&
-        interaction.user.id !== idJogadorAutorizado
-    ) {
-        await interaction.reply({ content: "Apenas quem iniciou a interação pode clicar aqui.", ephemeral: true });
-        return;
-    }
+if (
+    (tipoComponente === 'dialogo' || tipoComponente === 'missao') &&
+    interaction.user.id !== idJogadorAutorizado
+) {
+    await interaction.reply({ content: "Apenas quem iniciou a interação pode clicar aqui.", ephemeral: true });
+    return;
+}
     
     if (!fichaJogador) {
-        await interaction.followUp({ content: "Sua ficha não foi encontrada para continuar a interação.", embeds: [], components: [] });
+        await interaction.editReply({ content: "Sua ficha não foi encontrada para continuar a interação.", embeds: [], components: [] });
         return;
     }
 
@@ -593,14 +593,14 @@ const idJogadorAutorizado = customIdParts[customIdParts.length - 1];
             const idDialogoOriginal = customIdParts[4]; 
 
             if (acaoDialogo === 'ENCERRAR' || (acaoDialogo === 'CONTINUAR' && idParametro3 === 'sem_acao')) {
-                await interaction.followUp({ content: "Conversa encerrada.", embeds: [], components: [] });
+                await interaction.editReply({ content: "Conversa encerrada.", embeds: [], components: [] });
                 return;
             } else if (acaoDialogo === 'CONTINUAR') {
                 const idProximoDialogo = idParametro3; 
                 const resultadoInteracao = await Arcadia.processarInteracaoComNPC(idNpc, fichaJogador, idProximoDialogo);
 
                 if (resultadoInteracao.erro) {
-                    await interaction.followUp({ embeds: [Arcadia.gerarEmbedAviso("Interação Falhou", resultadoInteracao.erro)], components: [] });
+                    await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Interação Falhou", resultadoInteracao.erro)], components: [] });
                 } else {
                     const embedNPC = new EmbedBuilder()
                         .setColor(0x7289DA)
@@ -645,10 +645,10 @@ const idJogadorAutorizado = customIdParts[customIdParts.length - 1];
                                 .setStyle(ButtonStyle.Secondary)
                         );
                     }
-                    await interaction.followUp({ embeds: [embedNPC], components: novaActionRow.components.length > 0 ? [novaActionRow] : [] });
+                    await interaction.editReply({ embeds: [embedNPC], components: novaActionRow.components.length > 0 ? [novaActionRow] : [] });
                 }
             } else {
-                 await interaction.followUp({ content: `Ação de diálogo "${customIdParts[1]}" não reconhecida. Verifique o formato do customId.`, embeds:[], components: [] });
+                 await interaction.editReply({ content: `Ação de diálogo "${customIdParts[1]}" não reconhecida. Verifique o formato do customId.`, embeds:[], components: [] });
             }
         } // FECHA if (tipoComponente === 'dialogo')
         
@@ -671,7 +671,7 @@ const idJogadorAutorizado = customIdParts[customIdParts.length - 1];
                         const missoesCol = Arcadia.getMissoesCollection(); 
                         if (!missoesCol) {
                             console.error("ERRO GRAVE no index.js: getMissoesCollection() retornou undefined!");
-                            await interaction.followUp({ embeds: [Arcadia.gerarEmbedErro("Erro de Sistema", "Não foi possível acessar os dados da missão.")] });
+                            await interaction.editReply({ embeds: [Arcadia.gerarEmbedErro("Erro de Sistema", "Não foi possível acessar os dados da missão.")] });
                             return; 
                         }
                         const missaoDef = await missoesCol.findOne({ _id: "mVRatos" });
@@ -694,9 +694,6 @@ const idJogadorAutorizado = customIdParts[customIdParts.length - 1];
                             iniciarCombateInfo.idObjetivo
                         );
 
-combatesAtivos[resultadoInicioCombate.idCombate] = resultadoInicioCombate.objetoCombate;
-console.log("[DEBUG] Combate salvo:", resultadoInicioCombate.idCombate, Object.keys(combatesAtivos));
-                        
                     if (resultadoInicioCombate.sucesso) {
                         const jogadorEstado = resultadoInicioCombate.estadoCombate.jogador;
                         const mobEstado = resultadoInicioCombate.estadoCombate.mob;
@@ -804,16 +801,16 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
 
         // "else if (tipoComponente === 'combate') { ... }"
 else if (tipoComponente === 'combate') {
-    const acaoCombate = customIdParts.slice(1, -1).join('_');
-const idCombate = customIdParts[customIdParts.length - 1];
+    const acaoCombate = customIdParts[1]; 
+const idCombate = customIdParts.slice(2).join('_');
 // --- BEGIN: Checagem de jogador responsável pelo combate ---
 const combate = combatesAtivos && combatesAtivos[idCombate];
 if (!combate) {
-    await interaction.followUp({ content: "Esse combate não está mais ativo!", ephemeral: true });
+    await interaction.reply({ content: "Esse combate não está mais ativo!", ephemeral: true });
     return;
 }
 if (interaction.user.id !== combate.idJogadorTurno) {
-    await interaction.followUp({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
+    await interaction.reply({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
     return;
 }
 // --- END: Checagem de jogador responsável pelo combate ---
@@ -830,14 +827,14 @@ if (interaction.user.id !== combate.idJogadorTurno) {
             // Esta verificação é crucial: garante que resultadoAcaoJogador é um objeto antes de acessar suas propriedades
             if (!resultadoAcaoJogador || typeof resultadoAcaoJogador !== 'object') {
                 console.error(">>> [INDEX] ERRO: processarAcaoJogadorCombate não retornou um objeto válido. Retorno:", resultadoAcaoJogador);
-                await interaction.followUp({ content: "Ocorreu um erro crítico ao processar a ação de combate (retorno inesperado).", components: [], embeds: [] });
+                await interaction.editReply({ content: "Ocorreu um erro crítico ao processar a ação de combate (retorno inesperado).", components: [], embeds: [] });
                 return;
             }
 
             if (resultadoAcaoJogador.erro) {
-                await interaction.editReply({ content: `Erro na ação: ${resultadoAcaoJogador.erro}`, ephemeral: true });
+                await interaction.followUp({ content: `Erro na ação: ${resultadoAcaoJogador.erro}`, ephemeral: true });
                 if (resultadoAcaoJogador.combateTerminou) {
-                     await interaction.followUp({ content: `Combate encerrado devido a um erro: ${resultadoAcaoJogador.erro}`, embeds: [], components: [] });
+                     await interaction.editReply({ content: `Combate encerrado devido a um erro: ${resultadoAcaoJogador.erro}`, embeds: [], components: [] });
                 }
                 return;
             }
@@ -884,7 +881,7 @@ if (interaction.user.id !== combate.idJogadorTurno) {
                 } else {
                      embedCombateAtualizado.addFields({ name: "Recompensas", value: "Nenhuma recompensa específica." });
                 }
-                await interaction.followUp({ embeds: [embedCombateAtualizado], components: [] });
+                await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
                 return;
             }
 
@@ -965,7 +962,7 @@ if (interaction.user.id !== combate.idJogadorTurno) {
             await interaction.editReply({ content: "Ocorreu um erro crítico severo ao processar seu ataque.", components: [], embeds:[] });
             // Considerar finalizar o combate aqui ou notificar o DM
             if (idCombate && combatesAtivos[idCombate]) { // Tenta limpar o combate ativo se possível
-    
+                delete combatesAtivos[idCombate];
                  console.log(`[COMBATE PvE] Combate ${idCombate} deletado devido a erro crítico no processamento da ação do jogador.`);
             }
             return; 
