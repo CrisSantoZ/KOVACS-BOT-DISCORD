@@ -585,30 +585,14 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
 
 // --- TRATAMENTO DE INTERAÇÕES DE BOTÃO ---
 else if (interaction.isButton()) {
-    try {
-        await interaction.deferUpdate(); // Acknowledge a interação rapidamente
-    } catch (error) {
-        console.error("[BOTÃO] Erro ao fazer deferUpdate:", error.message);
-        return; // Se não conseguiu defer, para por aqui para evitar mais erros
-    }
-
+    await interaction.deferUpdate(); // Acknowledge a interação rapidamente
     const customIdParts = interaction.customId.split('_');
     const tipoComponente = customIdParts[0];
     const senderIdButton = interaction.user.id;
     const fichaJogador = await Arcadia.getFichaOuCarregar(senderIdButton);
 
-// Checagem de autorização para diálogo/missão
-const idJogadorAutorizado = customIdParts[customIdParts.length - 1];
-if (
-    (tipoComponente === 'dialogo' || tipoComponente === 'missao') &&
-    interaction.user.id !== idJogadorAutorizado
-) {
-    await interaction.followUp({ content: "Apenas quem iniciou a interação pode clicar aqui.", ephemeral: true });
-    return;
-}
-
     if (!fichaJogador) {
-        await interaction.followUp({ content: "Sua ficha não foi encontrada para continuar a interação.", embeds: [], components: [] });
+        await interaction.editReply({ content: "Sua ficha não foi encontrada para continuar a interação.", embeds: [], components: [] });
         return;
     }
 
@@ -838,66 +822,17 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
             }
         } // <<<<<<<<<<<< FECHA O "else if (tipoComponente === 'missao')"
 
-        // "else if (tipoComponente === 'combate') { ... }"
-else if (tipoComponente === 'combate') {
+        else if (tipoComponente === 'combate') {
     const acaoCombate = customIdParts[1]; 
-    // O idCombate é formado por: idJogador_idMob_timestamp, então juntamos as partes restantes
-    let idCombate = customIdParts.slice(2).join('_').trim(); // Limpeza de espaços
+    const idCombate = customIdParts.slice(2).join('_');
 // --- BEGIN: Checagem de jogador responsável pelo combate ---
-console.log(`[DEBUG] CustomId completo: "${interaction.customId}"`);
-console.log(`[DEBUG] CustomIdParts:`, customIdParts);
-console.log(`[DEBUG] IdCombate extraído: "${idCombate}"`);
-console.log(`[DEBUG] Comprimento do idCombate: ${idCombate.length}`);
-console.log(`[DEBUG] Verificando combate ${idCombate}. Combates ativos:`, Object.keys(combatesAtivos));
-
-// Busca mais robusta do combate
-let combate = null;
-const idsDisponiveis = Object.keys(combatesAtivos);
-
-console.log(`[DEBUG COMBATE] Procurando combate: "${idCombate}"`);
-console.log(`[DEBUG COMBATE] IDs disponíveis:`, idsDisponiveis);
-console.log(`[DEBUG COMBATE] Total de combates ativos:`, idsDisponiveis.length);
-
-// Primeiro, tentativa direta
-if (combatesAtivos.hasOwnProperty(idCombate)) {
-    combate = combatesAtivos[idCombate];
-    console.log(`[DEBUG COMBATE] ✅ Combate encontrado diretamente: "${idCombate}"`);
-} else {
-    // Busca alternativa - procura por correspondência de partes do ID
-    console.log(`[DEBUG COMBATE] ❌ Busca direta falhou, tentando busca alternativa...`);
-    console.log(`[DEBUG COMBATE] Partes do customId:`, customIdParts);
-
-    for (const [key, value] of Object.entries(combatesAtivos)) {
-        console.log(`[DEBUG COMBATE] Comparando "${key}" com "${idCombate}"`);
-        if (key === idCombate || (customIdParts.length >= 5 && key.includes(customIdParts[2]) && key.includes(customIdParts[3]) && key.includes(customIdParts[4]))) {
-            console.log(`[DEBUG COMBATE] ✅ Combate encontrado por busca alternativa: ${key}`);
-            combate = value;
-            idCombate = key; // Atualiza o ID para o correto
-            break;
-        }
-    }
-
-    if (!combate) {
-        console.log(`[DEBUG COMBATE] ❌ Nenhum combate encontrado com nenhum método`);
-    }
-}
-
-// Verificação final
+const combate = combatesAtivos && combatesAtivos[idCombate];
 if (!combate) {
-    console.log(`[DEBUG COMBATE] ❌ ERRO: Combate ${idCombate} não encontrado nos combates ativos`);
-    console.log(`[DEBUG COMBATE] IDs disponíveis:`, idsDisponiveis);
-    try {
-        await interaction.followUp({ content: "Esse combate não está mais ativo!", ephemeral: true });
-    } catch (followUpError) {
-        console.error("[COMBATE] Erro ao responder sobre combate inativo:", followUpError.message);
-    }
+    await interaction.reply({ content: "Esse combate não está mais ativo!", ephemeral: true });
     return;
-} else {
-    console.log(`[DEBUG COMBATE] ✅ Combate válido encontrado e será usado`);
 }
-console.log(`[DEBUG] Combate encontrado. Jogador do turno: ${combate.idJogadorTurno}, Jogador atual: ${interaction.user.id}`);
 if (interaction.user.id !== combate.idJogadorTurno) {
-    await interaction.followUp({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
+    await interaction.reply({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
     return;
 }
 // --- END: Checagem de jogador responsável pelo combate ---
@@ -919,11 +854,9 @@ if (interaction.user.id !== combate.idJogadorTurno) {
             }
 
             if (resultadoAcaoJogador.erro) {
-                console.error(`[DEBUG] Erro na ação do jogador: ${resultadoAcaoJogador.erro}`);
                 await interaction.followUp({ content: `Erro na ação: ${resultadoAcaoJogador.erro}`, ephemeral: true });
                 if (resultadoAcaoJogador.combateTerminou) {
-                    delete combatesAtivos[idCombate];
-                    await interaction.followUp({ content: `Combate encerrado devido a um erro: ${resultadoAcaoJogador.erro}`, embeds: [], components: [] });
+                     await interaction.editReply({ content: `Combate encerrado devido a um erro: ${resultadoAcaoJogador.erro}`, embeds: [], components: [] });
                 }
                 return;
             }
@@ -960,21 +893,17 @@ if (interaction.user.id !== combate.idJogadorTurno) {
 
             if (resultadoAcaoJogador.mobDerrotado) {
                 console.log(`>>> [INDEX | Combate Action] Mob derrotado. Chamando finalizarCombate para idCombate: ${idCombate}`);
-                const eUltimoMobDaMissao = resultadoAcaoJogador.dadosParaFinalizar ? resultadoAcaoJogador.dadosParaFinalizar.eUltimoMobDaMissao : false;
-                const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true, eUltimoMobDaMissao);
+                const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true, resultadoAcaoJogador.dadosParaFinalizar.eUltimoMobDaMissao); // Presume que eUltimoMobDaMissao está vindo corretamente
                 console.log(">>> [INDEX | Combate Action] Retorno de finalizarCombate:", JSON.stringify(resultadoFinal, null, 2));
 
-                // Remove o combate dos ativos
-                delete combatesAtivos[idCombate];
-
                 embedCombateAtualizado.setTitle("🏆 Vitória! 🏆");
-                embedCombateAtualizado.setDescription((resultadoFinal.logCombateFinal || logCombateAtualizado).join('\n'));
+                embedCombateAtualizado.setDescription((resultadoFinal.logCombateFinal || logCombateAtualizado).join('\n')); // Usa logCombateFinal se existir
                 if (resultadoFinal.recompensasTextoFinal && resultadoFinal.recompensasTextoFinal.length > 0) {
                     embedCombateAtualizado.addFields({ name: "Recompensas", value: resultadoFinal.recompensasTextoFinal.join('\n') });
                 } else {
                      embedCombateAtualizado.addFields({ name: "Recompensas", value: "Nenhuma recompensa específica." });
                 }
-                await interaction.followUp({ embeds: [embedCombateAtualizado], components: [] });
+                await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
                 return;
             }
 
@@ -1020,11 +949,8 @@ if (interaction.user.id !== combate.idJogadorTurno) {
 
                 if (resultadoTurnoMob.combateTerminou && resultadoTurnoMob.vencedorFinal === "mob") { 
                     embedCombateAtualizado.setTitle("☠️ Derrota... ☠️");
-                    // Remove o combate dos ativos
-                    delete combatesAtivos[idCombate];
-                    console.log(`[DEBUG] Combate ${idCombate} removido - jogador derrotado`);
-
-                    if (resultadoTurnoMob.logCombateFinal) {
+                    // A descrição já foi atualizada com o log do turno do mob, que deve incluir a derrota do jogador
+                    if (resultadoTurnoMob.logCombateFinal) { // Se finalizarCombate foi chamado dentro de processarTurnoMob
                          embedCombateAtualizado.setDescription((resultadoTurnoMob.logCombateFinal).join('\n'));
                     }
                     await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
@@ -1044,12 +970,11 @@ if (interaction.user.id !== combate.idJogadorTurno) {
             } // Fecha if (resultadoAcaoJogador.proximoTurno === 'mob')
 
             // Se o combate continua e é turno do jogador, mostrar botões de ação novamente
-            let combateIdFinal = idCombate;
             const combatActionRowContinuacao = new ActionRowBuilder()
                 .addComponents(
-                    new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${combateIdFinal}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
-                    new ButtonBuilder().setCustomId(`combate_USARFEITICO_${combateIdFinal}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
-                    new ButtonBuilder().setCustomId(`combate_USARITEM_${combateIdFinal}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
+                    new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${idCombate}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
+                    new ButtonBuilder().setCustomId(`combate_USARFEITICO_${idCombate}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
+                    new ButtonBuilder().setCustomId(`combate_USARITEM_${idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
                 );
             await interaction.editReply({ embeds: [embedCombateAtualizado], components: [combatActionRowContinuacao] });
             // --- FIM DA LÓGICA DE PROCESSAMENTO DO RESULTADO DA AÇÃO DO JOGADOR ---
