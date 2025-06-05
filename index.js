@@ -585,20 +585,27 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
 
 // --- TRATAMENTO DE INTERAÇÕES DE BOTÃO ---
 else if (interaction.isButton()) {
-    await interaction.deferUpdate(); // Acknowledge a interação rapidamente
+    // Não fazer deferUpdate aqui - vamos fazer apenas quando necessário
     const customIdParts = interaction.customId.split('_');
     const tipoComponente = customIdParts[0];
     const senderIdButton = interaction.user.id;
     const fichaJogador = await Arcadia.getFichaOuCarregar(senderIdButton);
 
     if (!fichaJogador) {
-        await interaction.editReply({ content: "Sua ficha não foi encontrada para continuar a interação.", embeds: [], components: [] });
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ content: "Sua ficha não foi encontrada para continuar a interação.", embeds: [], components: [], ephemeral: true });
+        }
         return;
     }
 
     try { 
 
         if (tipoComponente === 'dialogo') {
+            // Fazer deferUpdate apenas para diálogos
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.deferUpdate();
+            }
+            
             const acaoDialogo = customIdParts[1] ? customIdParts[1].toUpperCase() : null; 
             const idNpc = customIdParts[2];
             const idParametro3 = customIdParts[3]; 
@@ -665,6 +672,11 @@ else if (interaction.isButton()) {
         } // FECHA if (tipoComponente === 'dialogo')
 
         else if (tipoComponente === 'missao') {
+            // Fazer deferUpdate para missões
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.deferUpdate();
+            }
+            
             const acaoMissao = customIdParts[1]; 
             const idNpcMissao = customIdParts[2]; 
             const idMissaoParaAceitar = customIdParts[3];
@@ -828,12 +840,21 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
 // --- BEGIN: Checagem de jogador responsável pelo combate ---
 const combate = combatesAtivos && combatesAtivos[idCombate];
 if (!combate) {
-    await interaction.reply({ content: "Esse combate não está mais ativo!", ephemeral: true });
+    if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({ content: "Esse combate não está mais ativo!", ephemeral: true });
+    }
     return;
 }
 if (interaction.user.id !== combate.idJogadorTurno) {
-    await interaction.reply({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
+    if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
+    }
     return;
+}
+
+// Fazer deferUpdate apenas se passou nas verificações
+if (!interaction.replied && !interaction.deferred) {
+    await interaction.deferUpdate();
 }
 // --- END: Checagem de jogador responsável pelo combate ---
 
@@ -1163,12 +1184,12 @@ else if (acaoCombate === 'USARFEITICO') { // Linha ~941
 
     } catch(buttonError) { // FECHA o try principal
         console.error(`Erro CRÍTICO ao processar botão ${interaction.customId} para ${interaction.user.username}:`, buttonError.message);
-        // Só tentar responder se não for erro de interação expirada
-        if (buttonError.code !== 10062) {
+        // Só tentar responder se não for erro de interação expirada E se não foi respondido ainda
+        if (buttonError.code !== 10062 && !interaction.replied && !interaction.deferred) {
             try {
-                await interaction.editReply({ content: "Ocorreu um erro interno ao processar esta ação.", embeds: [], components: [] });
+                await interaction.reply({ content: "Ocorreu um erro interno ao processar esta ação.", embeds: [], components: [], ephemeral: true });
             } catch (editError) {
-                console.error("Erro ao tentar editar a resposta do botão com mensagem de erro:", editError.message);
+                console.error("Erro ao tentar responder sobre erro de botão:", editError.message);
             }
         }
     }
