@@ -557,7 +557,7 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
                     } else { 
                         await interaction.reply(payload); 
                     }
-                }```text
+                }
             } else if (!['criar', 'ficha', 'interagir'].includes(commandName)) { 
                 console.warn(`[RESPOSTA] 'respostaParaEnviar' é undefined para /${commandName}, e este comando não respondeu diretamente à interação.`);
             } 
