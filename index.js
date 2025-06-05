@@ -1084,8 +1084,7 @@ else if (acaoCombate === 'USARFEITICO') { // Linha ~941
             }
             embedCombateAtualizado.setDescription(logCombateAtualizado.join('\n'));
 
-            ```text
-// Atualiza campos de PV/PM com novo estado
+            // Atualiza campos de PV/PM com novo estado
             const jogadorEstadoTurnoMob = resultadoTurnoMob.estadoCombate ? resultadoTurnoMob.estadoCombate.jogador : jogadorEstadoAcao;
             const mobEstadoTurnoMob = resultadoTurnoMob.estadoCombate ? resultadoTurnoMob.estadoCombate.mob : mobEstadoAcao;
             const nomeJogadorTurnoMob = jogadorEstadoTurnoMob.nome;
