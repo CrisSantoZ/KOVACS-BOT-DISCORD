@@ -18,9 +18,6 @@ const ID_CANAL_ATUALIZACAO_FICHAS = process.env.ID_CANAL_ATUALIZACAO_FICHAS;
 const NOME_CARGO_VISITANTE = process.env.NOME_CARGO_VISITANTE || "Visitante de Arcádia";
 const NOME_CARGO_AVENTUREIRO = process.env.NOME_CARGO_AVENTUREIRO || "Aventureiro De Arcádia";
 
-// --- DEBUG FLAG ---
-const DEBUG_COMBATE = true;
-
 // =====================================================================================
 // DADOS DO JOGO (RAÇAS, CLASSES, REINOS, FEITIÇOS, ITENS)
 // =====================================================================================
@@ -3930,8 +3927,7 @@ function getEstadoCombateParaRetorno(combate) {
             nome: combate.mobInstancia.nome, 
             pvAtual: combate.mobInstancia.pvAtual, 
             pvMax: combate.mobInstancia.atributos.pvMax,
-            nivel: combate.mobInstancia.nivel,
-            imagem: combate.mobInstancia.imagem
+            nivel: combate.mobInstancia.nivel
         }
     };
 }
@@ -4518,19 +4514,14 @@ async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspe
         } else {
             // Se não há idDialogoEspecifico, é uma interação inicial via /interagir,
             // então nomeOuIdNPC é o NOME do NPC.
-            const inputOriginal = String(nomeOuIdNPC || '').trim();
-if (!inputOriginal) {
-    console.error(`[DEBUG] ERRO: Nome do NPC para busca inicial está vazio ou inválido! Input original era: "${nomeOuIdNPC}"`);
-    return { erro: `Nome do NPC fornecido é inválido ou vazio.` };
-}
-const escapedName = inputOriginal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-if (escapedName.length > 0) {
-    query = { nome: new RegExp(`^${escapedName}$`, 'i') };
-    console.log(`[DEBUG] Buscando NPC por NOME (interação inicial): "${escapedName}"`);
-} else {
-    console.error(`[DEBUG] ERRO: Nome do NPC para busca inicial está vazio ou inválido! Input original era: "${nomeOuIdNPC}"`);
-    return { erro: `Nome do NPC fornecido é inválido ou vazio.` };
-}
+            const escapedName = inputOriginal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            if (escapedName && escapedName.length > 0) {
+                query = { nome: new RegExp(`^${escapedName}$`, 'i') };
+                console.log(`[DEBUG] Buscando NPC por NOME (interação inicial): "${escapedName}"`);
+            } else {
+                console.error(`[DEBUG] ERRO: Nome do NPC para busca inicial está vazio ou inválido! Input original era: "${nomeOuIdNPC}"`);
+                return { erro: `Nome do NPC fornecido é inválido ou vazio.` };
+            }
         }
         
         console.log(`[processarInteracaoComNPC] Query MongoDB final: ${JSON.stringify(query)}`);
@@ -4691,10 +4682,9 @@ if (escapedName.length > 0) {
         // ---- FIM DA LÓGICA DE FINALIZAÇÃO DE MISSÃO ----
 
         return {
-            idNPC: npcData._id,
+            npcId: npcData._id,
             nomeNPC: npcData.nome,
             tituloNPC: npcData.titulo,
-            imagem: npcData.imagem,
             descricaoVisualNPC: npcData.descricaoVisual,
             dialogoAtual: dialogoParaMostrar,
             recompensasConcedidasTexto: recompensasConcedidasLinhas, // Novo campo para o index.js usar
@@ -4921,7 +4911,6 @@ async function aceitarMissao(idJogador, idMissao, idNpcQueOfereceu) {
     const novaEntradaLogMissao = {
         idMissao: idMissao,
         tituloMissao: definicaoMissao.titulo,
-        imagemMissao: definicaoMissao.imagem,
         status: "aceita",
         dataInicio: new Date().toISOString(),
         objetivos: definicaoMissao.objetivos.map(objDef => ({ // Copia os objetivos da definição da missão
