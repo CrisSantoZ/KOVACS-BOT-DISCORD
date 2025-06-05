@@ -557,7 +557,7 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
                         } else {
                             await interaction.editReply(payload);
                         }
-                    } else { ```python
+                    } else {
                         await interaction.reply(payload); 
                     }
                 }
@@ -993,7 +993,7 @@ if (!interaction.replied && !interaction.deferred) {
         }
     } // Fecha if (acaoCombate === 'ATAQUEBASICO')
 
-    
+
 else if (acaoCombate === 'USARFEITICO') {
         // Buscar feitiços conhecidos do jogador para combate
         const magiasConhecidas = await Arcadia.getMagiasConhecidasParaAutocomplete(senderIdButton);
