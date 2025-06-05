@@ -781,6 +781,7 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
 )
                             .setFooter({ text: "Prepare-se para a batalha!" });
 
+                        console.log(`[DEBUG] Criando botões com idCombate: ${resultadoInicioCombate.idCombate}`);
                         const combatActionRow = new ActionRowBuilder()
                             .addComponents(
                                 new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${resultadoInicioCombate.idCombate}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
@@ -836,8 +837,11 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
         // "else if (tipoComponente === 'combate') { ... }"
 else if (tipoComponente === 'combate') {
     const acaoCombate = customIdParts[1]; 
-const idCombate = customIdParts.slice(2).join('_');
+    const idCombate = customIdParts[2];
 // --- BEGIN: Checagem de jogador responsável pelo combate ---
+console.log(`[DEBUG] CustomId completo: ${interaction.customId}`);
+console.log(`[DEBUG] CustomIdParts:`, customIdParts);
+console.log(`[DEBUG] IdCombate extraído: "${idCombate}"`);
 console.log(`[DEBUG] Verificando combate ${idCombate}. Combates ativos:`, Object.keys(combatesAtivos));
 console.log(`[DEBUG] Dados do combate procurado:`, combatesAtivos[idCombate] ? "ENCONTRADO" : "NÃO ENCONTRADO");
 const combate = combatesAtivos[idCombate];
