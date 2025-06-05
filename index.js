@@ -4,8 +4,6 @@ const express = require('express');
 require('dotenv').config();
 const Arcadia = require('./arcadia_sistema.js');
 
-const combatesAtivos = {};
-
 process.on('unhandledRejection', error => {
     console.error('GRAVE: Unhandled promise rejection:', error);
     // Em um ambiente de produção, você poderia notificar um canal de desenvolvimento aqui
@@ -378,8 +376,7 @@ client.on('interactionCreate', async interaction => {
                         }
 
                         const resultadoInteracao = await Arcadia.processarInteracaoComNPC(nomeNPCInput, fichaJogador); // Passa ficha para lógica de condições
-const idNpc = resultadoInteracao.idNPC || resultadoInteracao.idNpc || resultadoInteracao.nomeNPC || resultadoInteracao.nomeNpc;
-                        
+
 if (resultadoInteracao.erro) {
                             await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Interação Falhou", resultadoInteracao.erro)] });
                         } else {
@@ -391,8 +388,6 @@ if (resultadoInteracao.erro) {
                             if (resultadoInteracao.descricaoVisualNPC) {
                                 embedNPC.setDescription(resultadoInteracao.descricaoVisualNPC);
                             }
-    if (resultadoInteracao.imagem) embedNPC.setThumbnail(resultadoInteracao.imagem);
-    if (resultadoInteracao.imagemMissao) embedNPC.setImage(resultadoInteracao.imagemMissao);
 
                             embedNPC.addFields({ name: "Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*Este personagem não diz nada no momento.*" });
 
@@ -413,7 +408,7 @@ if (resultadoInteracao.dialogoAtual.respostasJogador && resultadoInteracao.dialo
         actionRow.addComponents(
             new ButtonBuilder()
                 // ADICIONE "CONTINUAR" AQUI E USE MAIÚSCULAS PARA A AÇÃO
-                .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
+                .setCustomId(`dialogo_CONTINUAR_${resultadoInteracao.npcId}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}`)
                 .setLabel(opcao.textoResposta.substring(0, 80))
                 .setStyle(ButtonStyle.Primary)
         );
@@ -426,7 +421,7 @@ if (resultadoInteracao.dialogoAtual.ofereceMissao && !resultadoInteracao.missaoR
                                 if ((!missaoLog || (missaoLog.status !== 'aceita' && missaoLog.status !== 'concluida')) && actionRow.components.length < 5) {
                                     actionRow.addComponents(
                                         new ButtonBuilder()
-                                            .setCustomId(`missao_ACEITAR_${idNpc}_${resultadoInteracao.dialogoAtual.ofereceMissao}_${interaction.user.id}`)
+                                            .setCustomId(`missao_ACEITAR_${resultadoInteracao.npcId}_${resultadoInteracao.dialogoAtual.ofereceMissao}`)
                                             .setLabel("Aceitar Missão")
                                             .setStyle(ButtonStyle.Success)
                                     );
@@ -438,7 +433,7 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
      actionRow.addComponents(
         new ButtonBuilder()
             // USE "ENCERRAR" EM MAIÚSCULAS
-            .setCustomId(`dialogo_ENCERRAR_${idNpc}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
+            .setCustomId(`dialogo_ENCERRAR_${resultadoInteracao.npcId}_${resultadoInteracao.dialogoAtual.idDialogo}`)
             .setLabel(temOpcoesParaBotoes && resultadoInteracao.dialogoAtual.encerraDialogo ? "Finalizar" : "Encerrar Conversa")
             .setStyle(ButtonStyle.Secondary)
     );
@@ -569,16 +564,6 @@ else if (interaction.isButton()) {
     const senderIdButton = interaction.user.id;
     const fichaJogador = await Arcadia.getFichaOuCarregar(senderIdButton);
 
-// Checagem de autorização para diálogo/missão
-const idJogadorAutorizado = customIdParts[customIdParts.length - 1];
-if (
-    (tipoComponente === 'dialogo' || tipoComponente === 'missao') &&
-    interaction.user.id !== idJogadorAutorizado
-) {
-    await interaction.reply({ content: "Apenas quem iniciou a interação pode clicar aqui.", ephemeral: true });
-    return;
-}
-    
     if (!fichaJogador) {
         await interaction.editReply({ content: "Sua ficha não foi encontrada para continuar a interação.", embeds: [], components: [] });
         return;
@@ -616,7 +601,7 @@ if (
                         resultadoInteracao.dialogoAtual.respostasJogador.slice(0, 4).forEach(opcao => {
                             novaActionRow.addComponents(
                                 new ButtonBuilder()
-                                    .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
+                                    .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}`)
                                     .setLabel(opcao.textoResposta.substring(0, 80))
                                     .setStyle(ButtonStyle.Primary)
                             );
@@ -629,7 +614,7 @@ if (
                         if ((!missaoLog || (missaoLog.status !== 'aceita' && missaoLog.status !== 'concluida')) && novaActionRow.components.length < 5 ) {
                              novaActionRow.addComponents(
                                 new ButtonBuilder()
-                                    .setCustomId(`missao_ACEITAR_${idNpc}_${resultadoInteracao.dialogoAtual.ofereceMissao}_${interaction.user.id}`)
+                                    .setCustomId(`missao_ACEITAR_${idNpc}_${resultadoInteracao.dialogoAtual.ofereceMissao}`)
                                     .setLabel("Aceitar Missão")
                                     .setStyle(ButtonStyle.Success)
                             );
@@ -640,7 +625,7 @@ if (
                     if (novaActionRow.components.length < 5 && (!novasOpcoes || resultadoInteracao.dialogoAtual.encerraDialogo)) {
                          novaActionRow.addComponents(
                             new ButtonBuilder()
-                                .setCustomId(`dialogo_ENCERRAR_${idNpc}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
+                                .setCustomId(`dialogo_ENCERRAR_${idNpc}_${resultadoInteracao.dialogoAtual.idDialogo}`)
                                 .setLabel(novasOpcoes && resultadoInteracao.dialogoAtual.encerraDialogo ? "Finalizar" : "Encerrar Conversa")
                                 .setStyle(ButtonStyle.Secondary)
                         );
@@ -722,9 +707,8 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                             .setColor(0xDC143C) // Um vermelho mais "sangue" (Crimson)
                             .setTitle(`⚔️ COMBATE IMINENTE! ⚔️`)
                             .setDescription(descricaoCombate)
-                            if (mobEstado.imagem) embedCombate.setThumbnail(mobEstado.imagem);
-                            
-                        embedCombate.addFields(
+                            // .setThumbnail("URL_DE_UMA_IMAGEM_DE_ESPADA_GENERICA_OU_LOGO") // Opcional: adicione uma imagem
+                            .addFields(
     { 
         name: `👤 ${nomeJogador}`, 
         // V---- Verifique estas linhas com atenção ----V
@@ -772,7 +756,7 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                             novoDialogoPosAceite.dialogoAtual.respostasJogador.slice(0,4).forEach(opcao => {
                                 proximaActionRow.addComponents(
                                     new ButtonBuilder()
-                                        .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${novoDialogoPosAceite.dialogoAtual.idDialogo}_${interaction.user.id}`)
+                                        .setCustomId(`dialogo_CONTINUAR_${idNpcMissao}_${opcao.levaParaDialogoId || 'sem_acao'}_${novoDialogoPosAceite.dialogoAtual.idDialogo}`)
                                         .setLabel(opcao.textoResposta.substring(0,80))
                                         .setStyle(ButtonStyle.Primary)
                                 );
@@ -782,7 +766,7 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                          if (proximaActionRow.components.length < 5 && (!temProximasOpcoes || novoDialogoPosAceite.dialogoAtual.encerraDialogo)) {
                             proximaActionRow.addComponents(
                                 new ButtonBuilder()
-                                    .setCustomId(`dialogo_ENCERRAR_${idNpc}_${novoDialogoPosAceite.dialogoAtual.idDialogo}_${interaction.user.id}`)
+                                    .setCustomId(`dialogo_ENCERRAR_${idNpcMissao}_${novoDialogoPosAceite.dialogoAtual.idDialogo}`)
                                     .setLabel("Encerrar Conversa")
                                     .setStyle(ButtonStyle.Secondary)
                             );
