@@ -810,7 +810,7 @@ const idCombate = customIdParts[customIdParts.length - 1];
 // --- BEGIN: Checagem de jogador responsável pelo combate ---
 const combate = combatesAtivos && combatesAtivos[idCombate];
 if (!combate) {
-    await interaction.followUp({ content: "Esse combate não está mais ativo!", ephemeral: true });
+    await interaction.reply({ content: "Esse combate não está mais ativo!", ephemeral: true });
     return;
 }
 if (interaction.user.id !== combate.idJogadorTurno) {
@@ -836,9 +836,9 @@ if (interaction.user.id !== combate.idJogadorTurno) {
             }
 
             if (resultadoAcaoJogador.erro) {
-                await interaction.followUp({ content: `Erro na ação: ${resultadoAcaoJogador.erro}`, ephemeral: true });
+                await interaction.reply({ content: `Erro na ação: ${resultadoAcaoJogador.erro}`, ephemeral: true });
                 if (resultadoAcaoJogador.combateTerminou) {
-                     await interaction.followUp({ content: `Combate encerrado devido a um erro: ${resultadoAcaoJogador.erro}`, embeds: [], components: [] });
+                     await interaction.reply({ content: `Combate encerrado devido a um erro: ${resultadoAcaoJogador.erro}`, embeds: [], components: [] });
                 }
                 return;
             }
