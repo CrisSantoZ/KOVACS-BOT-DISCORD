@@ -928,7 +928,7 @@ if (!interaction.replied && !interaction.deferred) {
                     // Limpar combate do cache
                     if (combatesAtivos[idCombate]) {
                         delete combatesAtivos[idCombate];
-                        console.log("[COMBATE] Combate " + idCombate + " removido do cache após finalização.");
+                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
                     }
                 return;
             }
@@ -983,7 +983,7 @@ if (!interaction.replied && !interaction.deferred) {
                     // Limpar combate do cache
                     if (combatesAtivos[idCombate]) {
                         delete combatesAtivos[idCombate];
-                        console.log("[COMBATE] Combate " + idCombate + " removido do cache após derrota.");
+                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após derrota.`);
                     }
                     return;
                 } else if (resultadoTurnoMob.combateTerminou) { 
@@ -999,7 +999,7 @@ if (!interaction.replied && !interaction.deferred) {
                     // Limpar combate do cache
                     if (combatesAtivos[idCombate]) {
                         delete combatesAtivos[idCombate];
-                        console.log("[COMBATE] Combate " + idCombate + " removido do cache após finalização.");
+                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
                     }
                     return;
                 }
@@ -1092,7 +1092,7 @@ else if (acaoCombate === 'USARFEITICO') { // Linha ~941
                     // Limpar combate do cache
                     if (combatesAtivos[idCombate]) {
                         delete combatesAtivos[idCombate];
-                        console.log("[COMBATE] Combate " + idCombate + " removido do cache após finalização.");
+                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
                     }
             return;
         }
@@ -1140,7 +1140,7 @@ else if (acaoCombate === 'USARFEITICO') { // Linha ~941
                     // Limpar combate do cache
                     if (combatesAtivos[idCombate]) {
                         delete combatesAtivos[idCombate];
-                        console.log("[COMBATE] Combate " + idCombate + " removido do cache após derrota.");
+                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após derrota.`);
                     }
                 return;
             } else if (resultadoTurnoMob.combateTerminou) {
@@ -1155,7 +1155,7 @@ else if (acaoCombate === 'USARFEITICO') { // Linha ~941
                     // Limpar combate do cache
                     if (combatesAtivos[idCombate]) {
                         delete combatesAtivos[idCombate];
-                        console.log("[COMBATE] Combate " + idCombate + " removido do cache após finalização.");
+                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
                     }
                 return;
             }
@@ -1300,7 +1300,7 @@ else if (interaction.isStringSelectMenu()) {
                     // Limpar combate do cache
                     if (combatesAtivos[idCombate]) {
                         delete combatesAtivos[idCombate];
-                        console.log("[COMBATE] Combate " + idCombate + " removido do cache após finalização.");
+                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
                     }
                 return;
             }
@@ -1348,7 +1348,7 @@ else if (interaction.isStringSelectMenu()) {
                     // Limpar combate do cache
                     if (combatesAtivos[idCombate]) {
                         delete combatesAtivos[idCombate];
-                        console.log("[COMBATE] Combate " + idCombate + " removido do cache após derrota.");
+                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
                     }
                 return;
             } else if (resultadoTurnoMob.combateTerminou) {
@@ -1363,7 +1363,7 @@ else if (interaction.isStringSelectMenu()) {
                     // Limpar combate do cache
                     if (combatesAtivos[idCombate]) {
                         delete combatesAtivos[idCombate];
-                        console.log("[COMBATE] Combate " + idCombate + " removido do cache após finalização.");
+                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
                     }
                 return;
             }
@@ -1414,3 +1414,20 @@ if (!token) {
         }
     });
 }
+
+// Adiciona a função verificarCombateAtivo no arcadia_sistema.js (se já não existir)
+Arcadia.verificarCombateAtivo = async function(idCombate, idJogador) {
+    if (!idCombate || !idJogador) {
+        console.warn("[VERIFICAR_COMBATE] ID do combate ou ID do jogador ausente.");
+        return { ativo: false, jogadorAutorizado: false };
+    }
+
+    const combate = combatesAtivos[idCombate];
+    if (!combate) {
+        console.warn(`[VERIFICAR_COMBATE] Combate com ID ${idCombate} não encontrado.`);
+        return { ativo: false, jogadorAutorizado: false };
+    }
+
+    const jogadorAutorizado = (combate.idJogadorTurno === idJogador);
+    return { ativo: true, jogadorAutorizado: jogadorAutorizado };
+};
