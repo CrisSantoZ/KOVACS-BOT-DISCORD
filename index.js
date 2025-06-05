@@ -694,6 +694,9 @@ if (
                             iniciarCombateInfo.idObjetivo
                         );
 
+combatesAtivos[resultadoInicioCombate.idCombate] = resultadoInicioCombate.objetoCombate;
+console.log("[DEBUG] Combate salvo:", resultadoInicioCombate.idCombate, Object.keys(combatesAtivos));
+                        
                     if (resultadoInicioCombate.sucesso) {
                         const jogadorEstado = resultadoInicioCombate.estadoCombate.jogador;
                         const mobEstado = resultadoInicioCombate.estadoCombate.mob;
