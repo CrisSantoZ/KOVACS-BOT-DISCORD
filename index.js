@@ -861,7 +861,7 @@ if (!interaction.replied && !interaction.deferred) {
     let resultadoAcaoJogador; // Declarada aqui, mas só será usada significativamente se a ação for válida
 
     if (acaoCombate === 'ATAQUEBASICO') {
-        console.log(`>>> [INDEX | Combate Action] Chamando processarAcaoJogadorCombate para idCombate: ${idCombate}`);
+        console.log(">>> [INDEX | Combate Action] Chamando processarAcaoJogadorCombate para idCombate: " + idCombate);
         try {
             resultadoAcaoJogador = await Arcadia.processarAcaoJogadorCombate(idCombate, senderIdButton, "ATAQUE_BASICO");
             console.log(">>> [INDEX | Combate Action] Retorno de processarAcaoJogadorCombate:", JSON.stringify(resultadoAcaoJogador, null, 2));
@@ -928,7 +928,7 @@ if (!interaction.replied && !interaction.deferred) {
                     // Limpar combate do cache
                     if (combatesAtivos[idCombate]) {
                         delete combatesAtivos[idCombate];
-                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
+                        console.log("[COMBATE] Combate " + idCombate + " removido do cache após finalização.");
                     }
                 return;
             }
@@ -983,7 +983,7 @@ if (!interaction.replied && !interaction.deferred) {
                     // Limpar combate do cache
                     if (combatesAtivos[idCombate]) {
                         delete combatesAtivos[idCombate];
-                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após derrota.`);
+                        console.log("[COMBATE] Combate " + idCombate + " removido do cache após derrota.");
                     }
                     return;
                 } else if (resultadoTurnoMob.combateTerminou) { 
@@ -999,7 +999,7 @@ if (!interaction.replied && !interaction.deferred) {
                     // Limpar combate do cache
                     if (combatesAtivos[idCombate]) {
                         delete combatesAtivos[idCombate];
-                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
+                        console.log("[COMBATE] Combate " + idCombate + " removido do cache após finalização.");
                     }
                     return;
                 }
@@ -1080,8 +1080,7 @@ else if (acaoCombate === 'USARFEITICO') { // Linha ~941
             );
 
         if (resultado.mobDerrotado) {
-            const resultadoFinal = await Arcadia.final```text
-izarCombate(idCombate, senderIdButton, true, resultado.dadosParaFinalizar && resultado.dadosParaFinalizar.eUltimoMobDaMissao);
+            const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true, resultado.dadosParaFinalizar && resultado.dadosParaFinalizar.eUltimoMobDaMissao);
             embedCombateAtualizado.setTitle("🏆 Vitória! 🏆");
             embedCombateAtualizado.setDescription((resultadoFinal.logCombateFinal || logCombateAtualizado).join('\n'));
             if (resultadoFinal.recompensasTextoFinal && resultadoFinal.recompensasTextoFinal.length > 0) {
@@ -1093,7 +1092,7 @@ izarCombate(idCombate, senderIdButton, true, resultado.dadosParaFinalizar && res
                     // Limpar combate do cache
                     if (combatesAtivos[idCombate]) {
                         delete combatesAtivos[idCombate];
-                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
+                        console.log("[COMBATE] Combate " + idCombate + " removido do cache após finalização.");
                     }
             return;
         }
@@ -1141,7 +1140,7 @@ izarCombate(idCombate, senderIdButton, true, resultado.dadosParaFinalizar && res
                     // Limpar combate do cache
                     if (combatesAtivos[idCombate]) {
                         delete combatesAtivos[idCombate];
-                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após derrota.`);
+                        console.log("[COMBATE] Combate " + idCombate + " removido do cache após derrota.");
                     }
                 return;
             } else if (resultadoTurnoMob.combateTerminou) {
@@ -1156,7 +1155,7 @@ izarCombate(idCombate, senderIdButton, true, resultado.dadosParaFinalizar && res
                     // Limpar combate do cache
                     if (combatesAtivos[idCombate]) {
                         delete combatesAtivos[idCombate];
-                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
+                        console.log("[COMBATE] Combate " + idCombate + " removido do cache após finalização.");
                     }
                 return;
             }
@@ -1301,7 +1300,7 @@ else if (interaction.isStringSelectMenu()) {
                     // Limpar combate do cache
                     if (combatesAtivos[idCombate]) {
                         delete combatesAtivos[idCombate];
-                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
+                        console.log("[COMBATE] Combate " + idCombate + " removido do cache após finalização.");
                     }
                 return;
             }
@@ -1349,7 +1348,7 @@ else if (interaction.isStringSelectMenu()) {
                     // Limpar combate do cache
                     if (combatesAtivos[idCombate]) {
                         delete combatesAtivos[idCombate];
-                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após derrota.`);
+                        console.log("[COMBATE] Combate " + idCombate + " removido do cache após derrota.");
                     }
                 return;
             } else if (resultadoTurnoMob.combateTerminou) {
@@ -1364,7 +1363,7 @@ else if (interaction.isStringSelectMenu()) {
                     // Limpar combate do cache
                     if (combatesAtivos[idCombate]) {
                         delete combatesAtivos[idCombate];
-                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
+                        console.log("[COMBATE] Combate " + idCombate + " removido do cache após finalização.");
                     }
                 return;
             }
