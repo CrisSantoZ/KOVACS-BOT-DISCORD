@@ -4,6 +4,9 @@ const express = require('express');
 require('dotenv').config();
 const Arcadia = require('./arcadia_sistema.js');
 
+const combatesAtivos = {};
+console.log("[DEBUG] Novo processo iniciado, combatesAtivos está vazio.");
+
 process.on('unhandledRejection', error => {
     console.error('GRAVE: Unhandled promise rejection:', error);
     // Em um ambiente de produção, você poderia notificar um canal de desenvolvimento aqui
@@ -376,7 +379,8 @@ client.on('interactionCreate', async interaction => {
                         }
 
                         const resultadoInteracao = await Arcadia.processarInteracaoComNPC(nomeNPCInput, fichaJogador); // Passa ficha para lógica de condições
-
+const idNpc = resultadoInteracao.idNPC || resultadoInteracao.idNpc || resultadoInteracao.nomeNPC || resultadoInteracao.nomeNpc;
+                        
 if (resultadoInteracao.erro) {
                             await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Interação Falhou", resultadoInteracao.erro)] });
                         } else {
@@ -388,6 +392,8 @@ if (resultadoInteracao.erro) {
                             if (resultadoInteracao.descricaoVisualNPC) {
                                 embedNPC.setDescription(resultadoInteracao.descricaoVisualNPC);
                             }
+    if (resultadoInteracao.imagem) embedNPC.setThumbnail(resultadoInteracao.imagem);
+    if (resultadoInteracao.imagemMissao) embedNPC.setImage(resultadoInteracao.imagemMissao);
 
                             embedNPC.addFields({ name: "Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*Este personagem não diz nada no momento.*" });
 
@@ -408,7 +414,7 @@ if (resultadoInteracao.dialogoAtual.respostasJogador && resultadoInteracao.dialo
         actionRow.addComponents(
             new ButtonBuilder()
                 // ADICIONE "CONTINUAR" AQUI E USE MAIÚSCULAS PARA A AÇÃO
-                .setCustomId(`dialogo_CONTINUAR_${resultadoInteracao.npcId}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}`)
+                .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
                 .setLabel(opcao.textoResposta.substring(0, 80))
                 .setStyle(ButtonStyle.Primary)
         );
@@ -421,7 +427,7 @@ if (resultadoInteracao.dialogoAtual.ofereceMissao && !resultadoInteracao.missaoR
                                 if ((!missaoLog || (missaoLog.status !== 'aceita' && missaoLog.status !== 'concluida')) && actionRow.components.length < 5) {
                                     actionRow.addComponents(
                                         new ButtonBuilder()
-                                            .setCustomId(`missao_ACEITAR_${resultadoInteracao.npcId}_${resultadoInteracao.dialogoAtual.ofereceMissao}`)
+                                            .setCustomId(`missao_ACEITAR_${idNpc}_${resultadoInteracao.dialogoAtual.ofereceMissao}_${interaction.user.id}`)
                                             .setLabel("Aceitar Missão")
                                             .setStyle(ButtonStyle.Success)
                                     );
@@ -433,7 +439,7 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
      actionRow.addComponents(
         new ButtonBuilder()
             // USE "ENCERRAR" EM MAIÚSCULAS
-            .setCustomId(`dialogo_ENCERRAR_${resultadoInteracao.npcId}_${resultadoInteracao.dialogoAtual.idDialogo}`)
+            .setCustomId(`dialogo_ENCERRAR_${idNpc}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
             .setLabel(temOpcoesParaBotoes && resultadoInteracao.dialogoAtual.encerraDialogo ? "Finalizar" : "Encerrar Conversa")
             .setStyle(ButtonStyle.Secondary)
     );
@@ -564,8 +570,18 @@ else if (interaction.isButton()) {
     const senderIdButton = interaction.user.id;
     const fichaJogador = await Arcadia.getFichaOuCarregar(senderIdButton);
 
+// Checagem de autorização para diálogo/missão
+const idJogadorAutorizado = customIdParts[customIdParts.length - 1];
+if (
+    (tipoComponente === 'dialogo' || tipoComponente === 'missao') &&
+    interaction.user.id !== idJogadorAutorizado
+) {
+    await interaction.followUp({ content: "Apenas quem iniciou a interação pode clicar aqui.", ephemeral: true });
+    return;
+}
+    
     if (!fichaJogador) {
-        await interaction.editReply({ content: "Sua ficha não foi encontrada para continuar a interação.", embeds: [], components: [] });
+        await interaction.followUp({ content: "Sua ficha não foi encontrada para continuar a interação.", embeds: [], components: [] });
         return;
     }
 
@@ -578,14 +594,14 @@ else if (interaction.isButton()) {
             const idDialogoOriginal = customIdParts[4]; 
 
             if (acaoDialogo === 'ENCERRAR' || (acaoDialogo === 'CONTINUAR' && idParametro3 === 'sem_acao')) {
-                await interaction.editReply({ content: "Conversa encerrada.", embeds: [], components: [] });
+                await interaction.followUp({ content: "Conversa encerrada.", embeds: [], components: [] });
                 return;
             } else if (acaoDialogo === 'CONTINUAR') {
                 const idProximoDialogo = idParametro3; 
                 const resultadoInteracao = await Arcadia.processarInteracaoComNPC(idNpc, fichaJogador, idProximoDialogo);
 
                 if (resultadoInteracao.erro) {
-                    await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Interação Falhou", resultadoInteracao.erro)], components: [] });
+                    await interaction.followUp({ embeds: [Arcadia.gerarEmbedAviso("Interação Falhou", resultadoInteracao.erro)], components: [] });
                 } else {
                     const embedNPC = new EmbedBuilder()
                         .setColor(0x7289DA)
@@ -601,7 +617,7 @@ else if (interaction.isButton()) {
                         resultadoInteracao.dialogoAtual.respostasJogador.slice(0, 4).forEach(opcao => {
                             novaActionRow.addComponents(
                                 new ButtonBuilder()
-                                    .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}`)
+                                    .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
                                     .setLabel(opcao.textoResposta.substring(0, 80))
                                     .setStyle(ButtonStyle.Primary)
                             );
@@ -614,7 +630,7 @@ else if (interaction.isButton()) {
                         if ((!missaoLog || (missaoLog.status !== 'aceita' && missaoLog.status !== 'concluida')) && novaActionRow.components.length < 5 ) {
                              novaActionRow.addComponents(
                                 new ButtonBuilder()
-                                    .setCustomId(`missao_ACEITAR_${idNpc}_${resultadoInteracao.dialogoAtual.ofereceMissao}`)
+                                    .setCustomId(`missao_ACEITAR_${idNpc}_${resultadoInteracao.dialogoAtual.ofereceMissao}_${interaction.user.id}`)
                                     .setLabel("Aceitar Missão")
                                     .setStyle(ButtonStyle.Success)
                             );
@@ -625,15 +641,15 @@ else if (interaction.isButton()) {
                     if (novaActionRow.components.length < 5 && (!novasOpcoes || resultadoInteracao.dialogoAtual.encerraDialogo)) {
                          novaActionRow.addComponents(
                             new ButtonBuilder()
-                                .setCustomId(`dialogo_ENCERRAR_${idNpc}_${resultadoInteracao.dialogoAtual.idDialogo}`)
+                                .setCustomId(`dialogo_ENCERRAR_${idNpc}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
                                 .setLabel(novasOpcoes && resultadoInteracao.dialogoAtual.encerraDialogo ? "Finalizar" : "Encerrar Conversa")
                                 .setStyle(ButtonStyle.Secondary)
                         );
                     }
-                    await interaction.editReply({ embeds: [embedNPC], components: novaActionRow.components.length > 0 ? [novaActionRow] : [] });
+                    await interaction.followUp({ embeds: [embedNPC], components: novaActionRow.components.length > 0 ? [novaActionRow] : [] });
                 }
             } else {
-                 await interaction.editReply({ content: `Ação de diálogo "${customIdParts[1]}" não reconhecida. Verifique o formato do customId.`, embeds:[], components: [] });
+                 await interaction.followUp({ content: `Ação de diálogo "${customIdParts[1]}" não reconhecida. Verifique o formato do customId.`, embeds:[], components: [] });
             }
         } // FECHA if (tipoComponente === 'dialogo')
         
@@ -656,7 +672,7 @@ else if (interaction.isButton()) {
                         const missoesCol = Arcadia.getMissoesCollection(); 
                         if (!missoesCol) {
                             console.error("ERRO GRAVE no index.js: getMissoesCollection() retornou undefined!");
-                            await interaction.editReply({ embeds: [Arcadia.gerarEmbedErro("Erro de Sistema", "Não foi possível acessar os dados da missão.")] });
+                            await interaction.followUp({ embeds: [Arcadia.gerarEmbedErro("Erro de Sistema", "Não foi possível acessar os dados da missão.")] });
                             return; 
                         }
                         const missaoDef = await missoesCol.findOne({ _id: "mVRatos" });
@@ -679,6 +695,9 @@ else if (interaction.isButton()) {
                             iniciarCombateInfo.idObjetivo
                         );
 
+combatesAtivos[resultadoInicioCombate.idCombate] = resultadoInicioCombate.objetoCombate;
+console.log("[DEBUG] Combate salvo:", resultadoInicioCombate.idCombate, Object.keys(combatesAtivos));
+                        
                     if (resultadoInicioCombate.sucesso) {
                         const jogadorEstado = resultadoInicioCombate.estadoCombate.jogador;
                         const mobEstado = resultadoInicioCombate.estadoCombate.mob;
@@ -707,8 +726,9 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                             .setColor(0xDC143C) // Um vermelho mais "sangue" (Crimson)
                             .setTitle(`⚔️ COMBATE IMINENTE! ⚔️`)
                             .setDescription(descricaoCombate)
-                            // .setThumbnail("URL_DE_UMA_IMAGEM_DE_ESPADA_GENERICA_OU_LOGO") // Opcional: adicione uma imagem
-                            .addFields(
+                            if (mobEstado.imagem) embedCombate.setThumbnail(mobEstado.imagem);
+                            
+                        embedCombate.addFields(
     { 
         name: `👤 ${nomeJogador}`, 
         // V---- Verifique estas linhas com atenção ----V
@@ -756,7 +776,7 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                             novoDialogoPosAceite.dialogoAtual.respostasJogador.slice(0,4).forEach(opcao => {
                                 proximaActionRow.addComponents(
                                     new ButtonBuilder()
-                                        .setCustomId(`dialogo_CONTINUAR_${idNpcMissao}_${opcao.levaParaDialogoId || 'sem_acao'}_${novoDialogoPosAceite.dialogoAtual.idDialogo}`)
+                                        .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${novoDialogoPosAceite.dialogoAtual.idDialogo}_${interaction.user.id}`)
                                         .setLabel(opcao.textoResposta.substring(0,80))
                                         .setStyle(ButtonStyle.Primary)
                                 );
@@ -766,7 +786,7 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                          if (proximaActionRow.components.length < 5 && (!temProximasOpcoes || novoDialogoPosAceite.dialogoAtual.encerraDialogo)) {
                             proximaActionRow.addComponents(
                                 new ButtonBuilder()
-                                    .setCustomId(`dialogo_ENCERRAR_${idNpcMissao}_${novoDialogoPosAceite.dialogoAtual.idDialogo}`)
+                                    .setCustomId(`dialogo_ENCERRAR_${idNpc}_${novoDialogoPosAceite.dialogoAtual.idDialogo}_${interaction.user.id}`)
                                     .setLabel("Encerrar Conversa")
                                     .setStyle(ButtonStyle.Secondary)
                             );
@@ -790,11 +810,11 @@ const idCombate = customIdParts.slice(2).join('_');
 // --- BEGIN: Checagem de jogador responsável pelo combate ---
 const combate = combatesAtivos && combatesAtivos[idCombate];
 if (!combate) {
-    await interaction.reply({ content: "Esse combate não está mais ativo!", ephemeral: true });
+    await interaction.followUp({ content: "Esse combate não está mais ativo!", ephemeral: true });
     return;
 }
 if (interaction.user.id !== combate.idJogadorTurno) {
-    await interaction.reply({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
+    await interaction.followUp({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
     return;
 }
 // --- END: Checagem de jogador responsável pelo combate ---
@@ -811,14 +831,14 @@ if (interaction.user.id !== combate.idJogadorTurno) {
             // Esta verificação é crucial: garante que resultadoAcaoJogador é um objeto antes de acessar suas propriedades
             if (!resultadoAcaoJogador || typeof resultadoAcaoJogador !== 'object') {
                 console.error(">>> [INDEX] ERRO: processarAcaoJogadorCombate não retornou um objeto válido. Retorno:", resultadoAcaoJogador);
-                await interaction.editReply({ content: "Ocorreu um erro crítico ao processar a ação de combate (retorno inesperado).", components: [], embeds: [] });
+                await interaction.followUp({ content: "Ocorreu um erro crítico ao processar a ação de combate (retorno inesperado).", components: [], embeds: [] });
                 return;
             }
 
             if (resultadoAcaoJogador.erro) {
                 await interaction.followUp({ content: `Erro na ação: ${resultadoAcaoJogador.erro}`, ephemeral: true });
                 if (resultadoAcaoJogador.combateTerminou) {
-                     await interaction.editReply({ content: `Combate encerrado devido a um erro: ${resultadoAcaoJogador.erro}`, embeds: [], components: [] });
+                     await interaction.followUp({ content: `Combate encerrado devido a um erro: ${resultadoAcaoJogador.erro}`, embeds: [], components: [] });
                 }
                 return;
             }
@@ -865,7 +885,7 @@ if (interaction.user.id !== combate.idJogadorTurno) {
                 } else {
                      embedCombateAtualizado.addFields({ name: "Recompensas", value: "Nenhuma recompensa específica." });
                 }
-                await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
+                await interaction.followUp({ embeds: [embedCombateAtualizado], components: [] });
                 return;
             }
 
@@ -946,7 +966,7 @@ if (interaction.user.id !== combate.idJogadorTurno) {
             await interaction.editReply({ content: "Ocorreu um erro crítico severo ao processar seu ataque.", components: [], embeds:[] });
             // Considerar finalizar o combate aqui ou notificar o DM
             if (idCombate && combatesAtivos[idCombate]) { // Tenta limpar o combate ativo se possível
-                delete combatesAtivos[idCombate];
+    
                  console.log(`[COMBATE PvE] Combate ${idCombate} deletado devido a erro crítico no processamento da ação do jogador.`);
             }
             return; 
