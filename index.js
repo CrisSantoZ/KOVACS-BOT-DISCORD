@@ -564,21 +564,20 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
 
 // --- TRATAMENTO DE INTERAÇÕES DE BOTÃO ---
 else if (interaction.isButton()) {
-    await interaction.deferUpdate(); // Acknowledge a interação rapidamente
     const customIdParts = interaction.customId.split('_');
     const tipoComponente = customIdParts[0];
     const senderIdButton = interaction.user.id;
     const fichaJogador = await Arcadia.getFichaOuCarregar(senderIdButton);
-
+    
 // Checagem de autorização para diálogo/missão
 const idJogadorAutorizado = customIdParts[customIdParts.length - 1];
-if (
-    (tipoComponente === 'dialogo' || tipoComponente === 'missao') &&
-    interaction.user.id !== idJogadorAutorizado
-) {
-    await interaction.followUp({ content: "Apenas quem iniciou a interação pode clicar aqui.", ephemeral: true });
-    return;
-}
+    if (
+        (tipoComponente === 'dialogo' || tipoComponente === 'missao') &&
+        interaction.user.id !== idJogadorAutorizado
+    ) {
+        await interaction.reply({ content: "Apenas quem iniciou a interação pode clicar aqui.", ephemeral: true });
+        return;
+    }
     
     if (!fichaJogador) {
         await interaction.followUp({ content: "Sua ficha não foi encontrada para continuar a interação.", embeds: [], components: [] });
@@ -814,7 +813,7 @@ if (!combate) {
     return;
 }
 if (interaction.user.id !== combate.idJogadorTurno) {
-    await interaction.reply({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
+    await interaction.followUp({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
     return;
 }
 // --- END: Checagem de jogador responsável pelo combate ---
