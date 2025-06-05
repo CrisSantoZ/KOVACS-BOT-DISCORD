@@ -810,7 +810,7 @@ const idCombate = customIdParts[customIdParts.length - 1];
 // --- BEGIN: Checagem de jogador responsável pelo combate ---
 const combate = combatesAtivos && combatesAtivos[idCombate];
 if (!combate) {
-    await interaction.reply({ content: "Esse combate não está mais ativo!", ephemeral: true });
+    await interaction.update({ content: "Esse combate não está mais ativo!", ephemeral: true });
     return;
 }
 if (interaction.user.id !== combate.idJogadorTurno) {
