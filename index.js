@@ -740,12 +740,12 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
 
                         // SALVAR O COMBATE NO CACHE ANTES DE USAR
                         const idCombateParaSalvar = String(resultadoInicioCombate.idCombate).trim();
-                        combatesAtivos[idCombateParaSalvar] = resultadoInicioCombate.objetoCombate;
-                        console.log(`[DEBUG SALVAMENTO] Combate salvo com ID: "${idCombateParaSalvar}"`);
-                        console.log(`[DEBUG SALVAMENTO] Comprimento do ID salvo: ${idCombateParaSalvar.length}`);
-                        console.log("[DEBUG SALVAMENTO] Combates ativos após salvar:", Object.keys(combatesAtivos));
-                        console.log(`[DEBUG SALVAMENTO] Verificação imediata - combate existe?`, combatesAtivos.hasOwnProperty(idCombateParaSalvar) ? "SIM" : "NÃO");
-                        console.log(`[DEBUG SALVAMENTO] Objeto do combate salvo:`, !!combatesAtivos[idCombateParaSalvar]);
+                        if (resultadoInicioCombate.objetoCombate) {
+                            combatesAtivos[idCombateParaSalvar] = resultadoInicioCombate.objetoCombate;
+                            console.log(`[COMBATE] Combate ${idCombateParaSalvar} salvo no cache.`);
+                        } else {
+                            console.error(`[COMBATE] ERRO: objetoCombate não retornado por iniciarCombatePvE!`);
+                        }
 
                         // Mensagem de descrição mais elaborada
                         let descricaoCombate = `📜 **Missão:** Infestação no Armazém\n\n`; // Exemplo, idealmente pegar o título da missão dinamicamente
@@ -837,26 +837,17 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
         else if (tipoComponente === 'combate') {
     const acaoCombate = customIdParts[1]; 
     const idCombate = customIdParts.slice(2).join('_');
-// --- BEGIN: Checagem de jogador responsável pelo combate ---
-const combate = combatesAtivos && combatesAtivos[idCombate];
+// Verificação simplificada de combate ativo
+const combate = combatesAtivos[idCombate];
 if (!combate) {
-    if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({ content: "Esse combate não está mais ativo!", ephemeral: true });
-    }
-    return;
-}
-if (interaction.user.id !== combate.idJogadorTurno) {
-    if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
-    }
+    await interaction.reply({ content: "Esse combate não está mais ativo!", ephemeral: true });
     return;
 }
 
-// Fazer deferUpdate apenas se passou nas verificações
+// Fazer deferUpdate
 if (!interaction.replied && !interaction.deferred) {
     await interaction.deferUpdate();
 }
-// --- END: Checagem de jogador responsável pelo combate ---
 
     let resultadoAcaoJogador; // Declarada aqui, mas só será usada significativamente se a ação for válida
 
@@ -1235,17 +1226,11 @@ else if (interaction.isStringSelectMenu()) {
             const idFeiticoEscolhido = interaction.values[0];
             const senderIdButton = interaction.user.id;
 
-            // --- BEGIN: Checagem de jogador responsável pelo combate ---
-        const combateValido = await Arcadia.verificarCombateAtivo(idCombate, interaction.user.id);
-        if (!combateValido.ativo) {
+            // Verificação simplificada
+        if (!combatesAtivos[idCombate]) {
             await interaction.reply({ content: "Esse combate não está mais ativo!", ephemeral: true });
             return;
         }
-        if (!combateValido.jogadorAutorizado) {
-            await interaction.reply({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
-            return;
-        }
-        // --- END: Checagem de jogador responsável pelo combate ---
 
             // Executa o feitiço escolhido
             const resultado = await Arcadia.processarAcaoJogadorCombate(idCombate, senderIdButton, "USAR_FEITICO", { idFeitico: idFeiticoEscolhido });
@@ -1415,19 +1400,3 @@ if (!token) {
     });
 }
 
-// Adiciona a função verificarCombateAtivo no arcadia_sistema.js (se já não existir)
-Arcadia.verificarCombateAtivo = async function(idCombate, idJogador) {
-    if (!idCombate || !idJogador) {
-        console.warn("[VERIFICAR_COMBATE] ID do combate ou ID do jogador ausente.");
-        return { ativo: false, jogadorAutorizado: false };
-    }
-
-    const combate = combatesAtivos[idCombate];
-    if (!combate) {
-        console.warn(`[VERIFICAR_COMBATE] Combate com ID ${idCombate} não encontrado.`);
-        return { ativo: false, jogadorAutorizado: false };
-    }
-
-    const jogadorAutorizado = (combate.idJogadorTurno === idJogador);
-    return { ativo: true, jogadorAutorizado: jogadorAutorizado };
-};
