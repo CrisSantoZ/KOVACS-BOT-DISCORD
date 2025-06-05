@@ -552,7 +552,8 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
                              console.warn(`[AVISO LÓGICA] 'respostaParaEnviar' foi definida para /${commandName} que já deveria ter respondido. Usando followUp.`);
                              await interaction.followUp(payload);
                         } else {
-                            await interaction.editReply(payload);
+                            await interaction```tool_code
+.editReply(payload);
                         }
                     } else { 
                         await interaction.reply(payload); 
@@ -866,7 +867,7 @@ if (combatesAtivos.hasOwnProperty(idCombate)) {
     // Busca alternativa - procura por correspondência de partes do ID
     console.log(`[DEBUG COMBATE] ❌ Busca direta falhou, tentando busca alternativa...`);
     console.log(`[DEBUG COMBATE] Partes do customId:`, customIdParts);
-    
+
     for (const [key, value] of Object.entries(combatesAtivos)) {
         console.log(`[DEBUG COMBATE] Comparando "${key}" com "${idCombate}"`);
         if (key === idCombate || (customIdParts.length >= 5 && key.includes(customIdParts[2]) && key.includes(customIdParts[3]) && key.includes(customIdParts[4]))) {
@@ -876,7 +877,7 @@ if (combatesAtivos.hasOwnProperty(idCombate)) {
             break;
         }
     }
-    
+
     if (!combate) {
         console.log(`[DEBUG COMBATE] ❌ Nenhum combate encontrado com nenhum método`);
     }
@@ -1260,31 +1261,16 @@ else if (interaction.isStringSelectMenu()) {
             const senderIdButton = interaction.user.id;
 
             // --- BEGIN: Checagem de jogador responsável pelo combate ---
-            console.log(`[DEBUG] Select Menu - Verificando combate ${idCombate}`);
-            let combate = combatesAtivos[idCombate];
-            
-            // Busca alternativa se não encontrar diretamente
-            if (!combate) {
-                console.log(`[DEBUG] Select Menu - Busca direta falhou, tentando alternativa...`);
-                for (const [key, value] of Object.entries(combatesAtivos)) {
-                    if (key === idCombate || key.includes(idCombate.split('_')[0])) {
-                        console.log(`[DEBUG] Select Menu - Combate encontrado: ${key}`);
-                        combate = value;
-                        break;
-                    }
-                }
-            }
-            
-            if (!combate) {
-                console.log(`[DEBUG] Select Menu - Combate ${idCombate} não encontrado`);
-                await interaction.reply({ content: "Esse combate não está mais ativo!", ephemeral: true });
-                return;
-            }
-            if (interaction.user.id !== combate.idJogadorTurno) {
-                await interaction.reply({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
-                return;
-            }
-            // --- END: Checagem de jogador responsável pelo combate ---
+        const combateValido = await Arcadia.verificarCombateAtivo(idCombate, interaction.user.id);
+        if (!combateValido.ativo) {
+            await interaction.reply({ content: "Esse combate não está mais ativo!", ephemeral: true });
+            return;
+        }
+        if (!combateValido.jogadorAutorizado) {
+            await interaction.reply({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
+            return;
+        }
+        // --- END: Checagem de jogador responsável pelo combate ---
 
             // Executa o feitiço escolhido
             const resultado = await Arcadia.processarAcaoJogadorCombate(idCombate, senderIdButton, "USAR_FEITICO", { idFeitico: idFeiticoEscolhido });
