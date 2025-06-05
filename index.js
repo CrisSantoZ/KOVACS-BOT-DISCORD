@@ -4,9 +4,6 @@ const express = require('express');
 require('dotenv').config();
 const Arcadia = require('./arcadia_sistema.js');
 
-const combatesAtivos = {};
-console.log("[DEBUG] Novo processo iniciado, combatesAtivos está vazio.");
-
 process.on('unhandledRejection', error => {
     console.error('GRAVE: Unhandled promise rejection:', error);
     // Em um ambiente de produção, você poderia notificar um canal de desenvolvimento aqui
@@ -20,7 +17,7 @@ process.on('uncaughtException', error => {
 
 // --- CONSTANTES DE RESTRIÇÃO DE CANAL ---
 const COMANDOS_CANAL_BEMVINDO = ['historia', 'listaracas', 'listaclasses', 'listareinos', 'comandos', 'ping', 'oi', 'arcadia', 'bemvindo'];
-const COMANDOS_GERAIS_PERMITIDOS_EM_OUTROS_CANAIS = ['comandos', 'ficha', 'distribuirpontos', 'jackpot', 'usaritem', 'usarfeitico', 'aprenderfeitico', 'ping', 'historia', 'interagir']; // Adicionei 'interagir' aqui
+const COMANDOS_GERAIS_PERMITIDOS_EM_OUTROS_CANAIS = ['comandos', 'comandos', 'ficha', 'distribuirpontos', 'jackpot', 'usaritem', 'usarfeitico', 'aprenderfeitico', 'ping', 'historia', 'interagir']; // Adicionei 'interagir' aqui
 const COMANDOS_CANAL_RECRUTAMENTO = ['criar', 'ficha', 'comandos', 'ping', 'listaracas', 'listaclasses', 'listareinos'];
 const COMANDOS_CANAL_ATUALIZACAO_FICHAS = ['ficha', 'distribuirpontos', 'comandos', 'ping'];
 
@@ -421,7 +418,7 @@ if (resultadoInteracao.missaoRealmenteConcluida && resultadoInteracao.recompensa
                                 });
                             } else if (resultadoInteracao.missaoRealmenteConcluida) { // Se foi concluída mas sem recompensas específicas listadas (raro)
                                 embedNPC.addFields({ name: "🏅 Missão Concluída!", value: "Tarefa finalizada." });
-}
+                            }
 
                             const actionRow = new ActionRowBuilder();
                             let temOpcoesParaBotoes = false;
@@ -514,7 +511,7 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
                 } // Fim do switch
             } // Fim do else (do if comandosAdmin)
 
-// --- LÓGICA DE ENVIO DA RESPOSTA (para comandos que definem 'respostaParaEnviar') ---
+            // --- LÓGICA DE ENVIO DA RESPOSTA (para comandos que definem 'respostaParaEnviar') ---
             if (respostaParaEnviar) {
                 // ... (sua lógica de envio de payload que já estava correta) ...
                  const payload = {};
@@ -557,7 +554,7 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
                     } else { 
                         await interaction.reply(payload); 
                     }
-                }
+                }```
             } else if (!['criar', 'ficha', 'interagir'].includes(commandName)) { 
                 console.warn(`[RESPOSTA] 'respostaParaEnviar' é undefined para /${commandName}, e este comando não respondeu diretamente à interação.`);
             } 
@@ -718,80 +715,78 @@ else if (interaction.isButton()) {
                             iniciarCombateInfo.idObjetivo
                         );
 
-
-
-                    if (resultadoInicioCombate.sucesso) {
-                        const jogadorEstado = resultadoInicioCombate.estadoCombate.jogador;
-                        const mobEstado = resultadoInicioCombate.estadoCombate.mob;
+                        if (resultadoInicioCombate.sucesso) {
+                            const jogadorEstado = resultadoInicioCombate.estadoCombate.jogador;
+                            const mobEstado = resultadoInicioCombate.estadoCombate.mob;
 console.log(">>> [INDEX | Início Combate] resultadoInicioCombate.estadoCombate.mob (mobEstado) É:", mobEstado);
-    console.log(">>> [INDEX | Início Combate] mobEstado.nivel É:", mobEstado ? mobEstado.nivel : "mobEstado é undefined/null", "(Tipo:", mobEstado ? typeof mobEstado.nivel : "N/A", ")");
+console.log(">>> [INDEX | Início Combate] mobEstado.nivel É:", mobEstado ? mobEstado.nivel : "mobEstado é undefined/null", "(Tipo:", mobEstado ? typeof mobEstado.nivel : "N/A", ")");
 
-                        const nomeJogador = jogadorEstado.nome || (fichaJogador.nomePersonagem || "Jogador");
-                        const pvAtualJogador = jogadorEstado.pvAtual;
-                        const pvMaxJogador = jogadorEstado.pvMax;
-                        const pmAtualJogador = jogadorEstado.pmAtual;
-                        const pmMaxJogador = jogadorEstado.pmMax;
+                            const nomeJogador = jogadorEstado.nome || (fichaJogador.nomePersonagem || "Jogador");
+                            const pvAtualJogador = jogadorEstado.pvAtual;
+                            const pvMaxJogador = jogadorEstado.pvMax;
+                            const pmAtualJogador = jogadorEstado.pmAtual;
+                            const pmMaxJogador = jogadorEstado.pmMax;
 
-                        const nomeMob = mobEstado.nome || "Criatura Hostil";
-                        const pvAtualMob = mobEstado.pvAtual;
-                        const pvMaxMob = mobEstado.pvMax;
-                        const nivelMob = mobEstado && typeof mobEstado.nivel === 'number' && mobEstado.nivel > 0 ? mobEstado.nivel : '?'; 
+                            const nomeMob = mobEstado.nome || "Criatura Hostil";
+                            const pvAtualMob = mobEstado.pvAtual;
+                            const pvMaxMob = mobEstado.pvMax;
+                            const nivelMob = mobEstado && typeof mobEstado.nivel === 'number' && mobEstado.nivel > 0 ? mobEstado.nivel : '?'; 
 console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED É:", nivelMob);
 
-                        // SALVAR O COMBATE NO CACHE ANTES DE USAR
-                        const idCombateParaSalvar = String(resultadoInicioCombate.idCombate).trim();
-                        if (resultadoInicioCombate.objetoCombate) {
-                            combatesAtivos[idCombateParaSalvar] = resultadoInicioCombate.objetoCombate;
-                            console.log(`[COMBATE] Combate ${idCombateParaSalvar} salvo no cache.`);
-                        } else {
-                            console.error(`[COMBATE] ERRO: objetoCombate não retornado por iniciarCombatePvE!`);
-                        }
+                            // SALVAR O COMBATE NO CACHE ANTES DE USAR
+                            const idCombateParaSalvar = String(resultadoInicioCombate.idCombate).trim();
+                            if (resultadoInicioCombate.objetoCombate) {
+                                combatesAtivos[idCombateParaSalvar] = resultadoInicioCombate.objetoCombate;
+                                console.log(`[COMBATE] Combate ${idCombateParaSalvar} salvo no cache.`);
+                            } else {
+                                console.error(`[COMBATE] ERRO: objetoCombate não retornado por iniciarCombatePvE!`);
+                            }
 
-                        // Mensagem de descrição mais elaborada
-                        let descricaoCombate = `📜 **Missão:** Infestação no Armazém\n\n`; // Exemplo, idealmente pegar o título da missão dinamicamente
-                        descricaoCombate += `*${resultadoInicioCombate.mensagemInicial || "O combate começou!"}*\n\n`;
-                        descricaoCombate += `**Turno de:** ${nomeJogador}`;
+                            // Mensagem de descrição mais elaborada
+                            let descricaoCombate = `📜 **Missão:** Infestação no Armazém\n\n`; // Exemplo, idealmente pegar o título da missão dinamicamente
+                            descricaoCombate += `*${resultadoInicioCombate.mensagemInicial || "O combate começou!"}*\n\n`;
+                            descricaoCombate += `**Turno de:** ${nomeJogador}`;
 
-                        const embedCombate = new EmbedBuilder()
-                            .setColor(0xDC143C) // Um vermelho mais "sangue" (Crimson)
-                            .setTitle(`⚔️ COMBATE IMINENTE! ⚔️`)
-                            .setDescription(descricaoCombate)
-                            if (mobEstado.imagem) embedCombate.setThumbnail(mobEstado.imagem);
+                            const embedCombate = new EmbedBuilder()
+                                .setColor(0xDC143C) // Um vermelho mais "sangue" (Crimson)
+                                .setTitle(`⚔️ COMBATE IMINENTE! ⚔️`)
+                                .setDescription(descricaoCombate)
+                                if (mobEstado.imagem) embedCombate.setThumbnail(mobEstado.imagem);
 
-                        embedCombate.addFields(
-    { 
-        name: `👤 ${nomeJogador}`, 
-        // V---- Verifique estas linhas com atenção ----V
-        value: `❤️ PV: **${pvAtualJogador}/${pvMaxJogador}**\n💧 PM: **${pmAtualJogador}/${pmMaxJogador}**`, 
-        // ^---- Verifique estas linhas com atenção ----^
-        inline: true 
-    },
-    { 
-        name: `\u200B`, // Campo invisível para espaçamento
-        value: `\u200B`,
-        inline: true
-    },
-    { 
-        name: `👹 ${nomeMob} (Nv. ${nivelMob})`, 
-        // V---- Verifique esta linha com atenção ----V
-        value: `❤️ PV: **${pvAtualMob}/${pvMaxMob}**`, 
-        // ^---- Verifique esta linha com atenção ----^
-        inline: true 
-    }
+                            embedCombate.addFields(
+{ 
+    name: `👤 ${nomeJogador}`, 
+    // V---- Verifique estas linhas com atenção ----V
+    value: `❤️ PV: **${pvAtualJogador}/${pvMaxJogador}**\n💧 PM: **${pmAtualJogador}/${pmMaxJogador}**`, 
+    // ^---- Verifique estas linhas com atenção ----^
+    inline: true 
+},
+{ 
+    name: `\u200B`, // Campo invisível para espaçamento
+    value: `\u200B`,
+    inline: true
+},
+{ 
+    name: `👹 ${nomeMob} (Nv. ${nivelMob})`, 
+    // V---- Verifique esta linha com atenção ----V
+    value: `❤️ PV: **${pvAtualMob}/${pvMaxMob}**`, 
+    // ^---- Verifique esta linha com atenção ----^
+    inline: true 
+}
 )
-                            .setFooter({ text: "Prepare-se para a batalha!" });
+                                .setFooter({ text: "Prepare-se para a batalha!" });
 
-                        console.log(`[DEBUG] Criando botões com idCombate: ${resultadoInicioCombate.idCombate}`);
-                        const combatActionRow = new ActionRowBuilder()
-                            .addComponents(
-                                new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${resultadoInicioCombate.idCombate}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
-                                new ButtonBuilder().setCustomId(`combate_USARFEITICO_${resultadoInicioCombate.idCombate}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
-                                new ButtonBuilder().setCustomId(`combate_USARITEM_${resultadoInicioCombate.idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
-                            );
+                            console.log(`[DEBUG] Criando botões com idCombate: ${resultadoInicioCombate.idCombate}`);
+                            const combatActionRow = new ActionRowBuilder()
+                                .addComponents(
+                                    new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${resultadoInicioCombate.idCombate}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
+                                    new ButtonBuilder().setCustomId(`combate_USARFEITICO_${resultadoInicioCombate.idCombate}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
+                                    new ButtonBuilder().setCustomId(`combate_USARITEM_${resultadoInicioCombate.idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
+                                );
 
-                        await interaction.editReply({ embeds: [embedConfirmacao], components: [] }); 
-                        await interaction.followUp({ embeds: [embedCombate], components: [combatActionRow] });
-                        return; 
+                            await interaction.editReply({ embeds: [embedConfirmacao], components: [] }); 
+                            await interaction.followUp({ embeds: [embedCombate], components: [combatActionRow] });
+                            return; 
 
                         } else {
                             embedConfirmacao.addFields({ name: "⚠️ Falha ao Iniciar Combate", value: resultadoInicioCombate.erro || "Não foi possível iniciar o combate." });
@@ -1380,7 +1375,6 @@ else if (interaction.isStringSelectMenu()) {
 
 }); // FIM DO client.on('interactionCreate'...)
 
-
 // --- Login do Bot ---
 const token = process.env.DISCORD_TOKEN; // Pega o token da variável de ambiente
 
@@ -1399,4 +1393,3 @@ if (!token) {
         }
     });
 }
-
