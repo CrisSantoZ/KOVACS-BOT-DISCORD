@@ -806,11 +806,11 @@ const idCombate = customIdParts.slice(2).join('_');
 // --- BEGIN: Checagem de jogador responsável pelo combate ---
 const combate = combatesAtivos && combatesAtivos[idCombate];
 if (!combate) {
-    await interaction.followup({ content: "Esse combate não está mais ativo!", ephemeral: true });
+    await interaction.followUp({ content: "Esse combate não está mais ativo!", ephemeral: true });
     return;
 }
 if (interaction.user.id !== combate.idJogadorTurno) {
-    await interaction.followup({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
+    await interaction.followUp({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
     return;
 }
 // --- END: Checagem de jogador responsável pelo combate ---
@@ -827,14 +827,14 @@ if (interaction.user.id !== combate.idJogadorTurno) {
             // Esta verificação é crucial: garante que resultadoAcaoJogador é um objeto antes de acessar suas propriedades
             if (!resultadoAcaoJogador || typeof resultadoAcaoJogador !== 'object') {
                 console.error(">>> [INDEX] ERRO: processarAcaoJogadorCombate não retornou um objeto válido. Retorno:", resultadoAcaoJogador);
-                await interaction.followup({ content: "Ocorreu um erro crítico ao processar a ação de combate (retorno inesperado).", components: [], embeds: [] });
+                await interaction.followUp({ content: "Ocorreu um erro crítico ao processar a ação de combate (retorno inesperado).", components: [], embeds: [] });
                 return;
             }
 
             if (resultadoAcaoJogador.erro) {
                 await interaction.followUp({ content: `Erro na ação: ${resultadoAcaoJogador.erro}`, ephemeral: true });
                 if (resultadoAcaoJogador.combateTerminou) {
-                     await interaction.followup({ content: `Combate encerrado devido a um erro: ${resultadoAcaoJogador.erro}`, embeds: [], components: [] });
+                     await interaction.followUp({ content: `Combate encerrado devido a um erro: ${resultadoAcaoJogador.erro}`, embeds: [], components: [] });
                 }
                 return;
             }
@@ -881,7 +881,7 @@ if (interaction.user.id !== combate.idJogadorTurno) {
                 } else {
                      embedCombateAtualizado.addFields({ name: "Recompensas", value: "Nenhuma recompensa específica." });
                 }
-                await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
+                await interaction.followUp({ embeds: [embedCombateAtualizado], components: [] });
                 return;
             }
 
