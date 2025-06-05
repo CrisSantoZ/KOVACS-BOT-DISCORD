@@ -552,8 +552,7 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
                              console.warn(`[AVISO LÓGICA] 'respostaParaEnviar' foi definida para /${commandName} que já deveria ter respondido. Usando followUp.`);
                              await interaction.followUp(payload);
                         } else {
-                            await interaction```tool_code
-.editReply(payload);
+                            await interaction.editReply(payload);
                         }
                     } else { 
                         await interaction.reply(payload); 
