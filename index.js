@@ -575,12 +575,12 @@ if (
     (tipoComponente === 'dialogo' || tipoComponente === 'missao') &&
     interaction.user.id !== idJogadorAutorizado
 ) {
-    await interaction.followup({ content: "Apenas quem iniciou a interação pode clicar aqui.", ephemeral: true });
+    await interaction.followUp({ content: "Apenas quem iniciou a interação pode clicar aqui.", ephemeral: true });
     return;
 }
     
     if (!fichaJogador) {
-        await interaction.followup({ content: "Sua ficha não foi encontrada para continuar a interação.", embeds: [], components: [] });
+        await interaction.followUp({ content: "Sua ficha não foi encontrada para continuar a interação.", embeds: [], components: [] });
         return;
     }
 
@@ -593,14 +593,14 @@ if (
             const idDialogoOriginal = customIdParts[4]; 
 
             if (acaoDialogo === 'ENCERRAR' || (acaoDialogo === 'CONTINUAR' && idParametro3 === 'sem_acao')) {
-                await interaction.editReply({ content: "Conversa encerrada.", embeds: [], components: [] });
+                await interaction.followUp({ content: "Conversa encerrada.", embeds: [], components: [] });
                 return;
             } else if (acaoDialogo === 'CONTINUAR') {
                 const idProximoDialogo = idParametro3; 
                 const resultadoInteracao = await Arcadia.processarInteracaoComNPC(idNpc, fichaJogador, idProximoDialogo);
 
                 if (resultadoInteracao.erro) {
-                    await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Interação Falhou", resultadoInteracao.erro)], components: [] });
+                    await interaction.followUp({ embeds: [Arcadia.gerarEmbedAviso("Interação Falhou", resultadoInteracao.erro)], components: [] });
                 } else {
                     const embedNPC = new EmbedBuilder()
                         .setColor(0x7289DA)
@@ -645,10 +645,10 @@ if (
                                 .setStyle(ButtonStyle.Secondary)
                         );
                     }
-                    await interaction.editReply({ embeds: [embedNPC], components: novaActionRow.components.length > 0 ? [novaActionRow] : [] });
+                    await interaction.followUp({ embeds: [embedNPC], components: novaActionRow.components.length > 0 ? [novaActionRow] : [] });
                 }
             } else {
-                 await interaction.editReply({ content: `Ação de diálogo "${customIdParts[1]}" não reconhecida. Verifique o formato do customId.`, embeds:[], components: [] });
+                 await interaction.followUp({ content: `Ação de diálogo "${customIdParts[1]}" não reconhecida. Verifique o formato do customId.`, embeds:[], components: [] });
             }
         } // FECHA if (tipoComponente === 'dialogo')
         
@@ -671,7 +671,7 @@ if (
                         const missoesCol = Arcadia.getMissoesCollection(); 
                         if (!missoesCol) {
                             console.error("ERRO GRAVE no index.js: getMissoesCollection() retornou undefined!");
-                            await interaction.editReply({ embeds: [Arcadia.gerarEmbedErro("Erro de Sistema", "Não foi possível acessar os dados da missão.")] });
+                            await interaction.followUp({ embeds: [Arcadia.gerarEmbedErro("Erro de Sistema", "Não foi possível acessar os dados da missão.")] });
                             return; 
                         }
                         const missaoDef = await missoesCol.findOne({ _id: "mVRatos" });
