@@ -3264,7 +3264,7 @@ function gerarListaReinosEmbed() {
     return embed;
 }
 
-async function processarCriarFichaSlash(idJogadorDiscord, nomeJogadorDiscord, nomePersonagem, racaNomeInput, classeNomeInput, reinoNomeInput, imagemUrl) {
+async function processarCriarFichaSlash(idJogadorDiscord, nomeJogadorDiscord, nomePersonagem, racaNomeInput, classeNomeInput, reinoNomeInput) {
     const fichaExistente = await getFichaOuCarregar(idJogadorDiscord);
     if (fichaExistente && fichaExistente.nomePersonagem !== "N/A") {
         return gerarEmbedAviso("Personagem Já Existente", `Você já tem: **${fichaExistente.nomePersonagem}**. Use \`/ficha\` para vê-lo.`);
@@ -3282,14 +3282,6 @@ async function processarCriarFichaSlash(idJogadorDiscord, nomeJogadorDiscord, no
     if (!classeValida) { errorMessages.push(`Classe "${classeNomeInput}" inválida. Use \`/listaclasses\`.`); }
     if (!reinoValido) { errorMessages.push(`Reino "${reinoNomeInput}" inválido. Use \`/listareinos\`.`); }
 
-    // Validação da imagem (opcional)
-    let imagemValida = null;
-    if (imagemUrl && /^https?:\/\/.+\.(png|jpg|jpeg|gif)$/i.test(imagemUrl)) {
-        imagemValida = imagemUrl;
-    } else if (imagemUrl) {
-        errorMessages.push("A URL da imagem não é válida. Utilize um link direto para PNG, JPG ou GIF.");
-    }
-
     if (errorMessages.length > 0) {
         return gerarEmbedErro("Erro na Criação", errorMessages.join("\n"));
     }
@@ -3302,11 +3294,6 @@ async function processarCriarFichaSlash(idJogadorDiscord, nomeJogadorDiscord, no
     novaFicha.classe = classeValida.nome;
     novaFicha.origemReino = reinoValido.nome;
 
-    // Salva o campo da imagem, se houver
-    if (imagemValida) {
-        novaFicha.imagem = imagemValida;
-    }
-
     novaFicha.pvMax = (novaFicha.atributos.vitalidade * 5) + (novaFicha.nivel * 5) + 20;
     novaFicha.pmMax = (novaFicha.atributos.manabase * 5) + (novaFicha.nivel * 3) + 10;
 
@@ -3315,16 +3302,9 @@ async function processarCriarFichaSlash(idJogadorDiscord, nomeJogadorDiscord, no
 
     await atualizarFichaNoCacheEDb(idJogadorDiscord, novaFicha);
 
-    // Embed de sucesso
-    const embed = gerarEmbedSucesso("🎉 Personagem Criado! 🎉",
+    return gerarEmbedSucesso("🎉 Personagem Criado! 🎉",
         `**${nomePersonagem}** (${novaFicha.raca} ${novaFicha.classe} de ${novaFicha.origemReino}) foi criado para ${nomeJogadorDiscord}!\n\nUse \`/distribuirpontos\` para gastar seus 30 pontos iniciais e depois \`/ficha\` para ver seu personagem.`
     ).setTimestamp();
-
-    // Adiciona a imagem como thumbnail se válida
-    if (imagemValida) {
-        embed.setThumbnail(imagemValida);
-    }
-    return embed;
 }
 
 async function processarVerFichaEmbed(idAlvoDiscord, isAdminConsultandoOutro, idInvocadorOriginal, nomeInvocadorOriginal) {
@@ -3363,9 +3343,6 @@ async function processarVerFichaEmbed(idAlvoDiscord, isAdminConsultandoOutro, id
 
             { name: '💰 Moedas', value: `🪙 ${ficha.florinsDeOuro || 0} Florins de Ouro\n💎 ${ficha.essenciaDeArcadia || 0} Essências de Arcádia`, inline: false }
         );
-    if (ficha.imagem) {
-        embed.setThumbnail(ficha.imagem);
-    }
 
     let atributosStr = "";
     if (ficha.atributos) {
