@@ -1,5 +1,5 @@
 // index.js
-const { Client, GatewayIntentBits, Partials, ActivityType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, ActivityType, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
 const express = require('express');
 require('dotenv').config();
 const Arcadia = require('./arcadia_sistema.js');
@@ -40,6 +40,9 @@ const client = new Client({
 });
 
 const OWNER_ID_DISCORD = process.env.OWNER_ID;
+
+// Cache para combates ativos
+const combatesAtivos = {};
 
 // --- Evento: Bot Pronto ---
 client.on('ready', async () => {
@@ -554,7 +557,7 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
                     } else { 
                         await interaction.reply(payload); 
                     }
-                }```
+                }
             } else if (!['criar', 'ficha', 'interagir'].includes(commandName)) { 
                 console.warn(`[RESPOSTA] 'respostaParaEnviar' é undefined para /${commandName}, e este comando não respondeu diretamente à interação.`);
             } 
@@ -1160,7 +1163,6 @@ else if (acaoCombate === 'USARFEITICO') { // Linha ~941
     }
 
     // Se tem mais de um feitiço: montar um select menu para o jogador escolher qual feitiço usar
-    const { StringSelectMenuBuilder, ActionRowBuilder } = require('discord.js');
     const selectMenu = new StringSelectMenuBuilder()
         .setCustomId(`combate_SELECTFEITICO_${idCombate}`)
         .setPlaceholder('Selecione um feitiço para usar')
