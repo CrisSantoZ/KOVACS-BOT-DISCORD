@@ -382,7 +382,7 @@ client.on('interactionCreate', async interaction => {
                             console.error("[INTERAGIR] Erro ao fazer deferReply:", deferError.message);
                             return; // Se não conseguiu defer, sair para evitar mais erros
                         }
-                        
+
                         const nomeNPCInput = options.getString('npc');
                         const fichaJogador = await Arcadia.getFichaOuCarregar(senderId);
 
@@ -564,7 +564,7 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
 
         } catch (error) { 
             console.error(`Erro CRÍTICO ao processar comando /${commandName} por ${user.username}:`, error.message);
-            
+
             // Só tentar responder se não for erro de interação expirada
             if (error.code !== 10062) {
                 let errorEmbedParaUsuario = Arcadia.gerarEmbedErro("😥 Erro Crítico", "Desculpe, ocorreu um erro crítico ao processar seu comando. O Mestre foi notificado e investigará o problema.");
@@ -591,7 +591,7 @@ else if (interaction.isButton()) {
         console.error("[BOTÃO] Erro ao fazer deferUpdate:", error.message);
         return; // Se não conseguiu defer, para por aqui para evitar mais erros
     }
-    
+
     const customIdParts = interaction.customId.split('_');
     const tipoComponente = customIdParts[0];
     const senderIdButton = interaction.user.id;
@@ -866,7 +866,7 @@ if (!combate) {
     console.log(`[DEBUG] Combate ${idCombate} não encontrado nos combates ativos`);
     console.log(`[DEBUG] IDs disponíveis:`, Object.keys(combatesAtivos));
     console.log(`[DEBUG] Tentando busca alternativa...`);
-    
+
     // Tentativa de busca alternativa caso haja problemas de encoding
     let combateAlternativo = null;
     for (const [key, value] of Object.entries(combatesAtivos)) {
@@ -877,7 +877,7 @@ if (!combate) {
             break;
         }
     }
-    
+
     if (!combateAlternativo) {
         try {
             await interaction.followUp({ content: "Esse combate não está mais ativo!", ephemeral: true });
@@ -1018,7 +1018,7 @@ if (interaction.user.id !== combate.idJogadorTurno) {
                     // Remove o combate dos ativos
                     delete combatesAtivos[idCombate];
                     console.log(`[DEBUG] Combate ${idCombate} removido - jogador derrotado`);
-                    
+
                     if (resultadoTurnoMob.logCombateFinal) {
                          embedCombateAtualizado.setDescription((resultadoTurnoMob.logCombateFinal).join('\n'));
                     }
@@ -1039,11 +1039,12 @@ if (interaction.user.id !== combate.idJogadorTurno) {
             } // Fecha if (resultadoAcaoJogador.proximoTurno === 'mob')
 
             // Se o combate continua e é turno do jogador, mostrar botões de ação novamente
+            let combateIdFinal = idCombate;
             const combatActionRowContinuacao = new ActionRowBuilder()
                 .addComponents(
-                    new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${idCombate}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
-                    new ButtonBuilder().setCustomId(`combate_USARFEITICO_${idCombate}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
-                    new ButtonBuilder().setCustomId(`combate_USARITEM_${idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
+                    new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${combateIdFinal}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
+                    new ButtonBuilder().setCustomId(`combate_USARFEITICO_${combateIdFinal}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
+                    new ButtonBuilder().setCustomId(`combate_USARITEM_${combateIdFinal}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
                 );
             await interaction.editReply({ embeds: [embedCombateAtualizado], components: [combatActionRowContinuacao] });
             // --- FIM DA LÓGICA DE PROCESSAMENTO DO RESULTADO DA AÇÃO DO JOGADOR ---
@@ -1090,7 +1091,7 @@ else if (acaoCombate === 'USARFEITICO') { // Linha ~941
 
         // Atualiza embed de combate (igual Ataque Básico)
         const jogadorEstadoAcao = resultado.estadoCombate.jogador;
-        const mobEstadoAcao = resultado.estadoCombate.mob;
+        const mobEstadoAcao =resultado.estadoCombate.mob;
         const nomeJogadorAcao = jogadorEstadoAcao ? jogadorEstadoAcao.nome : "Jogador";
         const pvAtualJogadorAcao = jogadorEstadoAcao ? jogadorEstadoAcao.pvAtual : "N/A";
         const pvMaxJogadorAcao = jogadorEstadoAcao ? jogadorEstadoAcao.pvMax : "N/A";
@@ -1180,11 +1181,12 @@ else if (acaoCombate === 'USARFEITICO') { // Linha ~941
         }
 
         // Se o combate continua e é turno do jogador, mostrar botões de ação novamente
+        let combateIdFinal = idCombate;
         const combatActionRowContinuacao = new ActionRowBuilder()
             .addComponents(
-                new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${idCombate}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
-                new ButtonBuilder().setCustomId(`combate_USARFEITICO_${idCombate}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
-                new ButtonBuilder().setCustomId(`combate_USARITEM_${idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
+                new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${combateIdFinal}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
+                new ButtonBuilder().setCustomId(`combate_USARFEITICO_${combateIdFinal}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
+                new ButtonBuilder().setCustomId(`combate_USARITEM_${combateIdFinal}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
             );
         await interaction.editReply({ embeds: [embedCombateAtualizado], components: [combatActionRowContinuacao] });
         return;
@@ -1377,11 +1379,12 @@ else if (interaction.isStringSelectMenu()) {
             }
 
             // Se o combate continua e é turno do jogador, mostrar botões de ação novamente
+            let combateIdFinal = idCombate;
             const combatActionRowContinuacao = new ActionRowBuilder()
                 .addComponents(
-                    new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${idCombate}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
-                    new ButtonBuilder().setCustomId(`combate_USARFEITICO_${idCombate}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
-                    new ButtonBuilder().setCustomId(`combate_USARITEM_${idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
+                    new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${combateIdFinal}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
+                    new ButtonBuilder().setCustomId(`combate_USARFEITICO_${combateIdFinal}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
+                    new ButtonBuilder().setCustomId(`combate_USARITEM_${combateIdFinal}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
                 );
             await interaction.update({ embeds: [embedCombateAtualizado], components: [combatActionRowContinuacao] });
             return;
