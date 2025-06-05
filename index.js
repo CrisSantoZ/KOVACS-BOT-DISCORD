@@ -805,8 +805,8 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
 
         // "else if (tipoComponente === 'combate') { ... }"
 else if (tipoComponente === 'combate') {
-    const acaoCombate = customIdParts[1]; 
-const idCombate = customIdParts.slice(2).join('_');
+    const acaoCombate = customIdParts.slice(1, -1).join('_');
+const idCombate = customIdParts[customIdParts.length - 1];
 // --- BEGIN: Checagem de jogador responsável pelo combate ---
 const combate = combatesAtivos && combatesAtivos[idCombate];
 if (!combate) {
