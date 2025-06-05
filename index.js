@@ -557,7 +557,7 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
                     } else { 
                         await interaction.reply(payload); 
                     }
-                }
+                }```text
             } else if (!['criar', 'ficha', 'interagir'].includes(commandName)) { 
                 console.warn(`[RESPOSTA] 'respostaParaEnviar' é undefined para /${commandName}, e este comando não respondeu diretamente à interação.`);
             } 
@@ -605,7 +605,7 @@ else if (interaction.isButton()) {
             if (!interaction.replied && !interaction.deferred) {
                 await interaction.deferUpdate();
             }
-            
+
             const acaoDialogo = customIdParts[1] ? customIdParts[1].toUpperCase() : null; 
             const idNpc = customIdParts[2];
             const idParametro3 = customIdParts[3]; 
@@ -676,7 +676,7 @@ else if (interaction.isButton()) {
             if (!interaction.replied && !interaction.deferred) {
                 await interaction.deferUpdate();
             }
-            
+
             const acaoMissao = customIdParts[1]; 
             const idNpcMissao = customIdParts[2]; 
             const idMissaoParaAceitar = customIdParts[3];
@@ -925,6 +925,11 @@ if (!interaction.replied && !interaction.deferred) {
                      embedCombateAtualizado.addFields({ name: "Recompensas", value: "Nenhuma recompensa específica." });
                 }
                 await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
+                    // Limpar combate do cache
+                    if (combatesAtivos[idCombate]) {
+                        delete combatesAtivos[idCombate];
+                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
+                    }
                 return;
             }
 
@@ -975,6 +980,11 @@ if (!interaction.replied && !interaction.deferred) {
                          embedCombateAtualizado.setDescription((resultadoTurnoMob.logCombateFinal).join('\n'));
                     }
                     await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
+                    // Limpar combate do cache
+                    if (combatesAtivos[idCombate]) {
+                        delete combatesAtivos[idCombate];
+                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após derrota.`);
+                    }
                     return;
                 } else if (resultadoTurnoMob.combateTerminou) { 
                     // Outro caso de término, ex: mob se derrotou ou venceu por outra condição
@@ -986,6 +996,11 @@ if (!interaction.replied && !interaction.deferred) {
                         embedCombateAtualizado.addFields({ name: "Recompensas", value: resultadoTurnoMob.recompensasTextoFinal.join('\n') });
                     }
                     await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
+                    // Limpar combate do cache
+                    if (combatesAtivos[idCombate]) {
+                        delete combatesAtivos[idCombate];
+                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
+                    }
                     return;
                 }
             } // Fecha if (resultadoAcaoJogador.proximoTurno === 'mob')
@@ -1065,7 +1080,8 @@ else if (acaoCombate === 'USARFEITICO') { // Linha ~941
             );
 
         if (resultado.mobDerrotado) {
-            const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true, resultado.dadosParaFinalizar && resultado.dadosParaFinalizar.eUltimoMobDaMissao);
+            const resultadoFinal = await Arcadia.final```text
+izarCombate(idCombate, senderIdButton, true, resultado.dadosParaFinalizar && resultado.dadosParaFinalizar.eUltimoMobDaMissao);
             embedCombateAtualizado.setTitle("🏆 Vitória! 🏆");
             embedCombateAtualizado.setDescription((resultadoFinal.logCombateFinal || logCombateAtualizado).join('\n'));
             if (resultadoFinal.recompensasTextoFinal && resultadoFinal.recompensasTextoFinal.length > 0) {
@@ -1074,6 +1090,11 @@ else if (acaoCombate === 'USARFEITICO') { // Linha ~941
                 embedCombateAtualizado.addFields({ name: "Recompensas", value: "Nenhuma recompensa específica." });
             }
             await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
+                    // Limpar combate do cache
+                    if (combatesAtivos[idCombate]) {
+                        delete combatesAtivos[idCombate];
+                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
+                    }
             return;
         }
 
@@ -1117,6 +1138,11 @@ else if (acaoCombate === 'USARFEITICO') { // Linha ~941
                     embedCombateAtualizado.setDescription((resultadoTurnoMob.logCombateFinal).join('\n'));
                 }
                 await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
+                    // Limpar combate do cache
+                    if (combatesAtivos[idCombate]) {
+                        delete combatesAtivos[idCombate];
+                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após derrota.`);
+                    }
                 return;
             } else if (resultadoTurnoMob.combateTerminou) {
                 embedCombateAtualizado.setTitle(resultadoTurnoMob.vencedorFinal === "jogador" ? "🏆 Vitória Inesperada! 🏆" : "⚔️ Combate Encerrado ⚔️");
@@ -1127,6 +1153,11 @@ else if (acaoCombate === 'USARFEITICO') { // Linha ~941
                     embedCombateAtualizado.addFields({ name: "Recompensas", value: resultadoTurnoMob.recompensasTextoFinal.join('\n') });
                 }
                 await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
+                    // Limpar combate do cache
+                    if (combatesAtivos[idCombate]) {
+                        delete combatesAtivos[idCombate];
+                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
+                    }
                 return;
             }
         }
@@ -1228,7 +1259,7 @@ else if (interaction.isStringSelectMenu()) {
             if (resultado.erro) {
                 await interaction.update({ content: `Erro ao usar feitiço: ${resultado.erro}`, ephemeral: true });
                 if (resultado.combateTerminou) {
-                    await interaction.update({ content: `Combate encerrado devido a um erro: ${resultado.erro}`, embeds: [], components: [] });
+                    await interaction.update({ content: `Combate encerrado devido a um erro: ${resultado.erro}`, components: [] });
                 }
                 return;
             }
@@ -1267,7 +1298,11 @@ else if (interaction.isStringSelectMenu()) {
                     embedCombateAtualizado.addFields({ name: "Recompensas", value: "Nenhuma recompensa específica." });
                 }
                 await interaction.update({ embeds: [embedCombateAtualizado], components: [] });
-                delete combatesAtivos[idCombate];
+                    // Limpar combate do cache
+                    if (combatesAtivos[idCombate]) {
+                        delete combatesAtivos[idCombate];
+                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
+                    }
                 return;
             }
 
@@ -1293,7 +1328,7 @@ else if (interaction.isStringSelectMenu()) {
                 const pvAtualJogadorTurnoMob = jogadorEstadoTurnoMob.pvAtual;
                 const pvMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pvMax;
                 const pmAtualJogadorTurnoMob = jogadorEstadoTurnoMob.pmAtual;
-                const pmMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pmAtual;
+                const pmMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pmMax;
                 const nomeMobTurnoMob = mobEstadoTurnoMob.nome;
                 const pvAtualMobTurnoMob = mobEstadoTurnoMob.pvAtual;
                 const pvMaxMobTurnoMob = mobEstadoTurnoMob.pvMax;
@@ -1311,31 +1346,39 @@ else if (interaction.isStringSelectMenu()) {
                         embedCombateAtualizado.setDescription((resultadoTurnoMob.logCombateFinal).join('\n'));
                     }
                     await interaction.update({ embeds: [embedCombateAtualizado], components: [] });
-                    delete combatesAtivos[idCombate];
-                    return;
-                } else if (resultadoTurnoMob.combateTerminou) {
-                    embedCombateAtualizado.setTitle(resultadoTurnoMob.vencedorFinal === "jogador" ? "🏆 Vitória Inesperada! 🏆" : "⚔️ Combate Encerrado ⚔️");
-                    if (resultadoTurnoMob.logCombateFinal) {
-                        embedCombateAtualizado.setDescription((resultadoTurnoMob.logCombateFinal).join('\n'));
+                    // Limpar combate do cache
+                    if (combatesAtivos[idCombate]) {
+                        delete combatesAtivos[idCombate];
+                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após derrota.`);
                     }
-                    if (resultadoTurnoMob.recompensasTextoFinal && resultadoTurnoMob.recompensasTextoFinal.length > 0) {
-                        embedCombateAtualizado.addFields({ name: "Recompensas", value: resultadoTurnoMob.recompensasTextoFinal.join('\n') });
-                    }
-                    await interaction.update({ embeds: [embedCombateAtualizado], components: [] });
-                    delete combatesAtivos[idCombate];
-                    return;
+                return;
+            } else if (resultadoTurnoMob.combateTerminou) {
+                embedCombateAtualizado.setTitle(resultadoTurnoMob.vencedorFinal === "jogador" ? "🏆 Vitória Inesperada! 🏆" : "⚔️ Combate Encerrado ⚔️");
+                if (resultadoTurnoMob.logCombateFinal) {
+                    embedCombateAtualizado.setDescription((resultadoTurnoMob.logCombateFinal).join('\n'));
                 }
+                if (resultadoTurnoMob.recompensasTextoFinal && resultadoTurnoMob.recompensasTextoFinal.length > 0) {
+                    embedCombateAtualizado.addFields({ name: "Recompensas", value: resultadoTurnoMob.recompensasTextoFinal.join('\n') });
+                }
+                await interaction.update({ embeds: [embedCombateAtualizado], components: [] });
+                    // Limpar combate do cache
+                    if (combatesAtivos[idCombate]) {
+                        delete combatesAtivos[idCombate];
+                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
+                    }
+                return;
             }
+        }
 
-            // Se o combate continua e é turno do jogador, mostrar botões de ação novamente
-            let combateIdFinal = idCombate;
-            const combatActionRowContinuacao = new ActionRowBuilder()
-                .addComponents(
-                    new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${combateIdFinal}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
-                    new ButtonBuilder().setCustomId(`combate_USARFEITICO_${combateIdFinal}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
-                    new ButtonBuilder().setCustomId(`combate_USARITEM_${combateIdFinal}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
-                );
-            await interaction.update({ embeds: [embedCombateAtualizado], components: [combatActionRowContinuacao] });
+        // Se o combate continua e é turno do jogador, mostrar botões de ação novamente
+        let combateIdFinal = idCombate;
+        const combatActionRowContinuacao = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${combateIdFinal}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
+                new ButtonBuilder().setCustomId(`combate_USARFEITICO_${combateIdFinal}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
+                new ButtonBuilder().setCustomId(`combate_USARITEM_${combateIdFinal}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
+            );
+        await interaction.update({ embeds: [embedCombateAtualizado], components: [combatActionRowContinuacao] });
             return;
         }
     } catch (selectError) {
