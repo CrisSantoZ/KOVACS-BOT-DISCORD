@@ -558,7 +558,7 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
                         await interaction.reply(payload); 
                     }
                 }
-            } else if (!['criar', 'ficha', 'interagir'].includes(commandName)) { 
+            } else if (!['criar', 'ficha', ''interagir'].includes(commandName)) { 
                 console.warn(`[RESPOSTA] 'respostaParaEnviar' é undefined para /${commandName}, e este comando não respondeu diretamente à interação.`);
             } 
 
@@ -1344,7 +1344,7 @@ else if (interaction.isStringSelectMenu()) {
                 const pvAtualJogadorTurnoMob = jogadorEstadoTurnoMob.pvAtual;
                 const pvMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pvMax;
                 const pmAtualJogadorTurnoMob = jogadorEstadoTurnoMob.pmAtual;
-                const pmMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pmMax;
+                const pmMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pmAtual;
                 const nomeMobTurnoMob = mobEstadoTurnoMob.nome;
                 const pvAtualMobTurnoMob = mobEstadoTurnoMob.pvAtual;
                 const pvMaxMobTurnoMob = mobEstadoTurnoMob.pvMax;
