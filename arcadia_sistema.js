@@ -18,6 +18,9 @@ const ID_CANAL_ATUALIZACAO_FICHAS = process.env.ID_CANAL_ATUALIZACAO_FICHAS;
 const NOME_CARGO_VISITANTE = process.env.NOME_CARGO_VISITANTE || "Visitante de Arcádia";
 const NOME_CARGO_AVENTUREIRO = process.env.NOME_CARGO_AVENTUREIRO || "Aventureiro De Arcádia";
 
+// --- DEBUG FLAG ---
+const DEBUG_COMBATE = true;
+
 // =====================================================================================
 // DADOS DO JOGO (RAÇAS, CLASSES, REINOS, FEITIÇOS, ITENS)
 // =====================================================================================
