@@ -5,6 +5,7 @@ require('dotenv').config();
 const Arcadia = require('./arcadia_sistema.js');
 
 const combatesAtivos = {};
+console.log("[DEBUG] Novo processo iniciado, combatesAtivos está vazio.");
 
 process.on('unhandledRejection', error => {
     console.error('GRAVE: Unhandled promise rejection:', error);
