@@ -412,8 +412,14 @@ if (resultadoInteracao.erro) {
                             if (resultadoInteracao.descricaoVisualNPC) {
                                 embedNPC.setDescription(resultadoInteracao.descricaoVisualNPC);
                             }
-    if (resultadoInteracao.imagem) embedNPC.setThumbnail(resultadoInteracao.imagem);
-    if (resultadoInteracao.imagemMissao) embedNPC.setImage(resultadoInteracao.imagemMissao);
+                            
+                            // Ativar imagens de NPCs e missões
+                            if (resultadoInteracao.imagem) {
+                                embedNPC.setThumbnail(resultadoInteracao.imagem);
+                            }
+                            if (resultadoInteracao.imagemMissao) {
+                                embedNPC.setImage(resultadoInteracao.imagemMissao);
+                            }
 
                             embedNPC.addFields({ name: "Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*Este personagem não diz nada no momento.*" });
 
@@ -628,8 +634,20 @@ else if (interaction.isButton()) {
                         .setColor(0x7289DA)
                         .setTitle(`🗣️ ${resultadoInteracao.tituloNPC || resultadoInteracao.nomeNPC}`)
                         .setAuthor({ name: resultadoInteracao.nomeNPC });
-                    if (resultadoInteracao.descricaoVisualNPC) embedNPC.setDescription(resultadoInteracao.descricaoVisualNPC);
-                    embedNPC.addFields({ name: "Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*...*" });
+                    
+                    if (resultadoInteracao.descricaoVisualNPC) {
+                        embedNPC.setDescription(resultadoInteracao.descricaoVisualNPC);
+                    }
+                    
+                    // Adicionar imagens do NPC e missões no diálogo continuado
+                    if (resultadoInteracao.imagem) {
+                        embedNPC.setThumbnail(resultadoInteracao.imagem);
+                    }
+                    if (resultadoInteracao.imagemMissao) {
+                        embedNPC.setImage(resultadoInteracao.imagemMissao);
+                    }
+                    
+                    embedNPC.addFields({ name: "💬 Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*...*" });
 
                     const novaActionRow = new ActionRowBuilder();
                     let novasOpcoes = false;
@@ -688,7 +706,7 @@ else if (interaction.isButton()) {
                 const resultadoAceite = await Arcadia.aceitarMissao(senderIdButton, idMissaoParaAceitar, idNpcMissao);
 
                 if (resultadoAceite.sucesso) {
-                    const embedConfirmacao = Arcadia.gerarEmbedSucesso("Missão Aceita!", resultadoAceite.sucesso);
+                    const embedConfirmacao = Arcadia.gerarEmbedSucesso("🎯 Missão Aceita!", resultadoAceite.sucesso);
                     const novoDialogoPosAceite = await Arcadia.processarInteracaoComNPC(idNpcMissao, fichaJogador, resultadoAceite.dialogoFeedbackId);
 
                     let componentesResposta = []; // Declarada ANTES de ser usada
@@ -756,8 +774,12 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                             const embedCombate = new EmbedBuilder()
                                 .setColor(0xDC143C) // Um vermelho mais "sangue" (Crimson)
                                 .setTitle(`⚔️ COMBATE IMINENTE! ⚔️`)
-                                .setDescription(descricaoCombate)
-                                if (mobEstado.imagem) embedCombate.setThumbnail(mobEstado.imagem);
+                                .setDescription(descricaoCombate);
+                            
+                            // Adicionar imagem do mob se existir
+                            if (mobEstado && mobEstado.imagem) {
+                                embedCombate.setThumbnail(mobEstado.imagem);
+                            }
 
                             embedCombate.addFields(
 { 
@@ -897,6 +919,11 @@ if (!interaction.replied && !interaction.deferred) {
                     { name: `\u200B`, value: `\u200B`, inline: true }, // Espaçador
                     { name: `👹 ${nomeMobAcao} (Nv. ${nivelMobCombat})`, value: `❤️ PV: **${pvAtualMobAcao}/${pvMaxMobAcao}**`, inline: true }
                 );
+            
+            // Adicionar imagem do mob se existir
+            if (mobEstadoAcao && mobEstadoAcao.imagem) {
+                embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagem);
+            }
 
             if (resultadoAcaoJogador.mobDerrotado) {
                 console.log(`>>> [INDEX | Combate Action] Mob derrotado. Chamando finalizarCombate para idCombate: ${idCombate}`);
@@ -1016,24 +1043,86 @@ else if (acaoCombate === 'USARFEITICO') {
                 return;
             }
 
-            // Continuar com a lógica similar ao ataque básico
-            const embedCombateAtualizado = new EmbedBuilder()
-                .setColor(0x800080)
+            // Atualizar embed com visual melhorado
+            const jogadorEstadoAcao = resultado.estadoCombate.jogador;
+            const mobEstadoAcao = resultado.estadoCombate.mob;
+            const nomeJogadorAcao = jogadorEstadoAcao ? jogadorEstadoAcao.nome : "Jogador";
+            const pvAtualJogadorAcao = jogadorEstadoAcao ? jogadorEstadoAcao.pvAtual : "N/A";
+            const pvMaxJogadorAcao = jogadorEstadoAcao ? jogadorEstadoAcao.pvMax : "N/A";
+            const pmAtualJogadorAcao = jogadorEstadoAcao ? jogadorEstadoAcao.pmAtual : "N/A";
+            const pmMaxJogadorAcao = jogadorEstadoAcao ? jogadorEstadoAcao.pmMax : "N/A";
+            const nomeMobAcao = mobEstadoAcao ? mobEstadoAcao.nome : "Criatura";
+            const pvAtualMobAcao = mobEstadoAcao ? mobEstadoAcao.pvAtual : "N/A";
+            const pvMaxMobAcao = mobEstadoAcao ? mobEstadoAcao.pvMax : "N/A";
+            const nivelMobCombat = mobEstadoAcao && typeof mobEstadoAcao.nivel === 'number' && mobEstadoAcao.nivel > 0 ? mobEstadoAcao.nivel : '?';
+
+            let logCombateAtualizado = resultado.logTurnoAnterior || [];
+            let embedCombateAtualizado = new EmbedBuilder()
+                .setColor(0x800080) // Roxo para feitiços
                 .setTitle(`🔮 Combate em Andamento (Feitiço) 🔮`)
-                .setDescription((resultado.logTurnoAnterior || []).join('\n') || "Feitiço usado.");
+                .setDescription(logCombateAtualizado.join('\n') || "Feitiço usado.")
+                .addFields(
+                    { name: `👤 ${nomeJogadorAcao}`, value: `❤️ PV: **${pvAtualJogadorAcao}/${pvMaxJogadorAcao}**\n💧 PM: **${pmAtualJogadorAcao}/${pmMaxJogadorAcao}**`, inline: true },
+                    { name: `\u200B`, value: `\u200B`, inline: true },
+                    { name: `👹 ${nomeMobAcao} (Nv. ${nivelMobCombat})`, value: `❤️ PV: **${pvAtualMobAcao}/${pvMaxMobAcao}**`, inline: true }
+                );
+
+            // Adicionar imagem do mob se existir
+            if (mobEstadoAcao && mobEstadoAcao.imagem) {
+                embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagem);
+            }
 
             if (resultado.mobDerrotado) {
-                const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true);
+                const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true, resultado.dadosParaFinalizar && resultado.dadosParaFinalizar.eUltimoMobDaMissao);
                 embedCombateAtualizado.setTitle("🏆 Vitória! 🏆");
+                embedCombateAtualizado.setDescription((resultadoFinal.logCombateFinal || logCombateAtualizado).join('\n'));
+                if (resultadoFinal.recompensasTextoFinal && resultadoFinal.recompensasTextoFinal.length > 0) {
+                    embedCombateAtualizado.addFields({ name: "🎁 Recompensas", value: resultadoFinal.recompensasTextoFinal.join('\n') });
+                }
                 await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
                 return;
             }
 
+            // Se é turno do mob, processar
             if (resultado.proximoTurno === 'mob') {
                 const resultadoTurnoMob = await Arcadia.processarTurnoMobCombate(idCombate);
-                // Lógica similar ao ataque básico para turno do mob
+                
+                if (!resultadoTurnoMob || typeof resultadoTurnoMob !== 'object') {
+                    await interaction.editReply({ content: "Erro crítico no turno do oponente.", components: [], embeds: [] });
+                    return;
+                }
+
+                if (resultadoTurnoMob.erro) {
+                    logCombateAtualizado.push(`⚠️ Erro no turno do oponente: ${resultadoTurnoMob.erro}`);
+                } else {
+                    logCombateAtualizado.push(...(resultadoTurnoMob.logTurnoAnterior || []));
+                }
+                embedCombateAtualizado.setDescription(logCombateAtualizado.join('\n'));
+
+                // Atualizar campos com novo estado
+                const jogadorEstadoTurnoMob = resultadoTurnoMob.estadoCombate ? resultadoTurnoMob.estadoCombate.jogador : jogadorEstadoAcao;
+                const mobEstadoTurnoMob = resultadoTurnoMob.estadoCombate ? resultadoTurnoMob.estadoCombate.mob : mobEstadoAcao;
+
+                embedCombateAtualizado.setFields(
+                    { name: `👤 ${jogadorEstadoTurnoMob.nome}`, value: `❤️ PV: **${jogadorEstadoTurnoMob.pvAtual}/${jogadorEstadoTurnoMob.pvMax}**\n💧 PM: **${jogadorEstadoTurnoMob.pmAtual}/${jogadorEstadoTurnoMob.pmMax}**`, inline: true },
+                    { name: `\u200B`, value: `\u200B`, inline: true },
+                    { name: `👹 ${mobEstadoTurnoMob.nome} (Nv. ${typeof mobEstadoTurnoMob.nivel === 'number' ? mobEstadoTurnoMob.nivel : '?'})`, value: `❤️ PV: **${mobEstadoTurnoMob.pvAtual}/${mobEstadoTurnoMob.pvMax}**`, inline: true }
+                );
+
+                if (resultadoTurnoMob.combateTerminou) {
+                    embedCombateAtualizado.setTitle(resultadoTurnoMob.vencedorFinal === "mob" ? "☠️ Derrota... ☠️" : "🏆 Vitória Inesperada! 🏆");
+                    if (resultadoTurnoMob.logCombateFinal) {
+                        embedCombateAtualizado.setDescription((resultadoTurnoMob.logCombateFinal).join('\n'));
+                    }
+                    if (resultadoTurnoMob.recompensasTextoFinal && resultadoTurnoMob.recompensasTextoFinal.length > 0) {
+                        embedCombateAtualizado.addFields({ name: "🎁 Recompensas", value: resultadoTurnoMob.recompensasTextoFinal.join('\n') });
+                    }
+                    await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
+                    return;
+                }
             }
 
+            // Continuar combate com botões
             const combatActionRow = new ActionRowBuilder()
                 .addComponents(
                     new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${idCombate}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
@@ -1045,10 +1134,9 @@ else if (acaoCombate === 'USARFEITICO') {
         }
 
         // Se tem mais de um feitiço: montar um select menu
-        const { StringSelectMenuBuilder } = require('discord.js');
         const selectMenu = new StringSelectMenuBuilder()
             .setCustomId(`combate_SELECTFEITICO_${idCombate}`)
-            .setPlaceholder('Selecione um feitiço para usar')
+            .setPlaceholder('🔮 Selecione um feitiço para usar...')
             .addOptions(
                 magiasConhecidas.slice(0, 25).map(magia => ({
                     label: magia.name,
@@ -1058,7 +1146,7 @@ else if (acaoCombate === 'USARFEITICO') {
 
         const selectRow = new ActionRowBuilder().addComponents(selectMenu);
         await interaction.followUp({
-            content: "Escolha o feitiço que deseja usar:",
+            content: "🎯 **Escolha o feitiço que deseja usar:**",
             components: [selectRow],
             ephemeral: true
         });
