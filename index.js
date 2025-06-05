@@ -849,7 +849,7 @@ if (!combate) {
     console.log(`[DEBUG] Combate ${idCombate} não encontrado nos combates ativos`);
     console.log(`[DEBUG] IDs disponíveis:`, Object.keys(combatesAtivos));
     try {
-        await interaction.followUp({ content: "Esse combate não está mais ativo!", flags: [64] });
+        await interaction.followUp({ content: "Esse combate não está mais ativo!", ephemeral: true });
     } catch (followUpError) {
         console.error("[COMBATE] Erro ao responder sobre combate inativo:", followUpError.message);
     }
