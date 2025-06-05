@@ -743,11 +743,12 @@ console.log(">>> [INDEX | Início Combate] resultadoInicioCombate.estadoCombate.
 console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED É:", nivelMob);
 
                         // SALVAR O COMBATE NO CACHE ANTES DE USAR
-                        combatesAtivos[resultadoInicioCombate.idCombate] = resultadoInicioCombate.objetoCombate;
-                        console.log(`[DEBUG] Combate salvo com ID: "${resultadoInicioCombate.idCombate}"`);
-                        console.log(`[DEBUG] Comprimento do ID salvo: ${resultadoInicioCombate.idCombate.length}`);
+                        const idCombateParaSalvar = String(resultadoInicioCombate.idCombate).trim();
+                        combatesAtivos[idCombateParaSalvar] = resultadoInicioCombate.objetoCombate;
+                        console.log(`[DEBUG] Combate salvo com ID: "${idCombateParaSalvar}"`);
+                        console.log(`[DEBUG] Comprimento do ID salvo: ${idCombateParaSalvar.length}`);
                         console.log("[DEBUG] Combates ativos após salvar:", Object.keys(combatesAtivos));
-                        console.log(`[DEBUG] Verificação imediata - combate existe?`, combatesAtivos[resultadoInicioCombate.idCombate] ? "SIM" : "NÃO");
+                        console.log(`[DEBUG] Verificação imediata - combate existe?`, combatesAtivos.hasOwnProperty(idCombateParaSalvar) ? "SIM" : "NÃO");
 
                         // Mensagem de descrição mais elaborada
                         let descricaoCombate = `📜 **Missão:** Infestação no Armazém\n\n`; // Exemplo, idealmente pegar o título da missão dinamicamente
@@ -848,47 +849,36 @@ console.log(`[DEBUG] IdCombate extraído: "${idCombate}"`);
 console.log(`[DEBUG] Comprimento do idCombate: ${idCombate.length}`);
 console.log(`[DEBUG] Verificando combate ${idCombate}. Combates ativos:`, Object.keys(combatesAtivos));
 
-// Debug detalhado para comparação
+// Busca mais robusta do combate
+let combate = null;
 const idsDisponiveis = Object.keys(combatesAtivos);
-console.log(`[DEBUG] Comparação detalhada:`);
-idsDisponiveis.forEach((id, index) => {
-    console.log(`[DEBUG] ID ${index}: "${id}" (length: ${id.length}) === "${idCombate}" (length: ${idCombate.length}): ${id === idCombate}`);
-    console.log(`[DEBUG] Char by char comparison for ID ${index}:`);
-    for (let i = 0; i < Math.max(id.length, idCombate.length); i++) {
-        console.log(`[DEBUG]   Pos ${i}: "${id[i] || 'undefined'}" vs "${idCombate[i] || 'undefined'}"`);
-    }
-});
 
-const combate = combatesAtivos[idCombate];
-console.log(`[DEBUG] Dados do combate procurado:`, combate ? "ENCONTRADO" : "NÃO ENCONTRADO");
-
-if (!combate) {
-    console.log(`[DEBUG] Combate ${idCombate} não encontrado nos combates ativos`);
-    console.log(`[DEBUG] IDs disponíveis:`, Object.keys(combatesAtivos));
-    console.log(`[DEBUG] Tentando busca alternativa...`);
-
-    // Tentativa de busca alternativa caso haja problemas de encoding
-    let combateAlternativo = null;
+// Primeiro, tentativa direta
+if (combatesAtivos.hasOwnProperty(idCombate)) {
+    combate = combatesAtivos[idCombate];
+    console.log(`[DEBUG] Combate encontrado diretamente`);
+} else {
+    // Busca alternativa - procura por correspondência de partes do ID
+    console.log(`[DEBUG] Busca direta falhou, tentando busca alternativa...`);
     for (const [key, value] of Object.entries(combatesAtivos)) {
-        if (key.includes(customIdParts[2]) && key.includes(customIdParts[3])) {
+        if (key === idCombate || (key.includes(customIdParts[2]) && key.includes(customIdParts[3]) && key.includes(customIdParts[4]))) {
             console.log(`[DEBUG] Combate encontrado por busca alternativa: ${key}`);
-            combateAlternativo = value;
+            combate = value;
             idCombate = key; // Atualiza o ID para o correto
             break;
         }
     }
+}
 
-    if (!combateAlternativo) {
-        try {
-            await interaction.followUp({ content: "Esse combate não está mais ativo!", ephemeral: true });
-        } catch (followUpError) {
-            console.error("[COMBATE] Erro ao responder sobre combate inativo:", followUpError.message);
-        }
-        return;
-    } else {
-        console.log(`[DEBUG] Usando combate encontrado por busca alternativa`);
-        // Continua com combateAlternativo
+if (!combate) {
+    console.log(`[DEBUG] Combate ${idCombate} não encontrado nos combates ativos`);
+    console.log(`[DEBUG] IDs disponíveis:`, idsDisponiveis);
+    try {
+        await interaction.followUp({ content: "Esse combate não está mais ativo!", ephemeral: true });
+    } catch (followUpError) {
+        console.error("[COMBATE] Erro ao responder sobre combate inativo:", followUpError.message);
     }
+    return;
 }
 console.log(`[DEBUG] Combate encontrado. Jogador do turno: ${combate.idJogadorTurno}, Jogador atual: ${interaction.user.id}`);
 if (interaction.user.id !== combate.idJogadorTurno) {
@@ -1256,7 +1246,20 @@ else if (interaction.isStringSelectMenu()) {
 
             // --- BEGIN: Checagem de jogador responsável pelo combate ---
             console.log(`[DEBUG] Select Menu - Verificando combate ${idCombate}`);
-            const combate = combatesAtivos[idCombate];
+            let combate = combatesAtivos[idCombate];
+            
+            // Busca alternativa se não encontrar diretamente
+            if (!combate) {
+                console.log(`[DEBUG] Select Menu - Busca direta falhou, tentando alternativa...`);
+                for (const [key, value] of Object.entries(combatesAtivos)) {
+                    if (key === idCombate || key.includes(idCombate.split('_')[0])) {
+                        console.log(`[DEBUG] Select Menu - Combate encontrado: ${key}`);
+                        combate = value;
+                        break;
+                    }
+                }
+            }
+            
             if (!combate) {
                 console.log(`[DEBUG] Select Menu - Combate ${idCombate} não encontrado`);
                 await interaction.reply({ content: "Esse combate não está mais ativo!", ephemeral: true });
