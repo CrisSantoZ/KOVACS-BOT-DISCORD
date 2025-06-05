@@ -837,7 +837,8 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
         // "else if (tipoComponente === 'combate') { ... }"
 else if (tipoComponente === 'combate') {
     const acaoCombate = customIdParts[1]; 
-    const idCombate = customIdParts[2];
+    // O idCombate é formado por: idJogador_idMob_timestamp, então juntamos as partes restantes
+    const idCombate = customIdParts.slice(2).join('_');
 // --- BEGIN: Checagem de jogador responsável pelo combate ---
 console.log(`[DEBUG] CustomId completo: ${interaction.customId}`);
 console.log(`[DEBUG] CustomIdParts:`, customIdParts);
@@ -1213,7 +1214,7 @@ else if (interaction.isStringSelectMenu()) {
     try {
         const customIdParts = interaction.customId.split('_');
         if (customIdParts[0] === 'combate' && customIdParts[1] === 'SELECTFEITICO') {
-            const idCombate = customIdParts[2];
+            const idCombate = customIdParts.slice(2).join('_');
             const idFeiticoEscolhido = interaction.values[0];
             const senderIdButton = interaction.user.id;
 
