@@ -722,8 +722,7 @@ if (
                             iniciarCombateInfo.idObjetivo
                         );
 
-combatesAtivos[resultadoInicioCombate.idCombate] = resultadoInicioCombate.objetoCombate;
-console.log("[DEBUG] Combate salvo:", resultadoInicioCombate.idCombate, Object.keys(combatesAtivos));
+
 
                     if (resultadoInicioCombate.sucesso) {
                         const jogadorEstado = resultadoInicioCombate.estadoCombate.jogador;
@@ -743,6 +742,10 @@ console.log(">>> [INDEX | Início Combate] resultadoInicioCombate.estadoCombate.
                         const nivelMob = mobEstado && typeof mobEstado.nivel === 'number' && mobEstado.nivel > 0 ? mobEstado.nivel : '?'; 
 console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED É:", nivelMob);
 
+                        // SALVAR O COMBATE NO CACHE ANTES DE USAR
+                        combatesAtivos[resultadoInicioCombate.idCombate] = resultadoInicioCombate.objetoCombate;
+                        console.log("[DEBUG] Combate salvo com ID:", resultadoInicioCombate.idCombate);
+                        console.log("[DEBUG] Combates ativos após salvar:", Object.keys(combatesAtivos));
 
                         // Mensagem de descrição mais elaborada
                         let descricaoCombate = `📜 **Missão:** Infestação no Armazém\n\n`; // Exemplo, idealmente pegar o título da missão dinamicamente
@@ -781,7 +784,7 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                         const combatActionRow = new ActionRowBuilder()
                             .addComponents(
                                 new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${resultadoInicioCombate.idCombate}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
-                                new ButtonBuilder().setCustomId(`combate_USARFEITICO_${resultadoInicioCombate.idCombate}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary).setDisabled(true),
+                                new ButtonBuilder().setCustomId(`combate_USARFEITICO_${resultadoInicioCombate.idCombate}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
                                 new ButtonBuilder().setCustomId(`combate_USARITEM_${resultadoInicioCombate.idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
                             );
 
@@ -836,9 +839,11 @@ else if (tipoComponente === 'combate') {
 const idCombate = customIdParts.slice(2).join('_');
 // --- BEGIN: Checagem de jogador responsável pelo combate ---
 console.log(`[DEBUG] Verificando combate ${idCombate}. Combates ativos:`, Object.keys(combatesAtivos));
+console.log(`[DEBUG] Dados do combate procurado:`, combatesAtivos[idCombate] ? "ENCONTRADO" : "NÃO ENCONTRADO");
 const combate = combatesAtivos[idCombate];
 if (!combate) {
     console.log(`[DEBUG] Combate ${idCombate} não encontrado nos combates ativos`);
+    console.log(`[DEBUG] IDs disponíveis:`, Object.keys(combatesAtivos));
     try {
         await interaction.followUp({ content: "Esse combate não está mais ativo!", flags: [64] });
     } catch (followUpError) {
