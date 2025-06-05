@@ -157,8 +157,15 @@ client.on('interactionCreate', async interaction => {
             }
             await interaction.respond(choices.slice(0, 25) || []);
         } catch (error) {
-            console.error(`[AUTOCOMPLETE] Erro ao processar autocomplete para /${commandName}, opção ${focusedOption.name}:`, error);
-            try { await interaction.respond([]); } catch (respondError) { /* ignore */ }
+            console.error(`[AUTOCOMPLETE] Erro ao processar autocomplete para /${commandName}, opção ${focusedOption.name}:`, error.message);
+            // Não tentar responder novamente se a interação já expirou
+            if (error.code !== 10062) {
+                try { 
+                    await interaction.respond([]); 
+                } catch (respondError) { 
+                    console.error("[AUTOCOMPLETE] Erro ao responder com lista vazia:", respondError.message);
+                }
+            }
         }
         return;
     }
@@ -369,12 +376,22 @@ client.on('interactionCreate', async interaction => {
                     }
 
                     case 'interagir': {
-                        await interaction.deferReply({ ephemeral: false }); 
+                        try {
+                            await interaction.deferReply({ flags: [4096] }); // Usar flags em vez de ephemeral
+                        } catch (deferError) {
+                            console.error("[INTERAGIR] Erro ao fazer deferReply:", deferError.message);
+                            return; // Se não conseguiu defer, sair para evitar mais erros
+                        }
+                        
                         const nomeNPCInput = options.getString('npc');
                         const fichaJogador = await Arcadia.getFichaOuCarregar(senderId);
 
                         if (!fichaJogador || fichaJogador.nomePersonagem === "N/A") {
-                            await interaction.editReply({ embeds: [Arcadia.gerarEmbedErro("Ficha não encontrada", "Você precisa criar uma ficha primeiro com `/criar`.")] });
+                            try {
+                                await interaction.editReply({ embeds: [Arcadia.gerarEmbedErro("Ficha não encontrada", "Você precisa criar uma ficha primeiro com `/criar`.")] });
+                            } catch (editError) {
+                                console.error("[INTERAGIR] Erro ao editar reply com erro de ficha:", editError.message);
+                            }
                             break; 
                         }
 
@@ -546,25 +563,35 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
             } 
 
         } catch (error) { 
-            console.error(`Erro CRÍTICO ao processar comando /${commandName} por ${user.username}:`, error);
-            let errorEmbedParaUsuario = Arcadia.gerarEmbedErro("😥 Erro Crítico", "Desculpe, ocorreu um erro crítico ao processar seu comando. O Mestre foi notificado e investigará o problema.");
-            const errorReplyPayload = { embeds: [errorEmbedParaUsuario], ephemeral: true };
-            try { 
-                if (interaction.replied || interaction.deferred) { 
-                    await interaction.editReply(errorReplyPayload); 
-                } else { 
-                    await interaction.reply(errorReplyPayload); 
-                }
-            } catch (finalError) { 
-                console.error("Erro catastrófico ao tentar responder sobre um erro anterior:", finalError);
-            } 
+            console.error(`Erro CRÍTICO ao processar comando /${commandName} por ${user.username}:`, error.message);
+            
+            // Só tentar responder se não for erro de interação expirada
+            if (error.code !== 10062) {
+                let errorEmbedParaUsuario = Arcadia.gerarEmbedErro("😥 Erro Crítico", "Desculpe, ocorreu um erro crítico ao processar seu comando. O Mestre foi notificado e investigará o problema.");
+                const errorReplyPayload = { embeds: [errorEmbedParaUsuario], flags: [64] }; // Usar flags em vez de ephemeral
+                try { 
+                    if (interaction.replied || interaction.deferred) { 
+                        await interaction.editReply(errorReplyPayload); 
+                    } else { 
+                        await interaction.reply(errorReplyPayload); 
+                    }
+                } catch (finalError) { 
+                    console.error("Erro ao tentar responder sobre um erro anterior:", finalError.message);
+                } 
+            }
         } // FIM DO BLOCO 'catch'
 
     } // FIM DO "if (interaction.isChatInputCommand())"
 
 // --- TRATAMENTO DE INTERAÇÕES DE BOTÃO ---
 else if (interaction.isButton()) {
-    await interaction.deferUpdate(); // Acknowledge a interação rapidamente
+    try {
+        await interaction.deferUpdate(); // Acknowledge a interação rapidamente
+    } catch (error) {
+        console.error("[BOTÃO] Erro ao fazer deferUpdate:", error.message);
+        return; // Se não conseguiu defer, para por aqui para evitar mais erros
+    }
+    
     const customIdParts = interaction.customId.split('_');
     const tipoComponente = customIdParts[0];
     const senderIdButton = interaction.user.id;
@@ -812,7 +839,11 @@ console.log(`[DEBUG] Verificando combate ${idCombate}. Combates ativos:`, Object
 const combate = combatesAtivos[idCombate];
 if (!combate) {
     console.log(`[DEBUG] Combate ${idCombate} não encontrado nos combates ativos`);
-    await interaction.followUp({ content: "Esse combate não está mais ativo!", ephemeral: true });
+    try {
+        await interaction.followUp({ content: "Esse combate não está mais ativo!", flags: [64] });
+    } catch (followUpError) {
+        console.error("[COMBATE] Erro ao responder sobre combate inativo:", followUpError.message);
+    }
     return;
 }
 console.log(`[DEBUG] Combate encontrado. Jogador do turno: ${combate.idJogadorTurno}, Jogador atual: ${interaction.user.id}`);
@@ -1137,7 +1168,38 @@ else if (acaoCombate === 'USARFEITICO') { // Linha ~941
     return;
 }
 
-// Adicione esse bloco EXTRA para tratar o retorno do select menu (por volta da linha 951, logo após o tratamento dos botões):
+} // FECHA else if (tipoComponente === 'combate')    
+
+        else if (tipoComponente === 'conversa') {
+            const acaoConversa = customIdParts[1]; 
+            if (acaoConversa === 'ENCERRAR') {
+                await interaction.editReply({ content: "Conversa encerrada.", embeds: [], components: [] });
+                return;
+            } else {
+                await interaction.editReply({ content: `Ação de conversa "${acaoConversa}" não reconhecida.`, embeds:[], components: [] });
+            }
+        } // FECHA else if (tipoComponente === 'conversa')
+
+        else { // Para tipoComponente não reconhecido
+            console.warn(`[AVISO BOTÃO] Tipo de componente não reconhecido no botão: ${tipoComponente} (customId: ${interaction.customId})`);
+            await interaction.editReply({ content: 'Ação de botão não reconhecida ou não implementada.', embeds:[], components: [] });
+        } // FECHA o else final da cadeia if/else if
+
+    } catch(buttonError) { // FECHA o try principal
+        console.error(`Erro CRÍTICO ao processar botão ${interaction.customId} para ${interaction.user.username}:`, buttonError.message);
+        // Só tentar responder se não for erro de interação expirada
+        if (buttonError.code !== 10062) {
+            try {
+                await interaction.editReply({ content: "Ocorreu um erro interno ao processar esta ação.", embeds: [], components: [] });
+            } catch (editError) {
+                console.error("Erro ao tentar editar a resposta do botão com mensagem de erro:", editError.message);
+            }
+        }
+    }
+    return; // Fim do manipulador de isButton
+} // FECHA else if (interaction.isButton())
+
+// --- TRATAMENTO DE SELECT MENUS ---
 else if (interaction.isStringSelectMenu()) {
     const customIdParts = interaction.customId.split('_');
     if (customIdParts[0] === 'combate' && customIdParts[1] === 'SELECTFEITICO') {
