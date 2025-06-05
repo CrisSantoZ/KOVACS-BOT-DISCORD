@@ -380,7 +380,7 @@ client.on('interactionCreate', async interaction => {
 
                     case 'interagir': {
                         try {
-                            await interaction.deferReply({ flags: [4096] }); // Usar flags em vez de ephemeral
+                            await interaction.deferReply({ ephemeral: true });
                         } catch (deferError) {
                             console.error("[INTERAGIR] Erro ao fazer deferReply:", deferError.message);
                             return; // Se não conseguiu defer, sair para evitar mais erros
@@ -537,7 +537,7 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
                 if (commandName === 'adminexcluirficha' && payload.embeds && payload.embeds[0] && payload.embeds[0].data.title && payload.embeds[0].data.title.includes('Exclusão Não Confirmada')) {
                     deveSerEfêmera = true;
                 }
-                if (deveSerEfêmera) { payload.ephemeral = true; }
+                if (deveSerEfêmera) { payload.flags = [64]; } // 64 = ephemeral flag
 
                 if (Object.keys(payload).length === 0 || (!payload.content && (!payload.embeds || payload.embeds.length === 0))) {
                     if (!interaction.replied && !interaction.deferred && commandName !== 'interagir' && commandName !== 'criar' && commandName !== 'ficha' /* adicione outros que respondem direto */) {
