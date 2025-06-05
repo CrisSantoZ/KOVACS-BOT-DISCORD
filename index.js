@@ -254,7 +254,7 @@ client.on('interactionCreate', async interaction => {
                         const classeNomeInput = options.getString('classe');
                         const reinoNomeInput = options.getString('reino');
                         const imagemUrl = options.getString('imagem');
-                        
+
                         const resultadoCriacao = await Arcadia.processarCriarFichaSlash(senderId, senderUsername, nomePersonagem, racaNomeInput, classeNomeInput, reinoNomeInput, imagemUrl);
 
                         // Lógica de cargos após criação
@@ -380,7 +380,7 @@ client.on('interactionCreate', async interaction => {
 
                         const resultadoInteracao = await Arcadia.processarInteracaoComNPC(nomeNPCInput, fichaJogador); // Passa ficha para lógica de condições
 const idNpc = resultadoInteracao.idNPC || resultadoInteracao.idNpc || resultadoInteracao.nomeNPC || resultadoInteracao.nomeNpc;
-                        
+
 if (resultadoInteracao.erro) {
                             await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Interação Falhou", resultadoInteracao.erro)] });
                         } else {
@@ -405,7 +405,7 @@ if (resultadoInteracao.missaoRealmenteConcluida && resultadoInteracao.recompensa
                             } else if (resultadoInteracao.missaoRealmenteConcluida) { // Se foi concluída mas sem recompensas específicas listadas (raro)
                                 embedNPC.addFields({ name: "🏅 Missão Concluída!", value: "Tarefa finalizada." });
 }
-                            
+
                             const actionRow = new ActionRowBuilder();
                             let temOpcoesParaBotoes = false;
 
@@ -444,7 +444,7 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
             .setStyle(ButtonStyle.Secondary)
     );
 }
-                            
+
                             if (actionRow.components.length > 0) {
                                 await interaction.editReply({ embeds: [embedNPC], components: [actionRow] });
                             } else {
@@ -579,7 +579,7 @@ if (
     await interaction.followUp({ content: "Apenas quem iniciou a interação pode clicar aqui.", ephemeral: true });
     return;
 }
-    
+
     if (!fichaJogador) {
         await interaction.followUp({ content: "Sua ficha não foi encontrada para continuar a interação.", embeds: [], components: [] });
         return;
@@ -652,7 +652,7 @@ if (
                  await interaction.followUp({ content: `Ação de diálogo "${customIdParts[1]}" não reconhecida. Verifique o formato do customId.`, embeds:[], components: [] });
             }
         } // FECHA if (tipoComponente === 'dialogo')
-        
+
         else if (tipoComponente === 'missao') {
             const acaoMissao = customIdParts[1]; 
             const idNpcMissao = customIdParts[2]; 
@@ -664,7 +664,7 @@ if (
                 if (resultadoAceite.sucesso) {
                     const embedConfirmacao = Arcadia.gerarEmbedSucesso("Missão Aceita!", resultadoAceite.sucesso);
                     const novoDialogoPosAceite = await Arcadia.processarInteracaoComNPC(idNpcMissao, fichaJogador, resultadoAceite.dialogoFeedbackId);
-                    
+
                     let componentesResposta = []; // Declarada ANTES de ser usada
                     let iniciarCombateInfo = null;
 
@@ -697,13 +697,13 @@ if (
 
 combatesAtivos[resultadoInicioCombate.idCombate] = resultadoInicioCombate.objetoCombate;
 console.log("[DEBUG] Combate salvo:", resultadoInicioCombate.idCombate, Object.keys(combatesAtivos));
-                        
+
                     if (resultadoInicioCombate.sucesso) {
                         const jogadorEstado = resultadoInicioCombate.estadoCombate.jogador;
                         const mobEstado = resultadoInicioCombate.estadoCombate.mob;
 console.log(">>> [INDEX | Início Combate] resultadoInicioCombate.estadoCombate.mob (mobEstado) É:", mobEstado);
     console.log(">>> [INDEX | Início Combate] mobEstado.nivel É:", mobEstado ? mobEstado.nivel : "mobEstado é undefined/null", "(Tipo:", mobEstado ? typeof mobEstado.nivel : "N/A", ")");
-                        
+
                         const nomeJogador = jogadorEstado.nome || (fichaJogador.nomePersonagem || "Jogador");
                         const pvAtualJogador = jogadorEstado.pvAtual;
                         const pvMaxJogador = jogadorEstado.pvMax;
@@ -715,8 +715,8 @@ console.log(">>> [INDEX | Início Combate] resultadoInicioCombate.estadoCombate.
                         const pvMaxMob = mobEstado.pvMax;
                         const nivelMob = mobEstado && typeof mobEstado.nivel === 'number' && mobEstado.nivel > 0 ? mobEstado.nivel : '?'; 
 console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED É:", nivelMob);
-                        
-                        
+
+
                         // Mensagem de descrição mais elaborada
                         let descricaoCombate = `📜 **Missão:** Infestação no Armazém\n\n`; // Exemplo, idealmente pegar o título da missão dinamicamente
                         descricaoCombate += `*${resultadoInicioCombate.mensagemInicial || "O combate começou!"}*\n\n`;
@@ -727,7 +727,7 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                             .setTitle(`⚔️ COMBATE IMINENTE! ⚔️`)
                             .setDescription(descricaoCombate)
                             if (mobEstado.imagem) embedCombate.setThumbnail(mobEstado.imagem);
-                            
+
                         embedCombate.addFields(
     { 
         name: `👤 ${nomeJogador}`, 
@@ -761,12 +761,12 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                         await interaction.editReply({ embeds: [embedConfirmacao], components: [] }); 
                         await interaction.followUp({ embeds: [embedCombate], components: [combatActionRow] });
                         return; 
-                        
+
                         } else {
                             embedConfirmacao.addFields({ name: "⚠️ Falha ao Iniciar Combate", value: resultadoInicioCombate.erro || "Não foi possível iniciar o combate." });
                         }
                     } // Fecha if (iniciarCombateInfo)
-                    
+
                     // Se não iniciou combate (ou falhou), montar os componentesResposta para o diálogo de feedback do NPC
                     if (novoDialogoPosAceite && !novoDialogoPosAceite.erro && novoDialogoPosAceite.dialogoAtual) {
                         embedConfirmacao.addFields({name: `${novoDialogoPosAceite.nomeNPC} diz:`, value: novoDialogoPosAceite.dialogoAtual.texto});
@@ -808,17 +808,20 @@ else if (tipoComponente === 'combate') {
     const acaoCombate = customIdParts[1]; 
 const idCombate = customIdParts.slice(2).join('_');
 // --- BEGIN: Checagem de jogador responsável pelo combate ---
-const combate = combatesAtivos && combatesAtivos[idCombate];
+console.log(`[DEBUG] Verificando combate ${idCombate}. Combates ativos:`, Object.keys(combatesAtivos));
+const combate = combatesAtivos[idCombate];
 if (!combate) {
+    console.log(`[DEBUG] Combate ${idCombate} não encontrado nos combates ativos`);
     await interaction.followUp({ content: "Esse combate não está mais ativo!", ephemeral: true });
     return;
 }
+console.log(`[DEBUG] Combate encontrado. Jogador do turno: ${combate.idJogadorTurno}, Jogador atual: ${interaction.user.id}`);
 if (interaction.user.id !== combate.idJogadorTurno) {
     await interaction.followUp({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
     return;
 }
 // --- END: Checagem de jogador responsável pelo combate ---
-    
+
     let resultadoAcaoJogador; // Declarada aqui, mas só será usada significativamente se a ação for válida
 
     if (acaoCombate === 'ATAQUEBASICO') {
@@ -836,14 +839,16 @@ if (interaction.user.id !== combate.idJogadorTurno) {
             }
 
             if (resultadoAcaoJogador.erro) {
+                console.error(`[DEBUG] Erro na ação do jogador: ${resultadoAcaoJogador.erro}`);
                 await interaction.followUp({ content: `Erro na ação: ${resultadoAcaoJogador.erro}`, ephemeral: true });
                 if (resultadoAcaoJogador.combateTerminou) {
-                     await interaction.followUp({ content: `Combate encerrado devido a um erro: ${resultadoAcaoJogador.erro}`, embeds: [], components: [] });
+                    delete combatesAtivos[idCombate];
+                    await interaction.followUp({ content: `Combate encerrado devido a um erro: ${resultadoAcaoJogador.erro}`, embeds: [], components: [] });
                 }
                 return;
             }
 
-            
+
             // Se chegou aqui, resultadoAcaoJogador é válido e não tem erro direto da ação.
             // Montar o embed atualizado
             const jogadorEstadoAcao = resultadoAcaoJogador.estadoCombate.jogador;
@@ -875,11 +880,15 @@ if (interaction.user.id !== combate.idJogadorTurno) {
 
             if (resultadoAcaoJogador.mobDerrotado) {
                 console.log(`>>> [INDEX | Combate Action] Mob derrotado. Chamando finalizarCombate para idCombate: ${idCombate}`);
-                const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true, resultadoAcaoJogador.dadosParaFinalizar.eUltimoMobDaMissao); // Presume que eUltimoMobDaMissao está vindo corretamente
+                const eUltimoMobDaMissao = resultadoAcaoJogador.dadosParaFinalizar ? resultadoAcaoJogador.dadosParaFinalizar.eUltimoMobDaMissao : false;
+                const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true, eUltimoMobDaMissao);
                 console.log(">>> [INDEX | Combate Action] Retorno de finalizarCombate:", JSON.stringify(resultadoFinal, null, 2));
 
+                // Remove o combate dos ativos
+                delete combatesAtivos[idCombate];
+
                 embedCombateAtualizado.setTitle("🏆 Vitória! 🏆");
-                embedCombateAtualizado.setDescription((resultadoFinal.logCombateFinal || logCombateAtualizado).join('\n')); // Usa logCombateFinal se existir
+                embedCombateAtualizado.setDescription((resultadoFinal.logCombateFinal || logCombateAtualizado).join('\n'));
                 if (resultadoFinal.recompensasTextoFinal && resultadoFinal.recompensasTextoFinal.length > 0) {
                     embedCombateAtualizado.addFields({ name: "Recompensas", value: resultadoFinal.recompensasTextoFinal.join('\n') });
                 } else {
@@ -900,7 +909,7 @@ if (interaction.user.id !== combate.idJogadorTurno) {
                     await interaction.editReply({ content: "Ocorreu um erro crítico no turno do oponente.", components: [], embeds: [] });
                     return;
                 }
-                
+
                 if (resultadoTurnoMob.erro) {
                     logCombateAtualizado.push(`⚠️ Erro no turno do oponente: ${resultadoTurnoMob.erro}`);
                     // Mesmo com erro, atualiza o embed com o que tiver de log
@@ -908,7 +917,7 @@ if (interaction.user.id !== combate.idJogadorTurno) {
                     logCombateAtualizado.push(...(resultadoTurnoMob.logTurnoAnterior || []));
                 }
                 embedCombateAtualizado.setDescription(logCombateAtualizado.join('\n'));
-                
+
                 const jogadorEstadoTurnoMob = resultadoTurnoMob.estadoCombate ? resultadoTurnoMob.estadoCombate.jogador : jogadorEstadoAcao;
                 const mobEstadoTurnoMob = resultadoTurnoMob.estadoCombate ? resultadoTurnoMob.estadoCombate.mob : mobEstadoAcao;
 
@@ -931,8 +940,11 @@ if (interaction.user.id !== combate.idJogadorTurno) {
 
                 if (resultadoTurnoMob.combateTerminou && resultadoTurnoMob.vencedorFinal === "mob") { 
                     embedCombateAtualizado.setTitle("☠️ Derrota... ☠️");
-                    // A descrição já foi atualizada com o log do turno do mob, que deve incluir a derrota do jogador
-                    if (resultadoTurnoMob.logCombateFinal) { // Se finalizarCombate foi chamado dentro de processarTurnoMob
+                    // Remove o combate dos ativos
+                    delete combatesAtivos[idCombate];
+                    console.log(`[DEBUG] Combate ${idCombate} removido - jogador derrotado`);
+                    
+                    if (resultadoTurnoMob.logCombateFinal) {
                          embedCombateAtualizado.setDescription((resultadoTurnoMob.logCombateFinal).join('\n'));
                     }
                     await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
@@ -964,15 +976,15 @@ if (interaction.user.id !== combate.idJogadorTurno) {
         } catch (e) {
             console.error(">>> [INDEX] ERRO BRUTO no bloco ATAQUEBASICO:", e);
             await interaction.editReply({ content: "Ocorreu um erro crítico severo ao processar seu ataque.", components: [], embeds:[] });
-            // Considerar finalizar o combate aqui ou notificar o DM
-            if (idCombate && combatesAtivos[idCombate]) { // Tenta limpar o combate ativo se possível
-    
-                 console.log(`[COMBATE PvE] Combate ${idCombate} deletado devido a erro crítico no processamento da ação do jogador.`);
+            // Limpar o combate ativo devido ao erro
+            if (idCombate && combatesAtivos[idCombate]) {
+                delete combatesAtivos[idCombate];
+                console.log(`[COMBATE PvE] Combate ${idCombate} deletado devido a erro crítico no processamento da ação do jogador.`);
             }
             return; 
         }
     } // Fecha if (acaoCombate === 'ATAQUEBASICO')
-    
+
     // Substitua TODO O BLOCO do botão "USARFEITICO" (por volta da linha 941-946) por este abaixo:
 
 else if (acaoCombate === 'USARFEITICO') { // Linha ~941
@@ -1134,16 +1146,18 @@ else if (interaction.isStringSelectMenu()) {
         const senderIdButton = interaction.user.id;
 
         // --- BEGIN: Checagem de jogador responsável pelo combate ---
-const combate = combatesAtivos && combatesAtivos[idCombate];
-if (!combate) {
-    await interaction.reply({ content: "Esse combate não está mais ativo!", ephemeral: true });
-    return;
-}
-if (interaction.user.id !== combate.idJogadorTurno) {
-    await interaction.reply({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
-    return;
-}
-// --- END: Checagem de jogador responsável pelo combate ---
+        console.log(`[DEBUG] Select Menu - Verificando combate ${idCombate}`);
+        const combate = combatesAtivos[idCombate];
+        if (!combate) {
+            console.log(`[DEBUG] Select Menu - Combate ${idCombate} não encontrado`);
+            await interaction.reply({ content: "Esse combate não está mais ativo!", ephemeral: true });
+            return;
+        }
+        if (interaction.user.id !== combate.idJogadorTurno) {
+            await interaction.reply({ content: "Apenas o jogador responsável pode agir nesse combate/turno!", ephemeral: true });
+            return;
+        }
+        // --- END: Checagem de jogador responsável pelo combate ---
 
         // Executa o feitiço escolhido
         const resultado = await Arcadia.processarAcaoJogadorCombate(idCombate, senderIdButton, "USAR_FEITICO", { idFeitico: idFeiticoEscolhido });
@@ -1251,7 +1265,7 @@ if (interaction.user.id !== combate.idJogadorTurno) {
                 return;
             }
         }
-        
+
         // Se o combate continua e é turno do jogador, mostrar botões de ação novamente
         const combatActionRowContinuacao = new ActionRowBuilder()
             .addComponents(
@@ -1270,7 +1284,7 @@ if (interaction.user.id !== combate.idJogadorTurno) {
         return;
     }
 } // FECHA else if (tipoComponente === 'combate')    
-         
+
         else if (tipoComponente === 'conversa') {
             const acaoConversa = customIdParts[1]; 
             if (acaoConversa === 'ENCERRAR') {
@@ -1280,7 +1294,7 @@ if (interaction.user.id !== combate.idJogadorTurno) {
                 await interaction.editReply({ content: `Ação de conversa "${acaoConversa}" não reconhecida.`, embeds:[], components: [] });
             }
         } // FECHA else if (tipoComponente === 'conversa')
-        
+
         else { // Para tipoComponente não reconhecido
             console.warn(`[AVISO BOTÃO] Tipo de componente não reconhecido no botão: ${tipoComponente} (customId: ${interaction.customId})`);
             await interaction.editReply({ content: 'Ação de botão não reconhecida ou não implementada.', embeds:[], components: [] });
@@ -1297,12 +1311,12 @@ if (interaction.user.id !== combate.idJogadorTurno) {
     return; // Fim do manipulador de isButton
 } // FECHA else if (interaction.isButton())
 
-    
+
     // Outros 'else if' para Modals, Select Menus, etc. podem vir aqui.
 
 }); // FIM DO client.on('interactionCreate'...)
-    
-    
+
+
 // --- Login do Bot ---
 const token = process.env.DISCORD_TOKEN; // Pega o token da variável de ambiente
 
