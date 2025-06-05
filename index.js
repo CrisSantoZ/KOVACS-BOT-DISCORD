@@ -44,6 +44,9 @@ const OWNER_ID_DISCORD = process.env.OWNER_ID;
 // Cache para combates ativos
 const combatesAtivos = {};
 
+// Exportar para que arcadia_sistema.js possa acessar
+module.exports = { combatesAtivos };
+
 // --- Evento: Bot Pronto ---
 client.on('ready', async () => {
     console.log(`Logado no Discord como ${client.user.tag}!`);
@@ -568,7 +571,7 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
             // Só tentar responder se não for erro de interação expirada
             if (error.code !== 10062) {
                 let errorEmbedParaUsuario = Arcadia.gerarEmbedErro("😥 Erro Crítico", "Desculpe, ocorreu um erro crítico ao processar seu comando. O Mestre foi notificado e investigará o problema.");
-                const errorReplyPayload = { embeds: [errorEmbedParaUsuario], flags: [64] }; // Usar flags em vez de ephemeral
+                const errorReplyPayload = { embeds: [errorEmbedParaUsuario], ephemeral: true };
                 try { 
                     if (interaction.replied || interaction.deferred) { 
                         await interaction.editReply(errorReplyPayload); 
@@ -914,11 +917,6 @@ if (!interaction.replied && !interaction.deferred) {
                      embedCombateAtualizado.addFields({ name: "Recompensas", value: "Nenhuma recompensa específica." });
                 }
                 await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
-                    // Limpar combate do cache
-                    if (combatesAtivos[idCombate]) {
-                        delete combatesAtivos[idCombate];
-                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
-                    }
                 return;
             }
 
@@ -969,12 +967,7 @@ if (!interaction.replied && !interaction.deferred) {
                          embedCombateAtualizado.setDescription((resultadoTurnoMob.logCombateFinal).join('\n'));
                     }
                     await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
-                    // Limpar combate do cache
-                    if (combatesAtivos[idCombate]) {
-                        delete combatesAtivos[idCombate];
-                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após derrota.`);
-                    }
-                    return;
+                return;
                 } else if (resultadoTurnoMob.combateTerminou) { 
                     // Outro caso de término, ex: mob se derrotou ou venceu por outra condição
                     embedCombateAtualizado.setTitle(resultadoTurnoMob.vencedorFinal === "jogador" ? "🏆 Vitória Inesperada! 🏆" : "⚔️ Combate Encerrado ⚔️");
@@ -985,12 +978,7 @@ if (!interaction.replied && !interaction.deferred) {
                         embedCombateAtualizado.addFields({ name: "Recompensas", value: resultadoTurnoMob.recompensasTextoFinal.join('\n') });
                     }
                     await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
-                    // Limpar combate do cache
-                    if (combatesAtivos[idCombate]) {
-                        delete combatesAtivos[idCombate];
-                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
-                    }
-                    return;
+                return;
                 }
             } // Fecha if (resultadoAcaoJogador.proximoTurno === 'mob')
 
@@ -1078,12 +1066,7 @@ else if (acaoCombate === 'USARFEITICO') { // Linha ~941
                 embedCombateAtualizado.addFields({ name: "Recompensas", value: "Nenhuma recompensa específica." });
             }
             await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
-                    // Limpar combate do cache
-                    if (combatesAtivos[idCombate]) {
-                        delete combatesAtivos[idCombate];
-                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
-                    }
-            return;
+                return;
         }
 
         // Se o mob não foi derrotado, é a vez do mob
@@ -1101,7 +1084,8 @@ else if (acaoCombate === 'USARFEITICO') { // Linha ~941
             }
             embedCombateAtualizado.setDescription(logCombateAtualizado.join('\n'));
 
-            // Atualiza campos de PV/PM com novo estado
+            ```text
+// Atualiza campos de PV/PM com novo estado
             const jogadorEstadoTurnoMob = resultadoTurnoMob.estadoCombate ? resultadoTurnoMob.estadoCombate.jogador : jogadorEstadoAcao;
             const mobEstadoTurnoMob = resultadoTurnoMob.estadoCombate ? resultadoTurnoMob.estadoCombate.mob : mobEstadoAcao;
             const nomeJogadorTurnoMob = jogadorEstadoTurnoMob.nome;
@@ -1126,11 +1110,6 @@ else if (acaoCombate === 'USARFEITICO') { // Linha ~941
                     embedCombateAtualizado.setDescription((resultadoTurnoMob.logCombateFinal).join('\n'));
                 }
                 await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
-                    // Limpar combate do cache
-                    if (combatesAtivos[idCombate]) {
-                        delete combatesAtivos[idCombate];
-                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após derrota.`);
-                    }
                 return;
             } else if (resultadoTurnoMob.combateTerminou) {
                 embedCombateAtualizado.setTitle(resultadoTurnoMob.vencedorFinal === "jogador" ? "🏆 Vitória Inesperada! 🏆" : "⚔️ Combate Encerrado ⚔️");
@@ -1141,11 +1120,6 @@ else if (acaoCombate === 'USARFEITICO') { // Linha ~941
                     embedCombateAtualizado.addFields({ name: "Recompensas", value: resultadoTurnoMob.recompensasTextoFinal.join('\n') });
                 }
                 await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
-                    // Limpar combate do cache
-                    if (combatesAtivos[idCombate]) {
-                        delete combatesAtivos[idCombate];
-                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
-                    }
                 return;
             }
         }
@@ -1279,11 +1253,6 @@ else if (interaction.isStringSelectMenu()) {
                     embedCombateAtualizado.addFields({ name: "Recompensas", value: "Nenhuma recompensa específica." });
                 }
                 await interaction.update({ embeds: [embedCombateAtualizado], components: [] });
-                    // Limpar combate do cache
-                    if (combatesAtivos[idCombate]) {
-                        delete combatesAtivos[idCombate];
-                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
-                    }
                 return;
             }
 
@@ -1327,11 +1296,6 @@ else if (interaction.isStringSelectMenu()) {
                         embedCombateAtualizado.setDescription((resultadoTurnoMob.logCombateFinal).join('\n'));
                     }
                     await interaction.update({ embeds: [embedCombateAtualizado], components: [] });
-                    // Limpar combate do cache
-                    if (combatesAtivos[idCombate]) {
-                        delete combatesAtivos[idCombate];
-                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
-                    }
                 return;
             } else if (resultadoTurnoMob.combateTerminou) {
                 embedCombateAtualizado.setTitle(resultadoTurnoMob.vencedorFinal === "jogador" ? "🏆 Vitória Inesperada! 🏆" : "⚔️ Combate Encerrado ⚔️");
@@ -1342,11 +1306,6 @@ else if (interaction.isStringSelectMenu()) {
                     embedCombateAtualizado.addFields({ name: "Recompensas", value: resultadoTurnoMob.recompensasTextoFinal.join('\n') });
                 }
                 await interaction.update({ embeds: [embedCombateAtualizado], components: [] });
-                    // Limpar combate do cache
-                    if (combatesAtivos[idCombate]) {
-                        delete combatesAtivos[idCombate];
-                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após finalização.`);
-                    }
                 return;
             }
         }
