@@ -745,10 +745,11 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                         // SALVAR O COMBATE NO CACHE ANTES DE USAR
                         const idCombateParaSalvar = String(resultadoInicioCombate.idCombate).trim();
                         combatesAtivos[idCombateParaSalvar] = resultadoInicioCombate.objetoCombate;
-                        console.log(`[DEBUG] Combate salvo com ID: "${idCombateParaSalvar}"`);
-                        console.log(`[DEBUG] Comprimento do ID salvo: ${idCombateParaSalvar.length}`);
-                        console.log("[DEBUG] Combates ativos após salvar:", Object.keys(combatesAtivos));
-                        console.log(`[DEBUG] Verificação imediata - combate existe?`, combatesAtivos.hasOwnProperty(idCombateParaSalvar) ? "SIM" : "NÃO");
+                        console.log(`[DEBUG SALVAMENTO] Combate salvo com ID: "${idCombateParaSalvar}"`);
+                        console.log(`[DEBUG SALVAMENTO] Comprimento do ID salvo: ${idCombateParaSalvar.length}`);
+                        console.log("[DEBUG SALVAMENTO] Combates ativos após salvar:", Object.keys(combatesAtivos));
+                        console.log(`[DEBUG SALVAMENTO] Verificação imediata - combate existe?`, combatesAtivos.hasOwnProperty(idCombateParaSalvar) ? "SIM" : "NÃO");
+                        console.log(`[DEBUG SALVAMENTO] Objeto do combate salvo:`, !!combatesAtivos[idCombateParaSalvar]);
 
                         // Mensagem de descrição mais elaborada
                         let descricaoCombate = `📜 **Missão:** Infestação no Armazém\n\n`; // Exemplo, idealmente pegar o título da missão dinamicamente
@@ -853,32 +854,46 @@ console.log(`[DEBUG] Verificando combate ${idCombate}. Combates ativos:`, Object
 let combate = null;
 const idsDisponiveis = Object.keys(combatesAtivos);
 
+console.log(`[DEBUG COMBATE] Procurando combate: "${idCombate}"`);
+console.log(`[DEBUG COMBATE] IDs disponíveis:`, idsDisponiveis);
+console.log(`[DEBUG COMBATE] Total de combates ativos:`, idsDisponiveis.length);
+
 // Primeiro, tentativa direta
 if (combatesAtivos.hasOwnProperty(idCombate)) {
     combate = combatesAtivos[idCombate];
-    console.log(`[DEBUG] Combate encontrado diretamente`);
+    console.log(`[DEBUG COMBATE] ✅ Combate encontrado diretamente: "${idCombate}"`);
 } else {
     // Busca alternativa - procura por correspondência de partes do ID
-    console.log(`[DEBUG] Busca direta falhou, tentando busca alternativa...`);
+    console.log(`[DEBUG COMBATE] ❌ Busca direta falhou, tentando busca alternativa...`);
+    console.log(`[DEBUG COMBATE] Partes do customId:`, customIdParts);
+    
     for (const [key, value] of Object.entries(combatesAtivos)) {
-        if (key === idCombate || (key.includes(customIdParts[2]) && key.includes(customIdParts[3]) && key.includes(customIdParts[4]))) {
-            console.log(`[DEBUG] Combate encontrado por busca alternativa: ${key}`);
+        console.log(`[DEBUG COMBATE] Comparando "${key}" com "${idCombate}"`);
+        if (key === idCombate || (customIdParts.length >= 5 && key.includes(customIdParts[2]) && key.includes(customIdParts[3]) && key.includes(customIdParts[4]))) {
+            console.log(`[DEBUG COMBATE] ✅ Combate encontrado por busca alternativa: ${key}`);
             combate = value;
             idCombate = key; // Atualiza o ID para o correto
             break;
         }
     }
+    
+    if (!combate) {
+        console.log(`[DEBUG COMBATE] ❌ Nenhum combate encontrado com nenhum método`);
+    }
 }
 
+// Verificação final
 if (!combate) {
-    console.log(`[DEBUG] Combate ${idCombate} não encontrado nos combates ativos`);
-    console.log(`[DEBUG] IDs disponíveis:`, idsDisponiveis);
+    console.log(`[DEBUG COMBATE] ❌ ERRO: Combate ${idCombate} não encontrado nos combates ativos`);
+    console.log(`[DEBUG COMBATE] IDs disponíveis:`, idsDisponiveis);
     try {
         await interaction.followUp({ content: "Esse combate não está mais ativo!", ephemeral: true });
     } catch (followUpError) {
         console.error("[COMBATE] Erro ao responder sobre combate inativo:", followUpError.message);
     }
     return;
+} else {
+    console.log(`[DEBUG COMBATE] ✅ Combate válido encontrado e será usado`);
 }
 console.log(`[DEBUG] Combate encontrado. Jogador do turno: ${combate.idJogadorTurno}, Jogador atual: ${interaction.user.id}`);
 if (interaction.user.id !== combate.idJogadorTurno) {
