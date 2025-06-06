@@ -1156,10 +1156,15 @@ else if (acaoCombate === 'USARFEITICO') {
                     { name: `👹 ${nomeMobAcao} (Nv. ${nivelMobCombat})`, value: `❤️ PV: **${pvAtualMobAcao}/${pvMaxMobAcao}**`, inline: true }
                 );
 
-            // Adicionar imagem do mob se existir
-            if (mobEstadoAcao && (mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem)) {
-                embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem);
-            }
+            // Adicionar imagem do mob se disponível
+                if (mobEstadoAcao && mobEstadoAcao.imagemUrl && mobEstadoAcao.imagemUrl.trim() !== '') {
+                    try {
+                        embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagemUrl);
+                        console.log(`[DEBUG] Imagem do mob atualizada no combate: ${mobEstadoAcao.imagemUrl}`);
+                    } catch (error) {
+                        console.error(`[DEBUG] Erro ao atualizar imagem do mob no combate: ${error.message}`);
+                    }
+                }
 
             if (resultado.mobDerrotado) {
                 const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true, resultado.dadosParaFinalizar && resultado.dadosParaFinalizar.eUltimoMobDaMissao);
@@ -1326,6 +1331,16 @@ else if (interaction.isStringSelectMenu()) {
                     { name: `\u200B`, value: `\u200B`, inline: true }, // Espaçador
                     { name: `👾 ${nomeMobAcao} (Nv. ${nivelMobCombat})`, value: `❤️ PV: **${pvAtualMobAcao}/${pvMaxMobAcao}**`, inline: true }
                 );
+
+                // Adicionar imagem do mob se disponível
+                if (mobEstadoAcao && mobEstadoAcao.imagemUrl && mobEstadoAcao.imagemUrl.trim() !== '') {
+                    try {
+                        embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagemUrl);
+                        console.log(`[DEBUG] Imagem do mob atualizada no combate: ${mobEstadoAcao.imagemUrl}`);
+                    } catch (error) {
+                        console.error(`[DEBUG] Erro ao atualizar imagem do mob no combate: ${error.message}`);
+                    }
+                }
 
             if (resultado.mobDerrotado) {
                 const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true, resultado.dadosParaFinalizar && resultado.dadosParaFinalizar.eUltimoMobDaMissao);
