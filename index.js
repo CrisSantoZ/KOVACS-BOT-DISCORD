@@ -163,7 +163,7 @@ client.on('interactionCreate', async interaction => {
                         .map(npc => ({ name: npc.name, value: npc.value }));
                 }
             }
-            
+
             // Tentar responder apenas se não expirou
             if (!interaction.responded) {
                 await interaction.respond(choices.slice(0, 25) || []);
@@ -472,7 +472,7 @@ client.on('interactionCreate', async interaction => {
                                 resultadoInteracao.dialogoAtual.respostasJogador.slice(0, 4).forEach(opcao => {
                                     actionRow.addComponents(
                                         new ButtonBuilder()
-                                            .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
+                                            .setCustomId(`dialogo_CONTINUAR_${resultadoInteracao.idNPC}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
                                             .setLabel(opcao.textoResposta.substring(0, 80))
                                             .setStyle(ButtonStyle.Primary)
                                     );
@@ -485,7 +485,7 @@ client.on('interactionCreate', async interaction => {
                                 if ((!missaoLog || (missaoLog.status !== 'aceita' && missaoLog.status !== 'concluida')) && actionRow.components.length < 5) {
                                     actionRow.addComponents(
                                         new ButtonBuilder()
-                                            .setCustomId(`missao_ACEITAR_${idNpc}_${resultadoInteracao.dialogoAtual.ofereceMissao}_${interaction.user.id}`)
+                                            .setCustomId(`missao_ACEITAR_${resultadoInteracao.idNPC}_${resultadoInteracao.dialogoAtual.ofereceMissao}_${interaction.user.id}`)
                                             .setLabel("Aceitar Missão")
                                             .setStyle(ButtonStyle.Success)
                                     );
@@ -496,7 +496,7 @@ client.on('interactionCreate', async interaction => {
                             if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInteracao.dialogoAtual.encerraDialogo)) {
                                 actionRow.addComponents(
                                     new ButtonBuilder()
-                                        .setCustomId(`dialogo_ENCERRAR_${idNpc}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
+                                        .setCustomId(`dialogo_ENCERRAR_${resultadoInteracao.idNPC}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
                                         .setLabel(temOpcoesParaBotoes && resultadoInteracao.dialogoAtual.encerraDialogo ? "Finalizar" : "Encerrar Conversa")
                                         .setStyle(ButtonStyle.Secondary)
                                 );
@@ -581,7 +581,8 @@ client.on('interactionCreate', async interaction => {
                 if (deveSerEfêmera) { payload.flags = [64]; } // 64 = ephemeral flag
 
                 if (Object.keys(payload).length === 0 || (!payload.content && (!payload.embeds || payload.embeds.length === 0))) {
-                    if (!interaction.replied && !interaction.deferred && commandName !== 'interagir' && commandName !== 'criar' && commandName !== 'ficha' /* adicione outros que respondem direto */) {
+                    ```tool_code
+if (!interaction.replied && !interaction.deferred && commandName !== 'interagir' && commandName !== 'criar' && commandName !== 'ficha' /* adicione outros que respondem direto */) {
                         console.error("[ENVIO ERRO] Payload resultou em mensagem vazia e interação não respondida:", JSON.stringify(payload, null, 2));
                         await interaction.reply({ content: "Ocorreu um problema ao gerar a resposta (payload vazio/inválido).", ephemeral: true });
                     } else {
@@ -715,7 +716,7 @@ else if (interaction.isButton()) {
                         resultadoInteracao.dialogoAtual.respostasJogador.slice(0, 4).forEach(opcao => {
                             novaActionRow.addComponents(
                                 new ButtonBuilder()
-                                    .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
+                                    .setCustomId(`dialogo_CONTINUAR_${resultadoInteracao.idNPC}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
                                     .setLabel(opcao.textoResposta.substring(0, 80))
                                     .setStyle(ButtonStyle.Primary)
                             );
@@ -728,7 +729,7 @@ else if (interaction.isButton()) {
                         if ((!missaoLog || (missaoLog.status !== 'aceita' && missaoLog.status !== 'concluida')) && novaActionRow.components.length < 5 ) {
                              novaActionRow.addComponents(
                                 new ButtonBuilder()
-                                    .setCustomId(`missao_ACEITAR_${idNpc}_${resultadoInteracao.dialogoAtual.ofereceMissao}_${interaction.user.id}`)
+                                    .setCustomId(`missao_ACEITAR_${resultadoInteracao.idNPC}_${resultadoInteracao.dialogoAtual.ofereceMissao}_${interaction.user.id}`)
                                     .setLabel("Aceitar Missão")
                                     .setStyle(ButtonStyle.Success)
                             );
@@ -739,7 +740,7 @@ else if (interaction.isButton()) {
                     if (novaActionRow.components.length < 5 && (!novasOpcoes || resultadoInteracao.dialogoAtual.encerraDialogo)) {
                          novaActionRow.addComponents(
                             new ButtonBuilder()
-                                .setCustomId(`dialogo_ENCERRAR_${idNpc}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
+                                .setCustomId(`dialogo_ENCERRAR_${resultadoInteracao.idNPC}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
                                 .setLabel(novasOpcoes && resultadoInteracao.dialogoAtual.encerraDialogo ? "Finalizar" : "Encerrar Conversa")
                                 .setStyle(ButtonStyle.Secondary)
                         );
@@ -1124,7 +1125,7 @@ else if (acaoCombate === 'USARFEITICO') {
             const resultado = await Arcadia.processarAcaoJogadorCombate(idCombate, senderIdButton, "USAR_FEITICO", { idFeitico: magiasConhecidas[0].value });
 
             if (!resultado || typeof resultado !== 'object') {
-                await interaction.editReply({ content: "Erro crítico ao usar feitiço.", components: [], embeds: [] });
+                await interaction.editReply({ content: "Erro crítico ao usar feitiço.", components: [], embeds: [] });```tool_code
                 return;
             }
             if (resultado.erro) {
@@ -1362,7 +1363,7 @@ else if (interaction.isStringSelectMenu()) {
                 const pvAtualJogadorTurnoMob = jogadorEstadoTurnoMob.pvAtual;
                 const pvMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pvMax;
                 const pmAtualJogadorTurnoMob = jogadorEstadoTurnoMob.pmAtual;
-                const pmMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pmAtual;
+                const pmMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pmMax;
                 const nomeMobTurnoMob = mobEstadoTurnoMob.nome;
                 const pvAtualMobTurnoMob = mobEstadoTurnoMob.pvAtual;
                 const pvMaxMobTurnoMob = mobEstadoTurnoMob.pvMax;
