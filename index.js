@@ -418,7 +418,7 @@ client.on('interactionCreate', async interaction => {
                         }
 
                         const resultadoInteracao = await Arcadia.processarInteracaoComNPC(nomeNPCInput, fichaJogador);
-                        const idNpc = resultadoInteracao.idNPC || resultadoInteracao.idNpc || resultadoInteracao.nomeNPC || resultadoInteracao.nomeNpc;
+                        const idNpc = resultadoInteracao.idNPC;
 
                         if (resultadoInteracao.erro) {
                             try {
