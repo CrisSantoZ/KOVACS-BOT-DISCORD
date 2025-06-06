@@ -838,7 +838,15 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
 
                             // Adicionar imagem do mob se existir
                             if (mobEstado && (mobEstado.imagemUrl || mobEstado.imagem)) {
-                                embedCombate.setThumbnail(mobEstado.imagemUrl || mobEstado.imagem);
+                                try {
+                                    const urlImagemMob = mobEstado.imagemUrl || mobEstado.imagem;
+                                    if (urlImagemMob && urlImagemMob.trim() && (urlImagemMob.startsWith('http://') || urlImagemMob.startsWith('https://'))) {
+                                        embedCombate.setThumbnail(urlImagemMob.trim());
+                                        console.log(`[DEBUG] Imagem do mob adicionada no combate: ${urlImagemMob}`);
+                                    }
+                                } catch (error) {
+                                    console.error(`[DEBUG] Erro ao adicionar imagem do mob no combate: ${error.message}`);
+                                }
                             }
 
                             embedCombate.addFields(
@@ -983,7 +991,15 @@ if (!interaction.replied && !interaction.deferred) {
 
                 // Adicionar imagem do mob se disponível
                 if (mobEstadoAcao && (mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem)) {
-                    embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem);
+                    try {
+                        const urlImagemMob = mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem;
+                        if (urlImagemMob && urlImagemMob.trim() && (urlImagemMob.startsWith('http://') || urlImagemMob.startsWith('https://'))) {
+                            embedCombateAtualizado.setThumbnail(urlImagemMob.trim());
+                            console.log(`[DEBUG] Imagem do mob atualizada no combate: ${urlImagemMob}`);
+                        }
+                    } catch (error) {
+                        console.error(`[DEBUG] Erro ao atualizar imagem do mob no combate: ${error.message}`);
+                    }
                 }
 
             if (resultadoAcaoJogador.mobDerrotado) {
@@ -1005,7 +1021,15 @@ if (!interaction.replied && !interaction.deferred) {
 
                 // Adicionar imagem do mob se disponível
                 if (mobEstadoAcao && (mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem)) {
-                    embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem);
+                    try {
+                        const urlImagemMob = mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem;
+                        if (urlImagemMob && urlImagemMob.trim() && (urlImagemMob.startsWith('http://') || urlImagemMob.startsWith('https://'))) {
+                            embedCombateAtualizado.setThumbnail(urlImagemMob.trim());
+                            console.log(`[DEBUG] Imagem do mob atualizada no combate: ${urlImagemMob}`);
+                        }
+                    } catch (error) {
+                        console.error(`[DEBUG] Erro ao atualizar imagem do mob no combate: ${error.message}`);
+                    }
                 }
 
                 if (resultadoFinal && resultadoFinal.recompensasTextoFinal && Array.isArray(resultadoFinal.recompensasTextoFinal) && resultadoFinal.recompensasTextoFinal.length > 0) {
@@ -1156,11 +1180,14 @@ else if (acaoCombate === 'USARFEITICO') {
                     { name: `👹 ${nomeMobAcao} (Nv. ${nivelMobCombat})`, value: `❤️ PV: **${pvAtualMobAcao}/${pvMaxMobAcao}**`, inline: true }
                 );
 
-            // Adicionar imagem do mob se disponível
-                if (mobEstadoAcao && mobEstadoAcao.imagemUrl && mobEstadoAcao.imagemUrl.trim() !== '') {
+                // Adicionar imagem do mob se disponível
+                if (mobEstadoAcao && (mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem)) {
                     try {
-                        embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagemUrl);
-                        console.log(`[DEBUG] Imagem do mob atualizada no combate: ${mobEstadoAcao.imagemUrl}`);
+                        const urlImagemMob = mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem;
+                        if (urlImagemMob && urlImagemMob.trim() && (urlImagemMob.startsWith('http://') || urlImagemMob.startsWith('https://'))) {
+                            embedCombateAtualizado.setThumbnail(urlImagemMob.trim());
+                            console.log(`[DEBUG] Imagem do mob atualizada no combate: ${urlImagemMob}`);
+                        }
                     } catch (error) {
                         console.error(`[DEBUG] Erro ao atualizar imagem do mob no combate: ${error.message}`);
                     }
@@ -1333,10 +1360,13 @@ else if (interaction.isStringSelectMenu()) {
                 );
 
                 // Adicionar imagem do mob se disponível
-                if (mobEstadoAcao && mobEstadoAcao.imagemUrl && mobEstadoAcao.imagemUrl.trim() !== '') {
+                if (mobEstadoAcao && (mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem)) {
                     try {
-                        embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagemUrl);
-                        console.log(`[DEBUG] Imagem do mob atualizada no combate: ${mobEstadoAcao.imagemUrl}`);
+                        const urlImagemMob = mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem;
+                        if (urlImagemMob && urlImagemMob.trim() && (urlImagemMob.startsWith('http://') || urlImagemMob.startsWith('https://'))) {
+                            embedCombateAtualizado.setThumbnail(urlImagemMob.trim());
+                            console.log(`[DEBUG] Imagem do mob atualizada no combate: ${urlImagemMob}`);
+                        }
                     } catch (error) {
                         console.error(`[DEBUG] Erro ao atualizar imagem do mob no combate: ${error.message}`);
                     }
