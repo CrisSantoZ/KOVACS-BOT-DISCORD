@@ -1,4 +1,3 @@
-// arcadia_sistema.js - Lógica Central e Dados do RPG Arcádia (V5 Final)
 
 const { MongoClient } = require('mongodb');
 const { EmbedBuilder } = require('discord.js');
@@ -274,6 +273,21 @@ const JACKPOT_PREMIOS_NOMES_COMUNS = ["poção de cura menor", "rações de viag
 const JACKPOT_PREMIOS_NOMES_INCOMUNS = ["poção de mana menor", "poção de cura média", "pedra de amolar"];
 const JACKPOT_PREMIOS_NOMES_RAROS = ["adaga simples", "essência de arcádia", "poção de cura maior"];
 
+
+// Função para validar URLs de imagem
+function validarURLImagem(url) {
+    if (!url || typeof url !== 'string') return null;
+    const urlLimpa = url.trim();
+    if (urlLimpa && (urlLimpa.startsWith('http://') || urlLimpa.startsWith('https://'))) {
+        // Verificar se é uma extensão de imagem válida
+        const extensoesValidas = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'];
+        const temExtensaoValida = extensoesValidas.some(ext => urlLimpa.toLowerCase().includes(ext));
+        if (temExtensaoValida || urlLimpa.includes('imgur.com') || urlLimpa.includes('discord') || urlLimpa.includes('cdn')) {
+            return urlLimpa;
+        }
+    }
+    return null;
+}
 
 // Em arcadia_sistema.js
 const MOB_MODELO_BASE = {
