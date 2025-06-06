@@ -3,6 +3,7 @@ const { Client, GatewayIntentBits, Partials, ActivityType, EmbedBuilder, ActionR
 const express = require('express');
 require('dotenv').config();
 const Arcadia = require('./arcadia_sistema.js');
+const ArcadiaExt = require('./arcadia_sistema_ext.js');
 
 process.on('unhandledRejection', error => {
     console.error('GRAVE: Unhandled promise rejection:', error);
@@ -54,6 +55,10 @@ client.on('ready', async () => {
     try {
         await Arcadia.conectarMongoDB();
         await Arcadia.carregarFichasDoDB();
+        
+        // Inicializar extensões
+        ArcadiaExt.inicializarExtensao();
+        
         console.log("Conexão com MongoDB e carregamento de dados iniciais concluídos.");
     } catch (error) {
         console.error("ERRO CRÍTICO na inicialização do DB no evento 'ready':", error);
