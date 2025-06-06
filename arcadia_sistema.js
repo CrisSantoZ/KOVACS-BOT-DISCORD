@@ -3278,7 +3278,7 @@ function gerarListaReinosEmbed() {
     return embed;
 }
 
-async function processarCriarFichaSlash(idJogadorDiscord, nomeJogadorDiscord, nomePersonagem, racaNomeInput, classeNomeInput, reinoNomeInput) {
+async function processarCriarFichaSlash(idJogadorDiscord, nomeJogadorDiscord, nomePersonagem, racaNomeInput, classeNomeInput, reinoNomeInput, imagemUrl) {
     const fichaExistente = await getFichaOuCarregar(idJogadorDiscord);
     if (fichaExistente && fichaExistente.nomePersonagem !== "N/A") {
         return gerarEmbedAviso("Personagem Já Existente", `Você já tem: **${fichaExistente.nomePersonagem}**. Use \`/ficha\` para vê-lo.`);
@@ -3307,6 +3307,7 @@ async function processarCriarFichaSlash(idJogadorDiscord, nomeJogadorDiscord, no
     novaFicha.raca = racaValida.nome;
     novaFicha.classe = classeValida.nome;
     novaFicha.origemReino = reinoValido.nome;
+    novaFicha.imagem = imagemUrl || "";
 
     novaFicha.pvMax = (novaFicha.atributos.vitalidade * 5) + (novaFicha.nivel * 5) + 20;
     novaFicha.pmMax = (novaFicha.atributos.manabase * 5) + (novaFicha.nivel * 3) + 10;
