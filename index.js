@@ -437,11 +437,21 @@ client.on('interactionCreate', async interaction => {
                             }
 
                             // Implementar imagens de NPCs e missões
-                            if (resultadoInteracao.imagemNPC) {
-                                embedNPC.setThumbnail(resultadoInteracao.imagemNPC);
+                            if (resultadoInteracao.imagemNPC && resultadoInteracao.imagemNPC.trim() !== '') {
+                                try {
+                                    embedNPC.setThumbnail(resultadoInteracao.imagemNPC);
+                                    console.log(`[DEBUG] Imagem do NPC adicionada: ${resultadoInteracao.imagemNPC}`);
+                                } catch (error) {
+                                    console.error(`[DEBUG] Erro ao adicionar imagem do NPC: ${error.message}`);
+                                }
                             }
-                            if (resultadoInteracao.imagemMissao) {
-                                embedNPC.setImage(resultadoInteracao.imagemMissao);
+                            if (resultadoInteracao.imagemMissao && resultadoInteracao.imagemMissao.trim() !== '') {
+                                try {
+                                    embedNPC.setImage(resultadoInteracao.imagemMissao);
+                                    console.log(`[DEBUG] Imagem da missão adicionada: ${resultadoInteracao.imagemMissao}`);
+                                } catch (error) {
+                                    console.error(`[DEBUG] Erro ao adicionar imagem da missão: ${error.message}`);
+                                }
                             }
 
                             embedNPC.addFields({ name: "💬 Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*Este personagem não diz nada no momento.*" });
@@ -679,11 +689,21 @@ else if (interaction.isButton()) {
                     }
 
                     // Adicionar imagens do NPC e missões no diálogo continuado
-                    if (resultadoInteracao.imagemNPC) {
-                        embedNPC.setThumbnail(resultadoInteracao.imagemNPC);
+                    if (resultadoInteracao.imagemNPC && resultadoInteracao.imagemNPC.trim() !== '') {
+                        try {
+                            embedNPC.setThumbnail(resultadoInteracao.imagemNPC);
+                            console.log(`[DEBUG] Imagem do NPC (continuação) adicionada: ${resultadoInteracao.imagemNPC}`);
+                        } catch (error) {
+                            console.error(`[DEBUG] Erro ao adicionar imagem do NPC (continuação): ${error.message}`);
+                        }
                     }
-                    if (resultadoInteracao.imagemMissao) {
-                        embedNPC.setImage(resultadoInteracao.imagemMissao);
+                    if (resultadoInteracao.imagemMissao && resultadoInteracao.imagemMissao.trim() !== '') {
+                        try {
+                            embedNPC.setImage(resultadoInteracao.imagemMissao);
+                            console.log(`[DEBUG] Imagem da missão (continuação) adicionada: ${resultadoInteracao.imagemMissao}`);
+                        } catch (error) {
+                            console.error(`[DEBUG] Erro ao adicionar imagem da missão (continuação): ${error.message}`);
+                        }
                     }
 
                     embedNPC.addFields({ name: "💬 Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*...*" });
