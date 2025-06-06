@@ -189,7 +189,7 @@ const ITENS_BASE_ARCADIA = {
     usavel: false, // Ou true se tiver uma função de visualização
     equipavel: false
 },
-    
+
     "mapa_parcial_rotas_comerciais": { 
         itemNome: "Mapa Parcial das Rotas Comerciais", 
         tipo: "Utilitário", 
@@ -247,9 +247,9 @@ const ITENS_BASE_ARCADIA = {
     usavel: false, 
     equipavel: false 
 },
-        
+
     // ... (o restante dos seus itens) ...
-    
+
     // Equipamentos Básicos
     "adaga simples": { itemNome: "Adaga Simples", tipo: "Arma Leve", descricao: "Uma adaga básica de bronze.", usavel: false, equipavel: true, slot: "maoDireita", // Ou maoEsquerda
         efeitoEquipamento: { bonusAtributos: { ataqueBase: 1 } } },
@@ -281,7 +281,7 @@ const MOB_MODELO_BASE = {
     nome: "Nome do Monstro",
     nivel: 1,
     descricao: "Uma breve descrição do monstro.", // Para ser usada em embeds de combate ou informações
-    imagemUrl: null, // URL para a imagem do monstro (vamos adicionar depois)
+    imagemUrl: null, // URL para a imagem do monstro
     atributos: {
         pvMax: 30,
         pvAtual: 30, // Mobs geralmente começam com PV cheio
@@ -2962,7 +2962,7 @@ const FEITICOS_BASE_ARCADIA = {
 }
 // --- FIM DOS FEITIÇOS DE DEUS NECROMANTE ---
 
-    
+
 const fichaModeloArcadia = {
     _id: "", // ID do Discord do Jogador
     nomeJogadorSalvo: "", // Nome de usuário do Discord
@@ -3577,7 +3577,7 @@ async function getFeiticosDisponiveisParaAprender(idJogador) {
                  cumpreRequisitosDaArvore = true;
             }
         }
-        
+
         if (temOrigemPrimariaCompativel && cumpreRequisitosDaArvore) {
             disponiveis.push({ 
                 name: `${feiticoBase.nome} (Nv.1 - ${nomeDisplayOrigem}: ${feiticoBase.origemNome})`, 
@@ -3709,7 +3709,7 @@ async function processarTurnoMobCombate(idCombate) {
     fichaJogador.pvAtual = Math.max(0, fichaJogador.pvAtual - danoCausadoAoJogador);
     logDoTurno.push(`💢 ${mob.nome} ataca ${fichaJogador.nomePersonagem}, causando ${danoCausadoAoJogador} de dano!`);
     logDoTurno.push(`❤️ ${fichaJogador.nomePersonagem} agora tem ${fichaJogador.pvAtual}/${fichaJogador.pvMax} PV.`);
-    
+
     combate.log.push(...logDoTurno);
     await atualizarFichaNoCacheEDb(combate.idJogador, fichaJogador); // Salva o PV do jogador
 
@@ -3770,7 +3770,7 @@ async function processarAcaoJogadorCombate(idCombate, idJogadorAcao, tipoAcao = 
             estadoCombate: getEstadoCombateParaRetorno(combate)
         };
     }
-    
+
     combate.log.push(...logDoTurno);
 
     if (mob.pvAtual <= 0) {
@@ -3818,7 +3818,7 @@ async function finalizarCombate(idCombate, idJogadorFicha, jogadorVenceuEsteMob,
 
     if (jogadorVenceuEsteMob) {
         mensagemResultado = `Você derrotou ${mob.nome}!`;
-        
+
         // Adicionar XP pelo mob derrotado
         const xpGanhoMob = mob.xpRecompensa || 0;
         if (xpGanhoMob > 0) {
@@ -3865,7 +3865,7 @@ async function finalizarCombate(idCombate, idJogadorFicha, jogadorVenceuEsteMob,
         // Perder XP? Perder Florins? Voltar para um "ponto seguro"?
         // await atualizarFichaNoCacheEDb(combate.idJogador, ficha); // Salva o estado pós-derrota
     }
-    
+
     // Somente deleta o combate se a luta realmente acabou (jogador derrotado OU último mob da missão derrotado)
     if (!jogadorVenceuEsteMob || eUltimoMobDaMissao) {
         delete combatesAtivos[idCombate]; 
@@ -3926,23 +3926,23 @@ async function adicionarXPELevelUp(ficha, xpAdicionar) {
         ficha.xpAtual -= ficha.xpProximoNivel;
         ficha.nivel++;
         ultimoNivelAlcancadoNaLogica = ficha.nivel;
-        
+
         const paGanhos = 2; 
         const pfGanhos = calcularPFGanhosNoNivel(ficha.nivel);
-        
+
         ficha.atributos.pontosParaDistribuir = (ficha.atributos.pontosParaDistribuir || 0) + paGanhos;
         pontosAtributoGanhosNesteLevelUp += paGanhos;
         ficha.pontosDeFeitico = (ficha.pontosDeFeitico || 0) + pfGanhos;
         pontosFeiticoGanhosNesteLevelUp += pfGanhos;
-        
+
         logDetalhadoLevelUp.push(`Atingiu Nível ${ficha.nivel}! Ganhou: ${paGanhos} Pontos de Atributo, ${pfGanhos} Pontos de Feitiço.`);
-        
+
         // Recalcular PV/PM Max e encher
         ficha.pvMax = (ficha.atributos.vitalidade * 5) + (ficha.nivel * 5) + 20;
         ficha.pmMax = (ficha.atributos.manabase * 5) + (ficha.nivel * 3) + 10;
         ficha.pvAtual = ficha.pvMax;
         ficha.pmAtual = ficha.pmMax;
-        
+
         ficha.xpProximoNivel = calcularXpProximoNivel(ficha.nivel);
     }
 
@@ -4038,7 +4038,7 @@ async function processarUparFeitico(idJogador, idFeiticoAlvo) {
 
     const magiaDoJogadorParaUpar = ficha.magiasConhecidas.find(m => m.id === idFeiticoAlvo);
     if (!magiaDoJogadorParaUpar) {
-    
+
         return gerarEmbedErro("Erro ao Evoluir", "Você não parece conhecer o feitiço selecionado para evoluir. Tente novamente a partir das sugestões.");
     }
 
@@ -4055,7 +4055,7 @@ async function processarUparFeitico(idJogador, idFeiticoAlvo) {
     // Encontrar informações do nível atual para pegar o custo de PF para o próximo
     const nivelAtualInfo = definicaoBaseFeitico.niveis.find(n => n.nivel === magiaDoJogadorParaUpar.nivel);
     if (!nivelAtualInfo || typeof nivelAtualInfo.pontosParaProximoNivel === 'undefined') {
-    
+
         console.error(`[CRÍTICO - UPAR FEITIÇO] 'pontosParaProximoNivel' não definido para ${definicaoBaseFeitico.nome} Nv.${magiaDoJogadorParaUpar.nivel}`);
         return gerarEmbedErro("Erro de Configuração do Feitiço", `Não foi possível encontrar o custo para evoluir "${definicaoBaseFeitico.nome}" do Nível ${magiaDoJogadorParaUpar.nivel}. Contate um administrador.`);
     }
@@ -4090,7 +4090,7 @@ async function processarUparFeitico(idJogador, idFeiticoAlvo) {
                 const novoFeiticoBase = FEITICOS_BASE_ARCADIA[desbloqueio.idFeitico];
                 if (novoFeiticoBase) {
                     if (!ficha.magiasConhecidas.some(m => m.id === desbloqueio.idFeitico)) {
-                        
+
                         let podeAprenderNovoDesbloqueado = true;
                         let msgReqNovo = "";
                         if (novoFeiticoBase.requisitosParaAprender && novoFeiticoBase.requisitosParaAprender.length > 0) {
@@ -4107,7 +4107,7 @@ async function processarUparFeitico(idJogador, idFeiticoAlvo) {
                                 }
                             }
                         }
-                        
+
 
                         let temOrigemNovoDesbloqueado = false;
                         if (!novoFeiticoBase.origemTipo || novoFeiticoBase.origemTipo === "geral") temOrigemNovoDesbloqueado = true; // Feitiços "gerais" ou sem origem definida são OK
@@ -4500,7 +4500,7 @@ async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspe
                 return { erro: `Nome do NPC fornecido é inválido ou vazio.` };
             }
         }
-        
+
         console.log(`[processarInteracaoComNPC] Query MongoDB final: ${JSON.stringify(query)}`);
         const npcData = await npcsCollection.findOne(query); // ESTA DEVE SER A ÚNICA DECLARAÇÃO DE npcData aqui
 
@@ -4519,7 +4519,7 @@ async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspe
 
             if (dialogoAlvo) { // Se o diálogo específico foi encontrado nos dados do NPC
                 const condicoesOk = await verificarCondicoesDialogo(dialogoAlvo.condicoesParaMostrar, fichaJogador, npcData, dialogoAlvo.ofereceMissao);
-                
+
                 if (!condicoesOk) {
                     // CONDIÇÕES NÃO CUMPRIDAS PARA O DIÁLOGO ESPECÍFICO
                     console.log(`[PROCESSAR NPC] Condições não cumpridas para diálogo específico "${idDialogoEspecifico}" do NPC "${npcData.nome}". Retornando mensagem de feedback.`);
@@ -4574,7 +4574,7 @@ async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspe
                 if (definicaoMissaoDB && definicaoMissaoDB.objetivos) {
                     for (const objDef of definicaoMissaoDB.objetivos) {
                         const objLog = fichaJogador.logMissoes[missaoLogIndex].objetivos.find(ol => ol.idObjetivo === objDef.idObjetivo);
-                        
+
                         let objetivoConsideradoValidoParaFim = false;
                         if (objLog && objLog.concluido) {
                             objetivoConsideradoValidoParaFim = true;
@@ -4611,7 +4611,7 @@ async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspe
                 if (todosObjetivosRealmenteCompletosParaFinalizar) {
                     fichaJogador.logMissoes[missaoLogIndex].status = "concluida";
                     fichaJogador.logMissoes[missaoLogIndex].dataConclusao = new Date().toISOString();
-                    
+
                     if (definicaoMissaoDB && definicaoMissaoDB.recompensas) {
                         const rec = definicaoMissaoDB.recompensas;
                         if (rec.xp) {
@@ -4642,7 +4642,7 @@ async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspe
                                 if (itemParaRemoverIndex > -1) {
                                     const itemNoInventario = fichaJogador.inventario[itemParaRemoverIndex];
                                     const qtdRemover = objDef.quantidadeNecessaria || itemNoInventario.quantidade;
-                                    
+
                                     itemNoInventario.quantidade -= qtdRemover;
                                     if (itemNoInventario.quantidade <= 0) {
                                         fichaJogador.inventario.splice(itemParaRemoverIndex, 1);
@@ -4697,7 +4697,7 @@ async function verificarCondicoesDialogo(condicoes, fichaJogador, npcData, idMis
         if (cond.tipo === "missaoConcluida") {
             if (!fichaJogador.logMissoes || !fichaJogador.logMissoes.some(m => m.idMissao === cond.idMissao && m.status === "concluida")) return false;
         }
-        
+
         if (cond.tipo === "objetivoMissaoCompleto" || cond.tipo === "objetivoMissaoIncompleto") {
             if (!fichaJogador.logMissoes) { // Se não tem log de missões
                  // Se a condição é para ser incompleto, e não há log, então está incompleto.
@@ -4781,7 +4781,7 @@ async function atualizarProgressoMissao(idJogador, idMissao, idObjetivo, progres
         // console.log(`[Progresso Missão] Objetivo ${idObjetivo} da missão ${idMissao} já está concluído para ${idJogador}.`);
         return false; // Já concluído, não faz nada.
     }
-    
+
     const definicaoMissao = await missoesCollection.findOne({ _id: idMissao });
     if (!definicaoMissao) {
         console.warn(`[atualizarProgressoMissao] Definição da missão ${idMissao} não encontrada no DB.`);
@@ -4810,9 +4810,9 @@ async function atualizarProgressoMissao(idJogador, idMissao, idObjetivo, progres
             // Ou, esta função poderia verificar o inventário diretamente.
             const itemNoInventario = ficha.inventario.find(i => i.itemNome.toLowerCase() === definicaoObjetivo.itemNomeQuest.toLowerCase());
             const quantidadeAtualNoInventario = itemNoInventario ? itemNoInventario.quantidade : 0;
-            
+
             objetivoLog.quantidadeAtual = quantidadeAtualNoInventario; // Atualiza a contagem no log da missão
-            
+
             if (quantidadeAtualNoInventario >= definicaoObjetivo.quantidadeNecessaria) {
                 objetivoLog.concluido = true;
                 objetivoConcluidoNesteUpdate = true;
@@ -4836,10 +4836,10 @@ async function atualizarProgressoMissao(idJogador, idMissao, idObjetivo, progres
             console.warn(`[atualizarProgressoMissao] Tipo de objetivo desconhecido: ${definicaoObjetivo.tipo}`);
             return false;
     }
-    
+
     ficha.logMissoes[missaoIndex].objetivos[objetivoIndex] = objetivoLog;
     await atualizarFichaNoCacheEDb(idJogador, ficha);
-    
+
     if (objetivoConcluidoNesteUpdate) {
         console.log(`[Progresso Missão] Jogador ${ficha.nomePersonagem}, Missão "${definicaoMissao.titulo}", Objetivo "${objetivoLog.descricao}" CONCLUÍDO!`);
         // Poderia enviar DM para o jogador aqui
@@ -4902,7 +4902,7 @@ async function aceitarMissao(idJogador, idMissao, idNpcQueOfereceu) {
 
     if (!ficha.logMissoes) ficha.logMissoes = [];
     ficha.logMissoes.push(novaEntradaLogMissao);
-    
+
     // 4. Adicionar itens de quest (se houver)
     let itensRecebidosMsg = "";
     if (definicaoMissao.itensConcedidosAoAceitar && definicaoMissao.itensConcedidosAoAceitar.length > 0) {
@@ -4918,7 +4918,7 @@ async function aceitarMissao(idJogador, idMissao, idNpcQueOfereceu) {
 
     let msgSucesso = `Missão **"${definicaoMissao.titulo}"** aceita!`;
     if (itensRecebidosMsg) msgSucesso += itensRecebidosMsg;
-    
+
     // Retorna o ID do diálogo de feedback se existir, para o NPC "responder"
     return { 
         sucesso: msgSucesso, 
@@ -4990,7 +4990,7 @@ async function processarAdminAddXP(idAlvoDiscord, valorXP, adminNome) {
         const nivelAntigoLoop = ficha.nivel || 0; 
         ficha.nivel = nivelAntigoLoop + 1;
         ultimoNivelAlcancado = ficha.nivel;
-    
+
         const pfGanhosEsteNivel = calcularPFGanhosNoNivel(ficha.nivel);
         const paGanhosEsteNivel = 2; 
 
@@ -5000,7 +5000,7 @@ async function processarAdminAddXP(idAlvoDiscord, valorXP, adminNome) {
         if (!ficha.atributos) ficha.atributos = JSON.parse(JSON.stringify(fichaModeloArcadia.atributos));
         ficha.atributos.pontosParaDistribuir = (ficha.atributos.pontosParaDistribuir || 0) + paGanhosEsteNivel;
         pontosAtributoGanhosTotal += paGanhosEsteNivel;
-        
+
         msgsLevelUpIndividuaisParaLog.push(`- Nível ${ficha.nivel}: +${paGanhosEsteNivel} PA, +${pfGanhosEsteNivel} PF.`);
         ficha.xpProximoNivel = calcularXpProximoNivel(ficha.nivel);
     }
@@ -5012,13 +5012,13 @@ async function processarAdminAddXP(idAlvoDiscord, valorXP, adminNome) {
         descEmbed = `🎉 **${ficha.nomePersonagem}** subiu do Nível **${nivelOriginal}** para o Nível **${ultimoNivelAlcancado}**!\n`;
         descEmbed += `✨ Ganhou no total: **${pontosAtributoGanhosTotal}** Pontos de Atributo e **${pontosFeiticoGanhosTotal}** Pontos de Feitiço.\n\n`;
         descEmbed += `XP atual: ${ficha.xpAtual}/${ficha.xpProximoNivel}. (Adicionado por ${adminNome}).`;
-        
+
         // Log detalhado no console do servidor, não para o Discord diretamente
         console.log(`[LEVEL UP DETALHADO] Jogador ${ficha.nomePersonagem} (ID: ${idAlvoDiscord}):\n${msgsLevelUpIndividuaisParaLog.join("\n")}`);
     } else {
         descEmbed = `XP de **${ficha.nomePersonagem}** (ID: ${idAlvoDiscord}) alterado de ${xpAntes} para ${ficha.xpAtual}/${ficha.xpProximoNivel} por ${adminNome}. Nenhum nível ganho.`;
     }
-    
+
     // Segurança extra para o comprimento da descrição do embed
     if (descEmbed.length > 4000) { 
         descEmbed = `Muitos níveis foram ganhos! ${ficha.nomePersonagem} subiu do Nível ${nivelOriginal} para o Nível ${ultimoNivelAlcancado}. Detalhes extensos foram logados no console do bot. XP atual: ${ficha.xpAtual}/${ficha.xpProximoNivel}. (Admin: ${adminNome})`;
@@ -5357,7 +5357,7 @@ getFichasCollection,
     getNpcsCollection,
     getMissoesCollection,
     getMobsCollection,
-    
+
     // Funções de Geração de Embeds Genéricas
     gerarEmbedErro, gerarEmbedSucesso, gerarEmbedAviso,
 
@@ -5375,7 +5375,7 @@ getFichasCollection,
     processarAdminAddMoedas, processarAdminAddItem, processarAdminDelItem,
     processarAdminSetAtributo, processarAdminAddPontosAtributo, processarAdminExcluirFicha,
     processarUparFeitico,processarInteracaoComNPC, processarAcaoJogadorCombate, processarTurnoMobCombate,
-    
+
 
     // Novas Funções de Autocomplete
     getMagiasConhecidasParaAutocomplete, // Mantida e ajustada
