@@ -3339,7 +3339,7 @@ async function processarVerFichaEmbed(idAlvoDiscord, isAdminConsultandoOutro, id
     const embed = new EmbedBuilder()
         .setColor(0x0099FF) // Você pode escolher uma cor que combine com seu RPG
         .setTitle(`🌟 Ficha de Personagem: ${ficha.nomePersonagem} 🌟`)
-        .setThumbnail(null) // Você pode adicionar uma URL de imagem do personagem aqui se tiver, ex: ficha.urlImagemPersonagem
+        .setThumbnail(ficha.imagem && ficha.imagem.startsWith('http') ? ficha.imagem : null)
         .setDescription(`*Uma visão geral do aventureiro ${ficha.nomePersonagem}, ${ficha.raca} ${ficha.classe} de ${ficha.origemReino}.*`) // Descrição um pouco mais elaborada
         .addFields(
             // --- NOVOS CAMPOS PARA RAÇA, CLASSE E REINO ---
