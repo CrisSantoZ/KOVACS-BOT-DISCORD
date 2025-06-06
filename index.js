@@ -3,7 +3,6 @@ const { Client, GatewayIntentBits, Partials, ActivityType, EmbedBuilder, ActionR
 const express = require('express');
 require('dotenv').config();
 const Arcadia = require('./arcadia_sistema.js');
-const ArcadiaExt = require('./arcadia_sistema_ext.js');
 
 process.on('unhandledRejection', error => {
     console.error('GRAVE: Unhandled promise rejection:', error);
@@ -55,10 +54,6 @@ client.on('ready', async () => {
     try {
         await Arcadia.conectarMongoDB();
         await Arcadia.carregarFichasDoDB();
-
-        // Inicializar extensões
-        ArcadiaExt.inicializarExtensao();
-
         console.log("Conexão com MongoDB e carregamento de dados iniciais concluídos.");
     } catch (error) {
         console.error("ERRO CRÍTICO na inicialização do DB no evento 'ready':", error);
@@ -693,20 +688,25 @@ else if (interaction.isButton()) {
                         embedNPC.setDescription(resultadoInteracao.descricaoVisualNPC);
                     }
 
-                    // Adicionar imagens usando o sistema de extensão
-                    try {
-                        ArcadiaExt.adicionarImagemNPCAoEmbed(embedNPC, {
-                            nome: resultadoInteracao.nomeNPC,
-                            imagemUrl: resultadoInteracao.imagemNPC || resultadoInteracao.imagem,
-                            missaoAtual: resultadoInteracao.imagemMissao ? {
-                                imagemMissao: resultadoInteracao.imagemMissao
-                            } : null
-                        });
-                    } catch (error) {
-                        console.error(`[DEBUG] Erro ao usar sistema de imagens da extensão na continuação: ${error.message}`);
+                    // Adicionar imagens do NPC e missões no diálogo continuado
+                    if (resultadoInteracao.imagemNPC && resultadoInteracao.imagemNPC.trim() !== '') {
+                        try {
+                            embedNPC.setThumbnail(resultadoInteracao.imagemNPC);
+                            console.log(`[DEBUG] Imagem do NPC (continuação) adicionada: ${resultadoInteracao.imagemNPC}`);
+                        } catch (error) {
+                            console.error(`[DEBUG] Erro ao adicionar imagem do NPC (continuação): ${error.message}`);
+                        }
+                    }
+                    if (resultadoInteracao.imagemMissao && resultadoInteracao.imagemMissao.trim() !== '') {
+                        try {
+                            embedNPC.setImage(resultadoInteracao.imagemMissao);
+                            console.log(`[DEBUG] Imagem da missão (continuação) adicionada: ${resultadoInteracao.imagemMissao}`);
+                        } catch (error) {
+                            console.error(`[DEBUG] Erro ao adicionar imagem da missão (continuação): ${error.message}`);
+                        }
                     }
 
-                    embedNPC.addFields({ name: "Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*...*" });
+                    embedNPC.addFields({ name: "💬 Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*...*" });
 
                     const novaActionRow = new ActionRowBuilder();
                     let novasOpcoes = false;
@@ -989,11 +989,17 @@ if (!interaction.replied && !interaction.deferred) {
                         { name: `👹 ${nomeMobAcao} (Nv. ${nivelMobCombat})`, value: `❤️ PV: **${pvAtualMobAcao}/${pvMaxMobAcao}**`, inline: true }
                     );
 
-                // Usar sistema de extensão para imagem do mob
-                try {
-                    ArcadiaExt.adicionarImagemMobAoEmbed(embedCombateAtualizado, mobEstadoAcao);
-                } catch (error) {
-                    console.error(`[DEBUG] Erro ao usar sistema de imagens da extensão para mob: ${error.message}`);
+                // Adicionar imagem do mob se disponível
+                if (mobEstadoAcao && (mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem)) {
+                    try {
+                        const urlImagemMob = mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem;
+                        if (urlImagemMob && urlImagemMob.trim() && (urlImagemMob.startsWith('http://') || urlImagemMob.startsWith('https://'))) {
+                            embedCombateAtualizado.setThumbnail(urlImagemMob.trim());
+                            console.log(`[DEBUG] Imagem do mob atualizada no combate: ${urlImagemMob}`);
+                        }
+                    } catch (error) {
+                        console.error(`[DEBUG] Erro ao atualizar imagem do mob no combate: ${error.message}`);
+                    }
                 }
 
             if (resultadoAcaoJogador.mobDerrotado) {
@@ -1013,11 +1019,17 @@ if (!interaction.replied && !interaction.deferred) {
                         { name: `👹 ${nomeMobAcao} (Nv. ${nivelMobCombat})`, value: `❤️ PV: **0/${pvMaxMobAcao}** ☠️`, inline: true }
                     );
 
-                // Usar sistema de extensão para imagem do mob
-                try {
-                    ArcadiaExt.adicionarImagemMobAoEmbed(embedCombateAtualizado, mobEstadoAcao);
-                } catch (error) {
-                    console.error(`[DEBUG] Erro ao usar sistema de imagens da extensão para mob: ${error.message}`);
+                // Adicionar imagem do mob se disponível
+                if (mobEstadoAcao && (mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem)) {
+                    try {
+                        const urlImagemMob = mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem;
+                        if (urlImagemMob && urlImagemMob.trim() && (urlImagemMob.startsWith('http://') || urlImagemMob.startsWith('https://'))) {
+                            embedCombateAtualizado.setThumbnail(urlImagemMob.trim());
+                            console.log(`[DEBUG] Imagem do mob atualizada no combate: ${urlImagemMob}`);
+                        }
+                    } catch (error) {
+                        console.error(`[DEBUG] Erro ao atualizar imagem do mob no combate: ${error.message}`);
+                    }
                 }
 
                 if (resultadoFinal && resultadoFinal.recompensasTextoFinal && Array.isArray(resultadoFinal.recompensasTextoFinal) && resultadoFinal.recompensasTextoFinal.length > 0) {
@@ -1074,13 +1086,6 @@ if (!interaction.replied && !interaction.deferred) {
                     { name: `\u200B`, value: `\u200B`, inline: true },
                     { name: `👹 ${nomeMobTurnoMob} (Nv. ${nivelMobTurnoMob})`, value: `❤️ PV: **${pvAtualMobTurnoMob}/${pvMaxMobTurnoMob}**`, inline: true }
                 );
-
-                // Usar sistema de extensão para imagem do mob
-                try {
-                    ArcadiaExt.adicionarImagemMobAoEmbed(embedCombateAtualizado, mobEstadoTurnoMob);
-                } catch (error) {
-                    console.error(`[DEBUG] Erro ao usar sistema de imagens da extensão para mob: ${error.message}`);
-                }
 
                 if (resultadoTurnoMob.combateTerminou && resultadoTurnoMob.vencedorFinal === "mob") { 
                     embedCombateAtualizado.setTitle("☠️ Derrota... ☠️");
@@ -1175,11 +1180,17 @@ else if (acaoCombate === 'USARFEITICO') {
                     { name: `👹 ${nomeMobAcao} (Nv. ${nivelMobCombat})`, value: `❤️ PV: **${pvAtualMobAcao}/${pvMaxMobAcao}**`, inline: true }
                 );
 
-                // Usar sistema de extensão para imagem do mob
-                try {
-                    ArcadiaExt.adicionarImagemMobAoEmbed(embedCombateAtualizado, mobEstadoAcao);
-                } catch (error) {
-                    console.error(`[DEBUG] Erro ao usar sistema de imagens da extensão para mob: ${error.message}`);
+                // Adicionar imagem do mob se disponível
+                if (mobEstadoAcao && (mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem)) {
+                    try {
+                        const urlImagemMob = mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem;
+                        if (urlImagemMob && urlImagemMob.trim() && (urlImagemMob.startsWith('http://') || urlImagemMob.startsWith('https://'))) {
+                            embedCombateAtualizado.setThumbnail(urlImagemMob.trim());
+                            console.log(`[DEBUG] Imagem do mob atualizada no combate: ${urlImagemMob}`);
+                        }
+                    } catch (error) {
+                        console.error(`[DEBUG] Erro ao atualizar imagem do mob no combate: ${error.message}`);
+                    }
                 }
 
             if (resultado.mobDerrotado) {
@@ -1218,12 +1229,6 @@ else if (acaoCombate === 'USARFEITICO') {
                     { name: `\u200B`, value: `\u200B`, inline: true },
                     { name: `👹 ${mobEstadoTurnoMob.nome} (Nv. ${typeof mobEstadoTurnoMob.nivel === 'number' ? mobEstadoTurnoMob.nivel : '?'})`, value: `❤️ PV: **${mobEstadoTurnoMob.pvAtual}/${mobEstadoTurnoMob.pvMax}**`, inline: true }
                 );
-                // Usar sistema de extensão para imagem do mob
-                try {
-                    ArcadiaExt.adicionarImagemMobAoEmbed(embedCombateAtualizado, mobEstadoTurnoMob);
-                } catch (error) {
-                    console.error(`[DEBUG] Erro ao usar sistema de imagens da extensão para mob: ${error.message}`);
-                }
 
                 if (resultadoTurnoMob.combateTerminou) {
                     embedCombateAtualizado.setTitle(resultadoTurnoMob.vencedorFinal === "mob" ? "☠️ Derrota... ☠️" : "🏆 Vitória Inesperada! 🏆");
@@ -1354,11 +1359,17 @@ else if (interaction.isStringSelectMenu()) {
                     { name: `👾 ${nomeMobAcao} (Nv. ${nivelMobCombat})`, value: `❤️ PV: **${pvAtualMobAcao}/${pvMaxMobAcao}**`, inline: true }
                 );
 
-                // Usar sistema de extensão para imagem do mob
-                try {
-                    ArcadiaExt.adicionarImagemMobAoEmbed(embedCombateAtualizado, mobEstadoAcao);
-                } catch (error) {
-                    console.error(`[DEBUG] Erro ao usar sistema de imagens da extensão para mob: ${error.message}`);
+                // Adicionar imagem do mob se disponível
+                if (mobEstadoAcao && (mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem)) {
+                    try {
+                        const urlImagemMob = mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem;
+                        if (urlImagemMob && urlImagemMob.trim() && (urlImagemMob.startsWith('http://') || urlImagemMob.startsWith('https://'))) {
+                            embedCombateAtualizado.setThumbnail(urlImagemMob.trim());
+                            console.log(`[DEBUG] Imagem do mob atualizada no combate: ${urlImagemMob}`);
+                        }
+                    } catch (error) {
+                        console.error(`[DEBUG] Erro ao atualizar imagem do mob no combate: ${error.message}`);
+                    }
                 }
 
             if (resultado.mobDerrotado) {
@@ -1396,7 +1407,7 @@ else if (interaction.isStringSelectMenu()) {
                 const pvAtualJogadorTurnoMob = jogadorEstadoTurnoMob.pvAtual;
                 const pvMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pvMax;
                 const pmAtualJogadorTurnoMob = jogadorEstadoTurnoMob.pmAtual;
-                const pmMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pmMax;
+                const pmMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pmAtual;
                 const nomeMobTurnoMob = mobEstadoTurnoMob.nome;
                 const pvAtualMobTurnoMob = mobEstadoTurnoMob.pvAtual;
                 const pvMaxMobTurnoMob = mobEstadoTurnoMob.pvMax;
@@ -1407,12 +1418,6 @@ else if (interaction.isStringSelectMenu()) {
                     { name: `\u200B`, value: `\u200B`, inline: true },
                     { name: `👾 ${nomeMobTurnoMob} (Nv. ${nivelMobTurnoMob})`, value: `❤️ PV: **${pvAtualMobTurnoMob}/${pvMaxMobTurnoMob}**`, inline: true }
                 );
-                // Usar sistema de extensão para imagem do mob
-                try {
-                    ArcadiaExt.adicionarImagemMobAoEmbed(embedCombateAtualizado, mobEstadoTurnoMob);
-                } catch (error) {
-                    console.error(`[DEBUG] Erro ao usar sistema de imagens da extensão para mob: ${error.message}`);
-                }
 
                 if (resultadoTurnoMob.combateTerminou && resultadoTurnoMob.vencedorFinal === "mob") {
                     embedCombateAtualizado.setTitle("☠️ Derrota... ☠️");
