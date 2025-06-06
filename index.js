@@ -55,10 +55,10 @@ client.on('ready', async () => {
     try {
         await Arcadia.conectarMongoDB();
         await Arcadia.carregarFichasDoDB();
-        
+
         // Inicializar extensões
         ArcadiaExt.inicializarExtensao();
-        
+
         console.log("Conexão com MongoDB e carregamento de dados iniciais concluídos.");
     } catch (error) {
         console.error("ERRO CRÍTICO na inicialização do DB no evento 'ready':", error);
@@ -693,25 +693,20 @@ else if (interaction.isButton()) {
                         embedNPC.setDescription(resultadoInteracao.descricaoVisualNPC);
                     }
 
-                    // Adicionar imagens do NPC e missões no diálogo continuado
-                    if (resultadoInteracao.imagemNPC && resultadoInteracao.imagemNPC.trim() !== '') {
-                        try {
-                            embedNPC.setThumbnail(resultadoInteracao.imagemNPC);
-                            console.log(`[DEBUG] Imagem do NPC (continuação) adicionada: ${resultadoInteracao.imagemNPC}`);
-                        } catch (error) {
-                            console.error(`[DEBUG] Erro ao adicionar imagem do NPC (continuação): ${error.message}`);
-                        }
-                    }
-                    if (resultadoInteracao.imagemMissao && resultadoInteracao.imagemMissao.trim() !== '') {
-                        try {
-                            embedNPC.setImage(resultadoInteracao.imagemMissao);
-                            console.log(`[DEBUG] Imagem da missão (continuação) adicionada: ${resultadoInteracao.imagemMissao}`);
-                        } catch (error) {
-                            console.error(`[DEBUG] Erro ao adicionar imagem da missão (continuação): ${error.message}`);
-                        }
+                    // Adicionar imagens usando o sistema de extensão
+                    try {
+                        ArcadiaExt.adicionarImagemNPCAoEmbed(embedNPC, {
+                            nome: resultadoInteracao.nomeNPC,
+                            imagemUrl: resultadoInteracao.imagemNPC || resultadoInteracao.imagem,
+                            missaoAtual: resultadoInteracao.imagemMissao ? {
+                                imagemMissao: resultadoInteracao.imagemMissao
+                            } : null
+                        });
+                    } catch (error) {
+                        console.error(`[DEBUG] Erro ao usar sistema de imagens da extensão na continuação: ${error.message}`);
                     }
 
-                    embedNPC.addFields({ name: "💬 Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*...*" });
+                    embedNPC.addFields({ name: "Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*...*" });
 
                     const novaActionRow = new ActionRowBuilder();
                     let novasOpcoes = false;
@@ -1133,7 +1128,7 @@ if (!interaction.replied && !interaction.deferred) {
 
         } catch (e) {
             console.error(">>> [INDEX] ERRO BRUTO no bloco ATAQUEBASICO:", e);
-            await interaction.editReply({ content: "Ocorreu um erro crítico severo ao processar seu ataque.", components: [], embeds:[] });
+            await interaction.editReply({ content: "Ocorreu um erro crítico severo ao processar seu ataque.", components: [], embeds:[] });<previous_block>
             return; 
         }
     } // Fecha if (acaoCombate === 'ATAQUEBASICO')
@@ -1412,7 +1407,7 @@ else if (interaction.isStringSelectMenu()) {
                 const pvAtualJogadorTurnoMob = jogadorEstadoTurnoMob.pvAtual;
                 const pvMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pvMax;
                 const pmAtualJogadorTurnoMob = jogadorEstadoTurnoMob.pmAtual;
-                const pmMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pmAtual;
+                const pmMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pmMax;
                 const nomeMobTurnoMob = mobEstadoTurnoMob.nome;
                 const pvAtualMobTurnoMob = mobEstadoTurnoMob.pvAtual;
                 const pvMaxMobTurnoMob = mobEstadoTurnoMob.pvMax;
