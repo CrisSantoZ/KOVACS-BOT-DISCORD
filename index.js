@@ -414,8 +414,8 @@ if (resultadoInteracao.erro) {
                             }
 
                             // Ativar imagens de NPCs e missões
-                            if (resultadoInteracao.imagem) {
-                                embedNPC.setThumbnail(resultadoInteracao.imagem);
+                            if (resultadoInteracao.imagemNPC) {
+                                embedNPC.setThumbnail(resultadoInteracao.imagemNPC);
                             }
                             if (resultadoInteracao.imagemMissao) {
                                 embedNPC.setImage(resultadoInteracao.imagemMissao);
@@ -439,7 +439,6 @@ if (resultadoInteracao.dialogoAtual.respostasJogador && resultadoInteracao.dialo
     resultadoInteracao.dialogoAtual.respostasJogador.slice(0, 4).forEach(opcao => {
         actionRow.addComponents(
             new ButtonBuilder()
-                // ADICIONE "CONTINUAR" AQUI E USE MAIÚSCULAS PARA A AÇÃO
                 .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
                 .setLabel(opcao.textoResposta.substring(0, 80))
                 .setStyle(ButtonStyle.Primary)
@@ -464,7 +463,6 @@ if (resultadoInteracao.dialogoAtual.ofereceMissao && !resultadoInteracao.missaoR
 if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInteracao.dialogoAtual.encerraDialogo)) {
      actionRow.addComponents(
         new ButtonBuilder()
-            // USE "ENCERRAR" EM MAIÚSCULAS
             .setCustomId(`dialogo_ENCERRAR_${idNpc}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
             .setLabel(temOpcoesParaBotoes && resultadoInteracao.dialogoAtual.encerraDialogo ? "Finalizar" : "Encerrar Conversa")
             .setStyle(ButtonStyle.Secondary)
@@ -640,8 +638,8 @@ else if (interaction.isButton()) {
                     }
 
                     // Adicionar imagens do NPC e missões no diálogo continuado
-                    if (resultadoInteracao.imagem) {
-                        embedNPC.setThumbnail(resultadoInteracao.imagem);
+                    if (resultadoInteracao.imagemNPC) {
+                        embedNPC.setThumbnail(resultadoInteracao.imagemNPC);
                     }
                     if (resultadoInteracao.imagemMissao) {
                         embedNPC.setImage(resultadoInteracao.imagemMissao);
@@ -778,8 +776,8 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                                 .setDescription(descricaoCombate);
 
                             // Adicionar imagem do mob se existir
-                            if (mobEstado && mobEstado.imagem) {
-                                embedCombate.setThumbnail(mobEstado.imagem);
+                            if (mobEstado && mobEstado.imagemUrl) {
+                                embedCombate.setThumbnail(mobEstado.imagemUrl);
                             }
 
                             embedCombate.addFields(
@@ -923,35 +921,36 @@ if (!interaction.replied && !interaction.deferred) {
                     );
 
                 // Adicionar imagem do mob se disponível
-                if (mobEstadoAcao && mobEstadoAcao.imagem) {
-                    embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagem);
+                if (mobEstadoAcao && mobEstadoAcao.imagemUrl) {
+                    embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagemUrl);
                 }
 
             if (resultadoAcaoJogador.mobDerrotado) {
                 console.log(`>>> [INDEX | Combate Action] Mob derrotado. Chamando finalizarCombate para idCombate: ${idCombate}`);
-                const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true, resultadoAcaoJogador.dadosParaFinalizar.eUltimoMobDaMissao); // Presume que eUltimoMobDaMissao está vindo corretamente
+                const eUltimoMob = resultadoAcaoJogador.dadosParaFinalizar ? resultadoAcaoJogador.dadosParaFinalizar.eUltimoMobDaMissao : false;
+                const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true, eUltimoMob);
                 console.log(">>> [INDEX | Combate Action] Retorno de finalizarCombate:", JSON.stringify(resultadoFinal, null, 2));
 
                 // Criar embed atualizado
                 const embedCombateAtualizado = new EmbedBuilder()
                     .setColor(0x00FF00)
                     .setTitle("🏆 Vitória!")
-                    .setDescription(`${resultadoTexto}\n\n${nomeMobAcao} foi derrotado!`)
+                    .setDescription((resultadoFinal.logCombateFinal || logCombateAtualizado).join('\n'))
                     .addFields(
-                        { name: `👤 ${nomeJogadorAcao} (Nv. ${nivelJogadorAcao})`, value: `❤️ PV: **${pvAtualJogadorAcao}/${pvMaxJogadorAcao}**\n💧 PM: **${pmAtualJogadorAcao}/${pmMaxJogadorAcao}**`, inline: true },
+                        { name: `👤 ${nomeJogadorAcao}`, value: `❤️ PV: **${pvAtualJogadorAcao}/${pvMaxJogadorAcao}**\n💧 PM: **${pmAtualJogadorAcao}/${pmMaxJogadorAcao}**`, inline: true },
                         { name: `\u200B`, value: `\u200B`, inline: true }, // Espaçador
                         { name: `👹 ${nomeMobAcao} (Nv. ${nivelMobCombat})`, value: `❤️ PV: **0/${pvMaxMobAcao}** ☠️`, inline: true }
                     );
 
                 // Adicionar imagem do mob se disponível
-                if (mobEstadoAcao && mobEstadoAcao.imagem) {
-                    embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagem);
+                if (mobEstadoAcao && mobEstadoAcao.imagemUrl) {
+                    embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagemUrl);
                 }
-                embedCombateAtualizado.setDescription((resultadoFinal.logCombateFinal || logCombateAtualizado).join('\n')); // Usa logCombateFinal se existir
+                
                 if (resultadoFinal && resultadoFinal.recompensasTextoFinal && Array.isArray(resultadoFinal.recompensasTextoFinal) && resultadoFinal.recompensasTextoFinal.length > 0) {
-                     embedCombateAtualizado.addFields({ name: "Recompensas", value: resultadoFinal.recompensasTextoFinal.join('\n') });
+                     embedCombateAtualizado.addFields({ name: "🎁 Recompensas", value: resultadoFinal.recompensasTextoFinal.join('\n') });
                 } else {
-                     embedCombateAtualizado.addFields({ name: "Recompensas", value: "Nenhuma recompensa específica." });
+                     embedCombateAtualizado.addFields({ name: "🎁 Recompensas", value: "Nenhuma recompensa específica." });
                 }
                 await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
 
@@ -1005,11 +1004,18 @@ if (!interaction.replied && !interaction.deferred) {
 
                 if (resultadoTurnoMob.combateTerminou && resultadoTurnoMob.vencedorFinal === "mob") { 
                     embedCombateAtualizado.setTitle("☠️ Derrota... ☠️");
+                    embedCombateAtualizado.setColor(0x8B0000); // Vermelho escuro para derrota
                     // A descrição já foi atualizada com o log do turno do mob, que deve incluir a derrota do jogador
                     if (resultadoTurnoMob.logCombateFinal) {
                          embedCombateAtualizado.setDescription((resultadoTurnoMob.logCombateFinal).join('\n'));
                     }
                     await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
+                    
+                    // Limpar combate do cache após derrota
+                    if (combatesAtivos[idCombate]) {
+                        delete combatesAtivos[idCombate];
+                        console.log(`[COMBATE] Combate ${idCombate} removido do cache após derrota do jogador.`);
+                    }
                 return;
                 } else if (resultadoTurnoMob.combateTerminou) { 
                     // Outro caso de término, ex: mob se derrotou ou venceu por outra condição
