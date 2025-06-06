@@ -564,6 +564,8 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
                     } else {
                         await interaction.reply(payload); 
                     }
+                ```tool_code
+                    }
                 }
             } else if (!['criar', 'ficha', 'interagir'].includes(commandName)) { 
                 console.warn(`[RESPOSTA] 'respostaParaEnviar' é undefined para /${commandName}, e este comando não respondeu diretamente à interação.`);
@@ -921,8 +923,8 @@ if (!interaction.replied && !interaction.deferred) {
                     );
 
                 // Adicionar imagem do mob se disponível
-                if (mobEstadoAcao && mobEstadoAcao.imagemUrl) {
-                    embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagemUrl);
+                if (mobEstadoAcao && (mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem)) {
+                    embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem);
                 }
 
             if (resultadoAcaoJogador.mobDerrotado) {
@@ -943,10 +945,10 @@ if (!interaction.replied && !interaction.deferred) {
                     );
 
                 // Adicionar imagem do mob se disponível
-                if (mobEstadoAcao && mobEstadoAcao.imagemUrl) {
-                    embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagemUrl);
+                if (mobEstadoAcao && (mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem)) {
+                    embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem);
                 }
-                
+
                 if (resultadoFinal && resultadoFinal.recompensasTextoFinal && Array.isArray(resultadoFinal.recompensasTextoFinal) && resultadoFinal.recompensasTextoFinal.length > 0) {
                      embedCombateAtualizado.addFields({ name: "🎁 Recompensas", value: resultadoFinal.recompensasTextoFinal.join('\n') });
                 } else {
@@ -1010,7 +1012,7 @@ if (!interaction.replied && !interaction.deferred) {
                          embedCombateAtualizado.setDescription((resultadoTurnoMob.logCombateFinal).join('\n'));
                     }
                     await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
-                    
+
                     // Limpar combate do cache após derrota
                     if (combatesAtivos[idCombate]) {
                         delete combatesAtivos[idCombate];
@@ -1096,8 +1098,8 @@ else if (acaoCombate === 'USARFEITICO') {
                 );
 
             // Adicionar imagem do mob se existir
-            if (mobEstadoAcao && mobEstadoAcao.imagem) {
-                embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagem);
+            if (mobEstadoAcao && (mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem)) {
+                embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem);
             }
 
             if (resultado.mobDerrotado) {
@@ -1301,7 +1303,7 @@ else if (interaction.isStringSelectMenu()) {
                 const pvAtualJogadorTurnoMob = jogadorEstadoTurnoMob.pvAtual;
                 const pvMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pvMax;
                 const pmAtualJogadorTurnoMob = jogadorEstadoTurnoMob.pmAtual;
-                const pmMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pmMax;
+                const pmMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pmAtual;
                 const nomeMobTurnoMob = mobEstadoTurnoMob.nome;
                 const pvAtualMobTurnoMob = mobEstadoTurnoMob.pvAtual;
                 const pvMaxMobTurnoMob = mobEstadoTurnoMob.pvMax;
