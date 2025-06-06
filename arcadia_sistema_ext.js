@@ -269,7 +269,7 @@ function adicionarImagemNPCAoEmbed(embed, dadosNPC) {
         
         if (imagemValidaNPC) {
             embed.setThumbnail(imagemValidaNPC);
-            console.log(`[EXTENSÃO] Imagem do NPC ${dadosNPC.nome} adicionada: ${imagemValidaNPC}`);
+            console.log(`[EXTENSÃO] Imagem do NPC ${dadosNPC.nome || 'Desconhecido'} adicionada: ${imagemValidaNPC}`);
         }
         
         // Verificar se há imagem de missão associada
@@ -298,7 +298,7 @@ function adicionarImagemMobAoEmbed(embed, dadosMob) {
         
         if (imagemValidaMob) {
             embed.setThumbnail(imagemValidaMob);
-            console.log(`[EXTENSÃO] Imagem do mob ${dadosMob.nome} adicionada: ${imagemValidaMob}`);
+            console.log(`[EXTENSÃO] Imagem do mob ${dadosMob.nome || 'Desconhecido'} adicionada: ${imagemValidaMob}`);
         }
         
     } catch (error) {
@@ -497,6 +497,83 @@ function gerarEmbedMissaoComImagem(dadosMissao, progressoJogador = null) {
     }
 }
 
+/**
+ * Gera embed aprimorado para Ficha de Personagem com imagem
+ */
+function gerarEmbedFichaComImagem(dadosFicha, isAdmin = false) {
+    try {
+        const embed = new EmbedBuilder()
+            .setColor(0x0099FF)
+            .setTitle(`📋 Ficha de ${dadosFicha.nomePersonagem}`)
+            .setAuthor({ name: `${dadosFicha.raca} ${dadosFicha.classe}` });
+        
+        // Adicionar imagem do personagem se disponível
+        if (dadosFicha.imagemUrl) {
+            const imagemValida = validarURLImagemExtensao(dadosFicha.imagemUrl);
+            if (imagemValida) {
+                embed.setThumbnail(imagemValida);
+                console.log(`[EXTENSÃO] Imagem da ficha de ${dadosFicha.nomePersonagem} adicionada: ${imagemValida}`);
+            }
+        }
+        
+        // Adicionar informações básicas
+        embed.addFields([
+            { 
+                name: "⭐ Nível:", 
+                value: dadosFicha.nivel?.toString() || "1", 
+                inline: true 
+            },
+            { 
+                name: "🏰 Reino:", 
+                value: dadosFicha.origemReino || "Desconhecido", 
+                inline: true 
+            },
+            { 
+                name: "💰 Florins:", 
+                value: dadosFicha.florinsDeOuro?.toString() || "0", 
+                inline: true 
+            }
+        ]);
+        
+        // Adicionar atributos
+        if (dadosFicha.atributos) {
+            const atributosTexto = [
+                `💪 **Força:** ${dadosFicha.atributos.forca || 0}`,
+                `🏃 **Agilidade:** ${dadosFicha.atributos.agilidade || 0}`,
+                `❤️ **Vitalidade:** ${dadosFicha.atributos.vitalidade || 0}`,
+                `🧠 **Intelecto:** ${dadosFicha.atributos.intelecto || 0}`,
+                `✨ **Carisma:** ${dadosFicha.atributos.carisma || 0}`,
+                `💙 **Mana Base:** ${dadosFicha.atributos.manaBase || 0}`
+            ].join('\n');
+            
+            embed.addFields({ 
+                name: "📊 Atributos:", 
+                value: atributosTexto 
+            });
+        }
+        
+        // Adicionar status de vida/mana
+        if (dadosFicha.status) {
+            const statusTexto = [
+                `❤️ **PV:** ${dadosFicha.status.pvAtual || 0}/${dadosFicha.status.pvMax || 0}`,
+                `💧 **PM:** ${dadosFicha.status.pmAtual || 0}/${dadosFicha.status.pmMax || 0}`
+            ].join('\n');
+            
+            embed.addFields({ 
+                name: "💚 Status:", 
+                value: statusTexto,
+                inline: true 
+            });
+        }
+        
+        return embed;
+        
+    } catch (error) {
+        console.error(`[EXTENSÃO] Erro ao gerar embed da ficha: ${error.message}`);
+        return gerarEmbedPersonalizado("Erro", "Não foi possível carregar informações da ficha", 0xFF0000);
+    }
+}
+
 // --- INICIALIZAÇÃO DA EXTENSÃO ---
 function inicializarExtensao() {
     console.log("[EXTENSÃO] Inicializando Arcadia Sistema Extensão...");
@@ -537,5 +614,6 @@ module.exports = {
     adicionarImagemMissaoAoEmbed,
     gerarEmbedNPCComImagem,
     gerarEmbedMobComImagem,
-    gerarEmbedMissaoComImagem
+    gerarEmbedMissaoComImagem,
+    gerarEmbedFichaComImagem
 };
