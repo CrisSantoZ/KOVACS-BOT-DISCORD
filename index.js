@@ -101,6 +101,12 @@ client.on('interactionCreate', async interaction => {
         const jogadorId = interaction.user.id;
 
         try {
+            // Verificar se a interação ainda é válida
+            if (interaction.responded) {
+                console.warn("[AUTOCOMPLETE] Interação já foi respondida, ignorando...");
+                return;
+            }
+
             if (commandName === 'usarfeitico' && focusedOption.name === 'feitico') {
                 const magiasConhecidas = await Arcadia.getMagiasConhecidasParaAutocomplete(jogadorId);
                 if (magiasConhecidas) {
@@ -150,19 +156,22 @@ client.on('interactionCreate', async interaction => {
                      choices.push({name: `(Primeiro selecione o jogador alvo)`, value: focusedOption.value || "placeholder_no_alvo"});
                 }
             } else if (commandName === 'interagir' && focusedOption.name === 'npc') {
-                // Adicionar autocomplete para NPCs
-                const todosNPCs = await Arcadia.getTodosNPCsParaAutocomplete(); // Você precisará criar esta função em arcadia_sistema.js
+                const todosNPCs = await Arcadia.getTodosNPCsParaAutocomplete();
                 if (todosNPCs) {
                     choices = todosNPCs
                         .filter(npc => npc.name.toLowerCase().includes(focusedOption.value.toLowerCase()))
-                        .map(npc => ({ name: npc.name, value: npc.value })); // value deve ser o nome exato do NPC
+                        .map(npc => ({ name: npc.name, value: npc.value }));
                 }
             }
-            await interaction.respond(choices.slice(0, 25) || []);
+            
+            // Tentar responder apenas se não expirou
+            if (!interaction.responded) {
+                await interaction.respond(choices.slice(0, 25) || []);
+            }
         } catch (error) {
             console.error(`[AUTOCOMPLETE] Erro ao processar autocomplete para /${commandName}, opção ${focusedOption.name}:`, error.message);
-            // Não tentar responder novamente se a interação já expirou
-            if (error.code !== 10062) {
+            // Só tentar responder se não foi respondido e não expirou
+            if (!interaction.responded && error.code !== 10062 && !error.message.includes("Unknown interaction")) {
                 try { 
                     await interaction.respond([]); 
                 } catch (respondError) { 
@@ -379,11 +388,21 @@ client.on('interactionCreate', async interaction => {
                     }
 
                     case 'interagir': {
+                        // Verificar se a interação ainda é válida antes de defer
+                        if (interaction.replied || interaction.deferred) {
+                            console.warn("[INTERAGIR] Interação já foi respondida ou deferida, ignorando...");
+                            break;
+                        }
+
                         try {
                             await interaction.deferReply({ ephemeral: true });
                         } catch (deferError) {
                             console.error("[INTERAGIR] Erro ao fazer deferReply:", deferError.message);
-                            return; // Se não conseguiu defer, sair para evitar mais erros
+                            if (deferError.message.includes("Unknown interaction")) {
+                                // Interação expirou, não tentar mais nada
+                                return;
+                            }
+                            break;
                         }
 
                         const nomeNPCInput = options.getString('npc');
@@ -398,11 +417,15 @@ client.on('interactionCreate', async interaction => {
                             break; 
                         }
 
-                        const resultadoInteracao = await Arcadia.processarInteracaoComNPC(nomeNPCInput, fichaJogador); // Passa ficha para lógica de condições
-const idNpc = resultadoInteracao.idNPC || resultadoInteracao.idNpc || resultadoInteracao.nomeNPC || resultadoInteracao.nomeNpc;
+                        const resultadoInteracao = await Arcadia.processarInteracaoComNPC(nomeNPCInput, fichaJogador);
+                        const idNpc = resultadoInteracao.idNPC || resultadoInteracao.idNpc || resultadoInteracao.nomeNPC || resultadoInteracao.nomeNpc;
 
-if (resultadoInteracao.erro) {
-                            await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Interação Falhou", resultadoInteracao.erro)] });
+                        if (resultadoInteracao.erro) {
+                            try {
+                                await interaction.editReply({ embeds: [Arcadia.gerarEmbedAviso("Interação Falhou", resultadoInteracao.erro)] });
+                            } catch (editError) {
+                                console.error("[INTERAGIR] Erro ao editar reply com erro:", editError.message);
+                            }
                         } else {
                             const embedNPC = new EmbedBuilder()
                                 .setColor(0x7289DA) 
@@ -413,7 +436,7 @@ if (resultadoInteracao.erro) {
                                 embedNPC.setDescription(resultadoInteracao.descricaoVisualNPC);
                             }
 
-                            // Ativar imagens de NPCs e missões
+                            // Implementar imagens de NPCs e missões
                             if (resultadoInteracao.imagemNPC) {
                                 embedNPC.setThumbnail(resultadoInteracao.imagemNPC);
                             }
@@ -421,33 +444,33 @@ if (resultadoInteracao.erro) {
                                 embedNPC.setImage(resultadoInteracao.imagemMissao);
                             }
 
-                            embedNPC.addFields({ name: "Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*Este personagem não diz nada no momento.*" });
+                            embedNPC.addFields({ name: "💬 Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*Este personagem não diz nada no momento.*" });
 
-if (resultadoInteracao.missaoRealmenteConcluida && resultadoInteracao.recompensasConcedidasTexto && resultadoInteracao.recompensasConcedidasTexto.length > 0) {
+                            if (resultadoInteracao.missaoRealmenteConcluida && resultadoInteracao.recompensasConcedidasTexto && resultadoInteracao.recompensasConcedidasTexto.length > 0) {
                                 embedNPC.addFields({ 
                                     name: "🏅 Missão Concluída! Recompensas:", 
                                     value: resultadoInteracao.recompensasConcedidasTexto.join("\n")
                                 });
-                            } else if (resultadoInteracao.missaoRealmenteConcluida) { // Se foi concluída mas sem recompensas específicas listadas (raro)
+                            } else if (resultadoInteracao.missaoRealmenteConcluida) {
                                 embedNPC.addFields({ name: "🏅 Missão Concluída!", value: "Tarefa finalizada." });
                             }
 
                             const actionRow = new ActionRowBuilder();
                             let temOpcoesParaBotoes = false;
 
-if (resultadoInteracao.dialogoAtual.respostasJogador && resultadoInteracao.dialogoAtual.respostasJogador.length > 0) {
-    resultadoInteracao.dialogoAtual.respostasJogador.slice(0, 4).forEach(opcao => {
-        actionRow.addComponents(
-            new ButtonBuilder()
-                .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
-                .setLabel(opcao.textoResposta.substring(0, 80))
-                .setStyle(ButtonStyle.Primary)
-        );
-        temOpcoesParaBotoes = true;
-    });
-}
+                            if (resultadoInteracao.dialogoAtual.respostasJogador && resultadoInteracao.dialogoAtual.respostasJogador.length > 0) {
+                                resultadoInteracao.dialogoAtual.respostasJogador.slice(0, 4).forEach(opcao => {
+                                    actionRow.addComponents(
+                                        new ButtonBuilder()
+                                            .setCustomId(`dialogo_CONTINUAR_${idNpc}_${opcao.levaParaDialogoId || 'sem_acao'}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
+                                            .setLabel(opcao.textoResposta.substring(0, 80))
+                                            .setStyle(ButtonStyle.Primary)
+                                    );
+                                    temOpcoesParaBotoes = true;
+                                });
+                            }
 
-if (resultadoInteracao.dialogoAtual.ofereceMissao && !resultadoInteracao.missaoRealmenteConcluida) { // Só oferece se não acabou de concluir outra
+                            if (resultadoInteracao.dialogoAtual.ofereceMissao && !resultadoInteracao.missaoRealmenteConcluida) {
                                 const missaoLog = fichaJogador.logMissoes ? fichaJogador.logMissoes.find(m => m.idMissao === resultadoInteracao.dialogoAtual.ofereceMissao) : null;
                                 if ((!missaoLog || (missaoLog.status !== 'aceita' && missaoLog.status !== 'concluida')) && actionRow.components.length < 5) {
                                     actionRow.addComponents(
@@ -458,21 +481,25 @@ if (resultadoInteracao.dialogoAtual.ofereceMissao && !resultadoInteracao.missaoR
                                     );
                                     temOpcoesParaBotoes = true;
                                 }
-}
+                            }
 
-if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInteracao.dialogoAtual.encerraDialogo)) {
-     actionRow.addComponents(
-        new ButtonBuilder()
-            .setCustomId(`dialogo_ENCERRAR_${idNpc}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
-            .setLabel(temOpcoesParaBotoes && resultadoInteracao.dialogoAtual.encerraDialogo ? "Finalizar" : "Encerrar Conversa")
-            .setStyle(ButtonStyle.Secondary)
-    );
-}
+                            if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInteracao.dialogoAtual.encerraDialogo)) {
+                                actionRow.addComponents(
+                                    new ButtonBuilder()
+                                        .setCustomId(`dialogo_ENCERRAR_${idNpc}_${resultadoInteracao.dialogoAtual.idDialogo}_${interaction.user.id}`)
+                                        .setLabel(temOpcoesParaBotoes && resultadoInteracao.dialogoAtual.encerraDialogo ? "Finalizar" : "Encerrar Conversa")
+                                        .setStyle(ButtonStyle.Secondary)
+                                );
+                            }
 
-                            if (actionRow.components.length > 0) {
-                                await interaction.editReply({ embeds: [embedNPC], components: [actionRow] });
-                            } else {
-                                await interaction.editReply({ embeds: [embedNPC] });
+                            try {
+                                if (actionRow.components.length > 0) {
+                                    await interaction.editReply({ embeds: [embedNPC], components: [actionRow] });
+                                } else {
+                                    await interaction.editReply({ embeds: [embedNPC] });
+                                }
+                            } catch (editError) {
+                                console.error("[INTERAGIR] Erro ao editar reply final:", editError.message);
                             }
                         }
                         break; 
@@ -608,9 +635,19 @@ else if (interaction.isButton()) {
     try { 
 
         if (tipoComponente === 'dialogo') {
-            // Fazer deferUpdate apenas para diálogos
-            if (!interaction.replied && !interaction.deferred) {
+            // Verificar se a interação ainda é válida
+            if (interaction.replied || interaction.deferred) {
+                console.warn("[DIALOGO] Interação já foi processada, ignorando...");
+                return;
+            }
+
+            try {
                 await interaction.deferUpdate();
+            } catch (deferError) {
+                console.error("[DIALOGO] Erro ao fazer deferUpdate:", deferError.message);
+                if (deferError.message.includes("Unknown interaction")) {
+                    return; // Interação expirou
+                }
             }
 
             const acaoDialogo = customIdParts[1] ? customIdParts[1].toUpperCase() : null; 
@@ -619,7 +656,11 @@ else if (interaction.isButton()) {
             const idDialogoOriginal = customIdParts[4]; 
 
             if (acaoDialogo === 'ENCERRAR' || (acaoDialogo === 'CONTINUAR' && idParametro3 === 'sem_acao')) {
-                await interaction.followUp({ content: "Conversa encerrada.", embeds: [], components: [] });
+                try {
+                    await interaction.editReply({ content: "Conversa encerrada.", embeds: [], components: [] });
+                } catch (editError) {
+                    console.error("[DIALOGO] Erro ao encerrar conversa:", editError.message);
+                }
                 return;
             } else if (acaoDialogo === 'CONTINUAR') {
                 const idProximoDialogo = idParametro3; 
@@ -776,8 +817,8 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                                 .setDescription(descricaoCombate);
 
                             // Adicionar imagem do mob se existir
-                            if (mobEstado && mobEstado.imagemUrl) {
-                                embedCombate.setThumbnail(mobEstado.imagemUrl);
+                            if (mobEstado && (mobEstado.imagemUrl || mobEstado.imagem)) {
+                                embedCombate.setThumbnail(mobEstado.imagemUrl || mobEstado.imagem);
                             }
 
                             embedCombate.addFields(
