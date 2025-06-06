@@ -581,8 +581,7 @@ client.on('interactionCreate', async interaction => {
                 if (deveSerEfêmera) { payload.flags = [64]; } // 64 = ephemeral flag
 
                 if (Object.keys(payload).length === 0 || (!payload.content && (!payload.embeds || payload.embeds.length === 0))) {
-                    ```tool_code
-if (!interaction.replied && !interaction.deferred && commandName !== 'interagir' && commandName !== 'criar' && commandName !== 'ficha' /* adicione outros que respondem direto */) {
+                    if (!interaction.replied && !interaction.deferred && commandName !== 'interagir' && commandName !== 'criar' && commandName !== 'ficha') {
                         console.error("[ENVIO ERRO] Payload resultou em mensagem vazia e interação não respondida:", JSON.stringify(payload, null, 2));
                         await interaction.reply({ content: "Ocorreu um problema ao gerar a resposta (payload vazio/inválido).", ephemeral: true });
                     } else {
@@ -1125,7 +1124,7 @@ else if (acaoCombate === 'USARFEITICO') {
             const resultado = await Arcadia.processarAcaoJogadorCombate(idCombate, senderIdButton, "USAR_FEITICO", { idFeitico: magiasConhecidas[0].value });
 
             if (!resultado || typeof resultado !== 'object') {
-                await interaction.editReply({ content: "Erro crítico ao usar feitiço.", components: [], embeds: [] });```tool_code
+                await interaction.editReply({ content: "Erro crítico ao usar feitiço.", components: [], embeds: [] });
                 return;
             }
             if (resultado.erro) {
