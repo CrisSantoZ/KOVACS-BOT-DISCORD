@@ -1126,6 +1126,8 @@ if (!interaction.replied && !interaction.deferred) {
             await interaction.editReply({ embeds: [embedCombateAtualizado], components: [combatActionRowContinuacao] });
             // --- FIM DA LÓGICA DE PROCESSAMENTO DO RESULTADO DA AÇÃO DO JOGADOR ---
 
+        }```text
+
         } catch (e) {
             console.error(">>> [INDEX] ERRO BRUTO no bloco ATAQUEBASICO:", e);
             await interaction.editReply({ content: "Ocorreu um erro crítico severo ao processar seu ataque.", components: [], embeds:[] });
@@ -1407,7 +1409,7 @@ else if (interaction.isStringSelectMenu()) {
                 const pvAtualJogadorTurnoMob = jogadorEstadoTurnoMob.pvAtual;
                 const pvMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pvMax;
                 const pmAtualJogadorTurnoMob = jogadorEstadoTurnoMob.pmAtual;
-                const pmMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pmMax;
+                const pmMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pmAtual;
                 const nomeMobTurnoMob = mobEstadoTurnoMob.nome;
                 const pvAtualMobTurnoMob = mobEstadoTurnoMob.pvAtual;
                 const pvMaxMobTurnoMob = mobEstadoTurnoMob.pvMax;
