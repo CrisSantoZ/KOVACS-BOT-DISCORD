@@ -558,7 +558,7 @@ if (actionRow.components.length < 5 && (!temOpcoesParaBotoes || resultadoInterac
                         // e mesmo assim chegamos aqui com um `respostaParaEnviar` (o que não deveria acontecer para /interagir),
                         // usamos followUp para não dar erro. Mas o ideal é que `respostaParaEnviar` seja null para esses casos.
                         if (commandName === 'interagir' || commandName === 'criar' || commandName === 'ficha') {
-                             console.warn(`[AVISO LÓGICA] 'respostaParaEnviar' foi definida para /${commandName} que já deveria ter respondido. Usando followUp.`);
+                             console.warn(`[AVISO LÓGICA] 'respostaParaEnviar' foi definida para /${commandName} que já deveria ter respondido. Usamos followUp.`);
                              await interaction.followUp(payload);
                         } else {
                             await interaction.editReply(payload);
@@ -923,8 +923,8 @@ if (!interaction.replied && !interaction.deferred) {
                     );
 
                 // Adicionar imagem do mob se disponível
-                if (combateObj.mob && combateObj.mob.imagemUrl) {
-                    embedCombateAtualizado.setThumbnail(combateObj.mob.imagemUrl);
+                if (mobEstadoAcao && mobEstadoAcao.imagem) {
+                    embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagem);
                 }
 
             if (resultadoAcaoJogador.mobDerrotado) {
@@ -944,10 +944,9 @@ if (!interaction.replied && !interaction.deferred) {
                     );
 
                 // Adicionar imagem do mob se disponível
-                if (combateObj.mob && combateObj.mob.imagemUrl) {
-                    embedCombateAtualizado.setThumbnail(combateObj.mob.imagemUrl);
+                if (mobEstadoAcao && mobEstadoAcao.imagem) {
+                    embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagem);
                 }
-                embedCombateAtualizado.setTitle("🏆 Vitória! 🏆");
                 embedCombateAtualizado.setDescription((resultadoFinal.logCombateFinal || logCombateAtualizado).join('\n')); // Usa logCombateFinal se existir
                 if (resultadoFinal && resultadoFinal.recompensasTextoFinal && Array.isArray(resultadoFinal.recompensasTextoFinal) && resultadoFinal.recompensasTextoFinal.length > 0) {
                      embedCombateAtualizado.addFields({ name: "Recompensas", value: resultadoFinal.recompensasTextoFinal.join('\n') });
