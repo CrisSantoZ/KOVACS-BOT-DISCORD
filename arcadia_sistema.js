@@ -2521,8 +2521,8 @@ async function getTodosNPCsParaAutocomplete() {
 console.log(">>> [arcadia_sistema.js | FIM DO ARQUIVO] Estado de missoesCollection ANTES do module.exports:", typeof missoesCollection, !!missoesCollection);
 module.exports = {
     // Dados e Constantes
-    RACAS_ARCADIA, CLASSES_ARCADIA, CLASSES_ESPECIAIS_ARCADIA, REINOS_ARCADIA,
-    MAPA_CARGOS_RACAS, MAPA_CARGOS_CLASSES,
+    racas, classes, classesEspeciais, reinos,
+  feiticos, itens,
     MAPA_CARGOS_REINOS,
     NOME_CARGO_AVENTUREIRO, NOME_CARGO_VISITANTE,
     ID_CANAL_BOAS_VINDAS_RPG, ID_CANAL_RECRUTAMENTO, ID_CANAL_ATUALIZACAO_FICHAS,
