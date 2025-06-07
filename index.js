@@ -983,9 +983,9 @@ if (!interaction.replied && !interaction.deferred) {
                     );
 
                 // Adicionar imagem do mob se disponível
-                if (mobEstado && mobEstado.imagem && mobEstado.imagem.trim() && (mobEstado.imagem.startsWith('http://') || mobEstado.imagem.startsWith('https://'))) {
-    embedCombate.setThumbnail(mobEstado.imagem.trim());
-    console.log(`[DEBUG] Imagem do mob adicionada no combate: ${mobEstado.imagem}`);
+                if (mobEstadoAcao && mobEstadoAcao.imagem && mobEstadoAcao.imagem.trim() && (mobEstadoAcao.imagem.startsWith('http://') || mobEstadoAcao.imagem.startsWith('https://'))) {
+    embedCombateAtualizado.setThumbnail(mobEstadoAcao.imagem.trim());
+    console.log(`[DEBUG] Imagem do mob adicionada no combate: ${mobEstadoAcao.imagem}`);
 }
 
             if (resultadoAcaoJogador.mobDerrotado) {
