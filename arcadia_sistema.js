@@ -3919,6 +3919,7 @@ function getEstadoCombateParaRetorno(combate) {
             nome: combate.mobInstancia.nome, 
             pvAtual: combate.mobInstancia.pvAtual, 
             pvMax: combate.mobInstancia.atributos.pvMax,
+            imagem: combate.mobInstancia.imagem,
             nivel: combate.mobInstancia.nivel
         }
     };
