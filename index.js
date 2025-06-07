@@ -841,10 +841,6 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
     embedCombate.setThumbnail(mobEstado.imagem.trim());
     console.log(`[DEBUG] Imagem do mob adicionada no combate: ${mobEstado.imagem}`);
                         } 
-                        catch (error) {
-                                    console.error(`[DEBUG] Erro ao adicionar imagem do mob no combate: ${error.message}`);
-                                }
-                            }
 
                             embedCombate.addFields(
 { 
@@ -991,10 +987,6 @@ if (!interaction.replied && !interaction.deferred) {
     embedCombate.setThumbnail(mobEstado.imagem.trim());
     console.log(`[DEBUG] Imagem do mob adicionada no combate: ${mobEstado.imagem}`);
 }
-                    } catch (error) {
-                        console.error(`[DEBUG] Erro ao atualizar imagem do mob no combate: ${error.message}`);
-                    }
-                }
 
             if (resultadoAcaoJogador.mobDerrotado) {
                 console.log(`>>> [INDEX | Combate Action] Mob derrotado. Chamando finalizarCombate para idCombate: ${idCombate}`);
@@ -1018,10 +1010,6 @@ if (!interaction.replied && !interaction.deferred) {
     embedCombate.setThumbnail(mobEstado.imagem.trim());
     console.log(`[DEBUG] Imagem do mob adicionada no combate: ${mobEstado.imagem}`);
 }
-                    } catch (error) {
-                        console.error(`[DEBUG] Erro ao atualizar imagem do mob no combate: ${error.message}`);
-                    }
-                }
 
                 if (resultadoFinal && resultadoFinal.recompensasTextoFinal && Array.isArray(resultadoFinal.recompensasTextoFinal) && resultadoFinal.recompensasTextoFinal.length > 0) {
                      embedCombateAtualizado.addFields({ name: "🎁 Recompensas", value: resultadoFinal.recompensasTextoFinal.join('\n') });
@@ -1175,10 +1163,6 @@ else if (acaoCombate === 'USARFEITICO') {
                 if (mobEstado && mobEstado.imagem && mobEstado.imagem.trim() && (mobEstado.imagem.startsWith('http://') || mobEstado.imagem.startsWith('https://'))) {
     embedCombate.setThumbnail(mobEstado.imagem.trim());
     console.log(`[DEBUG] Imagem do mob adicionada no combate: ${mobEstado.imagem}`);
-}
-                    } catch (error) {
-                        console.error(`[DEBUG] Erro ao atualizar imagem do mob no combate: ${error.message}`);
-                    }
                 }
 
             if (resultado.mobDerrotado) {
@@ -1352,11 +1336,7 @@ else if (interaction.isStringSelectMenu()) {
     embedCombate.setThumbnail(mobEstado.imagem.trim());
     console.log(`[DEBUG] Imagem do mob adicionada no combate: ${mobEstado.imagem}`);
 }
-                    } catch (error) {
-                        console.error(`[DEBUG] Erro ao atualizar imagem do mob no combate: ${error.message}`);
-                    }
-                }
-
+            
             if (resultado.mobDerrotado) {
                 const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true, resultado.dadosParaFinalizar && resultado.dadosParaFinalizar.eUltimoMobDaMissao);
                 embedCombateAtualizado.setTitle("🏆 Vitória! 🏆");
