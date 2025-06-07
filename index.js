@@ -837,14 +837,11 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                                 .setDescription(descricaoCombate);
 
                             // Adicionar imagem do mob se existir
-                            if (mobEstado && (mobEstado.imagemUrl || mobEstado.imagem)) {
-                                try {
-                                    const urlImagemMob = mobEstado.imagemUrl || mobEstado.imagem;
-                                    if (urlImagemMob && urlImagemMob.trim() && (urlImagemMob.startsWith('http://') || urlImagemMob.startsWith('https://'))) {
-                                        embedCombate.setThumbnail(urlImagemMob.trim());
-                                        console.log(`[DEBUG] Imagem do mob adicionada no combate: ${urlImagemMob}`);
-                                    }
-                                } catch (error) {
+                            if (mobEstado && mobEstado.imagem && mobEstado.imagem.trim() && (mobEstado.imagem.startsWith('http://') || mobEstado.imagem.startsWith('https://'))) {
+    embedCombate.setThumbnail(mobEstado.imagem.trim());
+    console.log(`[DEBUG] Imagem do mob adicionada no combate: ${mobEstado.imagem}`);
+                        } 
+                        } catch (error) {
                                     console.error(`[DEBUG] Erro ao adicionar imagem do mob no combate: ${error.message}`);
                                 }
                             }
@@ -990,13 +987,10 @@ if (!interaction.replied && !interaction.deferred) {
                     );
 
                 // Adicionar imagem do mob se disponível
-                if (mobEstadoAcao && (mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem)) {
-                    try {
-                        const urlImagemMob = mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem;
-                        if (urlImagemMob && urlImagemMob.trim() && (urlImagemMob.startsWith('http://') || urlImagemMob.startsWith('https://'))) {
-                            embedCombateAtualizado.setThumbnail(urlImagemMob.trim());
-                            console.log(`[DEBUG] Imagem do mob atualizada no combate: ${urlImagemMob}`);
-                        }
+                if (mobEstado && mobEstado.imagem && mobEstado.imagem.trim() && (mobEstado.imagem.startsWith('http://') || mobEstado.imagem.startsWith('https://'))) {
+    embedCombate.setThumbnail(mobEstado.imagem.trim());
+    console.log(`[DEBUG] Imagem do mob adicionada no combate: ${mobEstado.imagem}`);
+}
                     } catch (error) {
                         console.error(`[DEBUG] Erro ao atualizar imagem do mob no combate: ${error.message}`);
                     }
@@ -1020,13 +1014,10 @@ if (!interaction.replied && !interaction.deferred) {
                     );
 
                 // Adicionar imagem do mob se disponível
-                if (mobEstadoAcao && (mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem)) {
-                    try {
-                        const urlImagemMob = mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem;
-                        if (urlImagemMob && urlImagemMob.trim() && (urlImagemMob.startsWith('http://') || urlImagemMob.startsWith('https://'))) {
-                            embedCombateAtualizado.setThumbnail(urlImagemMob.trim());
-                            console.log(`[DEBUG] Imagem do mob atualizada no combate: ${urlImagemMob}`);
-                        }
+               if (mobEstado && mobEstado.imagem && mobEstado.imagem.trim() && (mobEstado.imagem.startsWith('http://') || mobEstado.imagem.startsWith('https://'))) {
+    embedCombate.setThumbnail(mobEstado.imagem.trim());
+    console.log(`[DEBUG] Imagem do mob adicionada no combate: ${mobEstado.imagem}`);
+}
                     } catch (error) {
                         console.error(`[DEBUG] Erro ao atualizar imagem do mob no combate: ${error.message}`);
                     }
@@ -1181,13 +1172,10 @@ else if (acaoCombate === 'USARFEITICO') {
                 );
 
                 // Adicionar imagem do mob se disponível
-                if (mobEstadoAcao && (mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem)) {
-                    try {
-                        const urlImagemMob = mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem;
-                        if (urlImagemMob && urlImagemMob.trim() && (urlImagemMob.startsWith('http://') || urlImagemMob.startsWith('https://'))) {
-                            embedCombateAtualizado.setThumbnail(urlImagemMob.trim());
-                            console.log(`[DEBUG] Imagem do mob atualizada no combate: ${urlImagemMob}`);
-                        }
+                if (mobEstado && mobEstado.imagem && mobEstado.imagem.trim() && (mobEstado.imagem.startsWith('http://') || mobEstado.imagem.startsWith('https://'))) {
+    embedCombate.setThumbnail(mobEstado.imagem.trim());
+    console.log(`[DEBUG] Imagem do mob adicionada no combate: ${mobEstado.imagem}`);
+}
                     } catch (error) {
                         console.error(`[DEBUG] Erro ao atualizar imagem do mob no combate: ${error.message}`);
                     }
@@ -1360,13 +1348,10 @@ else if (interaction.isStringSelectMenu()) {
                 );
 
                 // Adicionar imagem do mob se disponível
-                if (mobEstadoAcao && (mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem)) {
-                    try {
-                        const urlImagemMob = mobEstadoAcao.imagemUrl || mobEstadoAcao.imagem;
-                        if (urlImagemMob && urlImagemMob.trim() && (urlImagemMob.startsWith('http://') || urlImagemMob.startsWith('https://'))) {
-                            embedCombateAtualizado.setThumbnail(urlImagemMob.trim());
-                            console.log(`[DEBUG] Imagem do mob atualizada no combate: ${urlImagemMob}`);
-                        }
+                if (mobEstado && mobEstado.imagem && mobEstado.imagem.trim() && (mobEstado.imagem.startsWith('http://') || mobEstado.imagem.startsWith('https://'))) {
+    embedCombate.setThumbnail(mobEstado.imagem.trim());
+    console.log(`[DEBUG] Imagem do mob adicionada no combate: ${mobEstado.imagem}`);
+}
                     } catch (error) {
                         console.error(`[DEBUG] Erro ao atualizar imagem do mob no combate: ${error.message}`);
                     }
