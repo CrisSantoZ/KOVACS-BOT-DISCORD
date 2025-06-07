@@ -989,81 +989,129 @@ async function finalizarCombate(idCombate, idJogadorFicha, jogadorVenceuEsteMob,
         return { erro: "Combate não encontrado para finalizar.", combateRealmenteTerminou: true };
     }
 
-    const ficha = await getFichaOuCarregar(idJogadorFicha); // Recarrega a ficha para ter os dados mais atuais
-    const mob = combate.mobInstancia; // O mob que foi derrotado (ou derrotou o jogador)
+    const ficha = await getFichaOuCarregar(idJogadorFicha);
+    if (!ficha) {
+        console.error(`[FINALIZAR COMBATE] Ficha do jogador ${idJogadorFicha} não encontrada!`);
+        delete combatesAtivos[idCombate];
+        return { erro: "Ficha do jogador não encontrada.", combateRealmenteTerminou: true };
+    }
+
+    const mob = combate.mobInstancia;
     let mensagemResultado = "";
     let recompensasTextoArray = [];
+    let logCompleto = [...combate.log];
 
     if (jogadorVenceuEsteMob) {
-        mensagemResultado = `Você derrotou ${mob.nome}!`;
+        mensagemResultado = `🏆 ${ficha.nomePersonagem} derrotou ${mob.nome}!`;
+        logCompleto.push(mensagemResultado);
 
         // Adicionar XP pelo mob derrotado
         const xpGanhoMob = mob.xpRecompensa || 0;
         if (xpGanhoMob > 0) {
-            const { subiuNivel, pontosAtributoGanhosTotal, pontosFeiticoGanhosTotal, ultimoNivelAlcancado } = await adicionarXPELevelUp(ficha, xpGanhoMob);
-            recompensasTextoArray.push(`✨ +${xpGanhoMob} XP por ${mob.nome}`);
-            if(subiuNivel) {
-                recompensasTextoArray.push(`🎉 SUBIU PARA O NÍVEL ${ultimoNivelAlcancado}!`);
-                if(pontosAtributoGanhosTotal > 0) recompensasTextoArray.push(`💪 +${pontosAtributoGanhosTotal} Pontos de Atributo!`);
-                if(pontosFeiticoGanhosTotal > 0) recompensasTextoArray.push(`🔮 +${pontosFeiticoGanhosTotal} Pontos de Feitiço!`);
+            try {
+                const resultadoXP = await adicionarXPELevelUp(ficha, xpGanhoMob);
+                recompensasTextoArray.push(`✨ +${xpGanhoMob} XP`);
+                
+                if (resultadoXP.subiuNivel) {
+                    recompensasTextoArray.push(`🎉 SUBIU PARA O NÍVEL ${resultadoXP.ultimoNivelAlcancado}!`);
+                    if (resultadoXP.pontosAtributoGanhosTotal > 0) {
+                        recompensasTextoArray.push(`💪 +${resultadoXP.pontosAtributoGanhosTotal} Pontos de Atributo`);
+                    }
+                    if (resultadoXP.pontosFeiticoGanhosTotal > 0) {
+                        recompensasTextoArray.push(`🔮 +${resultadoXP.pontosFeiticoGanhosTotal} Pontos de Feitiço`);
+                    }
+                }
+            } catch (xpError) {
+                console.error(`[FINALIZAR COMBATE] Erro ao processar XP:`, xpError);
+                recompensasTextoArray.push(`⚠️ Erro ao processar XP (${xpGanhoMob} XP)`);
             }
         }
+
         // Adicionar Florins pelo mob derrotado
-        const florinsGanhosMob = mob.florinsRecompensaMin !== undefined && mob.florinsRecompensaMax !== undefined ? 
-            Math.floor(Math.random() * (mob.florinsRecompensaMax - mob.florinsRecompensaMin + 1)) + mob.florinsRecompensaMin : 0;
-        if (florinsGanhosMob > 0) {
-            ficha.florinsDeOuro = (ficha.florinsDeOuro || 0) + florinsGanhosMob;
-            recompensasTextoArray.push(`🪙 +${florinsGanhosMob} Florins de Ouro de ${mob.nome}`);
+        if (mob.florinsRecompensaMin !== undefined && mob.florinsRecompensaMax !== undefined) {
+            const florinsGanhos = Math.floor(Math.random() * (mob.florinsRecompensaMax - mob.florinsRecompensaMin + 1)) + mob.florinsRecompensaMin;
+            if (florinsGanhos > 0) {
+                ficha.florinsDeOuro = (ficha.florinsDeOuro || 0) + florinsGanhos;
+                recompensasTextoArray.push(`🪙 +${florinsGanhos} Florins de Ouro`);
+            }
         }
-        // Adicionar Loot do mob derrotado
-        if (mob.lootTable && mob.lootTable.length > 0) {
+
+        // Processar loot table
+        if (mob.lootTable && Array.isArray(mob.lootTable) && mob.lootTable.length > 0) {
             for (const itemLoot of mob.lootTable) {
-                if (Math.random() < (itemLoot.chanceDrop || 0)) {
-                    const qtdDrop = Math.floor(Math.random() * ((itemLoot.quantidadeMax || 1) - (itemLoot.quantidadeMin || 1) + 1)) + (itemLoot.quantidadeMin || 1);
-                    if (qtdDrop > 0) {
-                        await adicionarItemAoInventario(ficha, itemLoot.itemId, qtdDrop); 
-                        const nomeItemDropado = ITENS_BASE_ARCADIA[itemLoot.itemId.toLowerCase()]?.itemNome || itemLoot.itemNomeOverride || itemLoot.itemId;
-                        recompensasTextoArray.push(`🛍️ Recebeu ${qtdDrop}x ${nomeItemDropado} de ${mob.nome}!`);
+                try {
+                    const chanceRoll = Math.random();
+                    if (chanceRoll < (itemLoot.chanceDrop || 0)) {
+                        const qtdMin = itemLoot.quantidadeMin || 1;
+                        const qtdMax = itemLoot.quantidadeMax || qtdMin;
+                        const qtdDrop = Math.floor(Math.random() * (qtdMax - qtdMin + 1)) + qtdMin;
+                        
+                        if (qtdDrop > 0 && itemLoot.itemId) {
+                            await adicionarItemAoInventario(ficha, itemLoot.itemId, qtdDrop);
+                            const nomeItem = ITENS_BASE_ARCADIA[itemLoot.itemId.toLowerCase()]?.itemNome || 
+                                           itemLoot.itemNomeOverride || 
+                                           itemLoot.itemId;
+                            recompensasTextoArray.push(`🎁 ${qtdDrop}x ${nomeItem}`);
+                        }
                     }
+                } catch (lootError) {
+                    console.error(`[FINALIZAR COMBATE] Erro ao processar loot:`, lootError);
                 }
             }
         }
 
-        // Atualizar objetivo da missão se houver E se for o último mob necessário
-        if (combate.idMissaoVinculada && combate.idObjetivoVinculado && eUltimoMobDaMissao) {
-            await atualizarProgressoMissao(combate.idJogador, combate.idMissaoVinculada, combate.idObjetivoVinculado, { quantidadeMortos: combate.numeroMobsDerrotadosNaMissao });
-            // A função atualizarProgressoMissao marcará como 'concluido' se a quantidade total for atingida
+        // Atualizar progresso da missão
+        if (combate.idMissaoVinculada && combate.idObjetivoVinculado) {
+            try {
+                const progressoAtualizado = await atualizarProgressoMissao(
+                    combate.idJogador, 
+                    combate.idMissaoVinculada, 
+                    combate.idObjetivoVinculado, 
+                    { quantidadeMortos: 1 }
+                );
+                
+                if (progressoAtualizado) {
+                    recompensasTextoArray.push(`📋 Objetivo da missão atualizado!`);
+                }
+            } catch (missaoError) {
+                console.error(`[FINALIZAR COMBATE] Erro ao atualizar missão:`, missaoError);
+            }
         }
-        await atualizarFichaNoCacheEDb(combate.idJogador, ficha);
 
-    } else { // Jogador foi derrotado
-        mensagemResultado = `Você foi derrotado por ${mob.nome}...`;
-        // Penalidades de derrota (a implementar):
-        // ficha.pvAtual = 1; // Deixar com 1 PV, por exemplo.
-        // Perder XP? Perder Florins? Voltar para um "ponto seguro"?
-        // await atualizarFichaNoCacheEDb(combate.idJogador, ficha); // Salva o estado pós-derrota
-    }
+        // Salvar a ficha atualizada
+        try {
+            await atualizarFichaNoCacheEDb(combate.idJogador, ficha);
+            console.log(`[FINALIZAR COMBATE] Ficha de ${ficha.nomePersonagem} atualizada com sucesso`);
+        } catch (saveError) {
+            console.error(`[FINALIZAR COMBATE] Erro ao salvar ficha:`, saveError);
+            recompensasTextoArray.push(`⚠️ Erro ao salvar progresso`);
+        }
 
-    // Somente deleta o combate se a luta realmente acabou (jogador derrotado OU último mob da missão derrotado)
-    if (!jogadorVenceuEsteMob || eUltimoMobDaMissao) {
-        delete combatesAtivos[idCombate]; 
-        console.log(`[COMBATE PvE] Combate ${idCombate} COMPLETAMENTE finalizado. Vencedor geral: ${jogadorVenceuEsteMob ? ficha.nomePersonagem : mob.nome}`);
-        return { 
-            combateRealmenteTerminou: true, 
-            vencedorFinal: jogadorVenceuEsteMob ? "jogador" : "mob", 
-            logCombateFinal: [...combate.log, mensagemResultado, ...recompensasTextoArray], 
-            recompensasTextoFinal: recompensasTextoArray 
-        };
     } else {
-        // Jogador venceu este mob, mas pode haver mais para a missão
-        return {
-            combateRealmenteTerminou: false, // O ciclo de combate com ESTE mob terminou, mas a "batalha" da missão pode continuar
-            mobDerrotadoInfo: mensagemResultado,
-            recompensasMobTexto: recompensasTextoArray,
-            logParcialCombate: [...combate.log],
-            proximoTurno: "jogador" // Jogador pode ter a opção de procurar o próximo mob
-        };
+        // Jogador foi derrotado
+        mensagemResultado = `☠️ ${ficha.nomePersonagem} foi derrotado por ${mob.nome}...`;
+        logCompleto.push(mensagemResultado);
+        
+        // Aplicar penalidades de derrota se necessário
+        ficha.pvAtual = Math.max(1, Math.floor(ficha.pvMax * 0.1)); // Deixa com 10% do PV máximo
+        try {
+            await atualizarFichaNoCacheEDb(combate.idJogador, ficha);
+        } catch (saveError) {
+            console.error(`[FINALIZAR COMBATE] Erro ao salvar ficha após derrota:`, saveError);
+        }
     }
+
+    // Limpar o combate do cache
+    delete combatesAtivos[idCombate];
+    console.log(`[FINALIZAR COMBATE] Combate ${idCombate} finalizado. Vencedor: ${jogadorVenceuEsteMob ? ficha.nomePersonagem : mob.nome}`);
+
+    return {
+        combateRealmenteTerminou: true,
+        vencedorFinal: jogadorVenceuEsteMob ? "jogador" : "mob",
+        logCombateFinal: logCompleto,
+        recompensasTextoFinal: recompensasTextoArray,
+        mensagemFinal: mensagemResultado
+    };
 }
 
 // Função auxiliar para estado do combate (evita repetição)
@@ -1950,94 +1998,112 @@ async function verificarCondicoesDialogo(condicoes, fichaJogador, npcData, idMis
 }
 
 async function atualizarProgressoMissao(idJogador, idMissao, idObjetivo, progresso) {
-    const ficha = await getFichaOuCarregar(idJogador);
-    if (!ficha || !ficha.logMissoes) {
-        console.log(`[Progresso Missão] Ficha ou log de missões não encontrado para ${idJogador}.`);
-        return false;
-    }
-
-    const missaoIndex = ficha.logMissoes.findIndex(m => m.idMissao === idMissao && m.status === "aceita");
-    if (missaoIndex === -1) {
-        // console.log(`[Progresso Missão] Missão ${idMissao} não está ativa para ${idJogador}.`);
-        return false; 
-    }
-
-    const objetivoIndex = ficha.logMissoes[missaoIndex].objetivos.findIndex(o => o.idObjetivo === idObjetivo);
-    if (objetivoIndex === -1) {
-        console.warn(`[atualizarProgressoMissao] Objetivo ${idObjetivo} não encontrado no log da missão ${idMissao} do jogador ${idJogador}`);
-        return false;
-    }
-
-    const objetivoLog = ficha.logMissoes[missaoIndex].objetivos[objetivoIndex];
-    if (objetivoLog.concluido) {
-        // console.log(`[Progresso Missão] Objetivo ${idObjetivo} da missão ${idMissao} já está concluído para ${idJogador}.`);
-        return false; // Já concluído, não faz nada.
-    }
-
-    const definicaoMissao = await missoesCollection.findOne({ _id: idMissao });
-    if (!definicaoMissao) {
-        console.warn(`[atualizarProgressoMissao] Definição da missão ${idMissao} não encontrada no DB.`);
-        return false;
-    }
-    const definicaoObjetivo = definicaoMissao.objetivos.find(o => o.idObjetivo === idObjetivo);
-    if (!definicaoObjetivo) {
-        console.warn(`[atualizarProgressoMissao] Definição do objetivo ${idObjetivo} não encontrada para missão ${idMissao} no DB.`);
-        return false;
-    }
-
-    let objetivoConcluidoNesteUpdate = false;
-
-    switch (definicaoObjetivo.tipo) { // Usar definicaoObjetivo.tipo para checar
-        case "COMBATE":
-        case "COMBATE_OPCIONAL":
-            objetivoLog.quantidadeAtual = (objetivoLog.quantidadeAtual || 0) + (progresso.quantidadeMortos || 0);
-            if (objetivoLog.quantidadeAtual >= definicaoObjetivo.quantidadeNecessaria) {
-                objetivoLog.concluido = true;
-                objetivoConcluidoNesteUpdate = true;
-            }
-            break;
-        case "COLETA":
-            // A contagem de itens no inventário deve ser feita ANTES de chamar esta função,
-            // e o 'progresso' aqui indicaria se a quantidade necessária foi atingida.
-            // Ou, esta função poderia verificar o inventário diretamente.
-            const itemNoInventario = ficha.inventario.find(i => i.itemNome.toLowerCase() === definicaoObjetivo.itemNomeQuest.toLowerCase());
-            const quantidadeAtualNoInventario = itemNoInventario ? itemNoInventario.quantidade : 0;
-
-            objetivoLog.quantidadeAtual = quantidadeAtualNoInventario; // Atualiza a contagem no log da missão
-
-            if (quantidadeAtualNoInventario >= definicaoObjetivo.quantidadeNecessaria) {
-                objetivoLog.concluido = true;
-                objetivoConcluidoNesteUpdate = true;
-            }
-            break;
-        case "ENTREGA":
-            // Marcado como concluído quando o jogador interage com o NPC correto e o item é "entregue"
-            // A chamada a esta função para ENTREGA seria mais para formalizar o log.
-            if (progresso.itemEntregue) { // progresso = { itemEntregue: true }
-                 objetivoLog.concluido = true;
-                 objetivoConcluidoNesteUpdate = true;
-            }
-            break;
-        case "EXPLORAR":
-            if (progresso.areaExplorada) { // progresso = { areaExplorada: true }
-                objetivoLog.concluido = true;
-                objetivoConcluidoNesteUpdate = true;
-            }
-            break;
-        default:
-            console.warn(`[atualizarProgressoMissao] Tipo de objetivo desconhecido: ${definicaoObjetivo.tipo}`);
+    try {
+        const ficha = await getFichaOuCarregar(idJogador);
+        if (!ficha || !ficha.logMissoes) {
+            console.log(`[Progresso Missão] Ficha ou log de missões não encontrado para ${idJogador}.`);
             return false;
-    }
+        }
 
-    ficha.logMissoes[missaoIndex].objetivos[objetivoIndex] = objetivoLog;
-    await atualizarFichaNoCacheEDb(idJogador, ficha);
+        const missaoIndex = ficha.logMissoes.findIndex(m => m.idMissao === idMissao && m.status === "aceita");
+        if (missaoIndex === -1) {
+            console.log(`[Progresso Missão] Missão ${idMissao} não está ativa para ${idJogador}.`);
+            return false; 
+        }
 
-    if (objetivoConcluidoNesteUpdate) {
-        console.log(`[Progresso Missão] Jogador ${ficha.nomePersonagem}, Missão "${definicaoMissao.titulo}", Objetivo "${objetivoLog.descricao}" CONCLUÍDO!`);
-        // Poderia enviar DM para o jogador aqui
-        // client.users.send(idJogador, `🔔 Objetivo Concluído: "${objetivoLog.descricao}" da missão "${definicaoMissao.titulo}"!`).catch(console.error);
+        const objetivoIndex = ficha.logMissoes[missaoIndex].objetivos.findIndex(o => o.idObjetivo === idObjetivo);
+        if (objetivoIndex === -1) {
+            console.warn(`[atualizarProgressoMissao] Objetivo ${idObjetivo} não encontrado no log da missão ${idMissao} do jogador ${idJogador}`);
+            return false;
+        }
+
+        const objetivoLog = ficha.logMissoes[missaoIndex].objetivos[objetivoIndex];
+        if (objetivoLog.concluido) {
+            console.log(`[Progresso Missão] Objetivo ${idObjetivo} da missão ${idMissao} já está concluído para ${idJogador}.`);
+            return false;
+        }
+
+        const definicaoMissao = await missoesCollection.findOne({ _id: idMissao });
+        if (!definicaoMissao) {
+            console.warn(`[atualizarProgressoMissao] Definição da missão ${idMissao} não encontrada no DB.`);
+            return false;
+        }
+
+        const definicaoObjetivo = definicaoMissao.objetivos.find(o => o.idObjetivo === idObjetivo);
+        if (!definicaoObjetivo) {
+            console.warn(`[atualizarProgressoMissao] Definição do objetivo ${idObjetivo} não encontrada para missão ${idMissao} no DB.`);
+            return false;
+        }
+
+        let objetivoConcluidoNesteUpdate = false;
+        const quantidadeAnterior = objetivoLog.quantidadeAtual || 0;
+
+        switch (definicaoObjetivo.tipo) {
+            case "COMBATE":
+            case "COMBATE_OPCIONAL":
+                objetivoLog.quantidadeAtual = Math.min(
+                    (objetivoLog.quantidadeAtual || 0) + (progresso.quantidadeMortos || 0),
+                    definicaoObjetivo.quantidadeNecessaria
+                );
+                
+                if (objetivoLog.quantidadeAtual >= definicaoObjetivo.quantidadeNecessaria) {
+                    objetivoLog.concluido = true;
+                    objetivoConcluidoNesteUpdate = true;
+                }
+                break;
+
+            case "COLETA":
+                const itemNoInventario = ficha.inventario.find(i => 
+                    i.itemNome.toLowerCase() === definicaoObjetivo.itemNomeQuest.toLowerCase()
+                );
+                const quantidadeAtualNoInventario = itemNoInventario ? itemNoInventario.quantidade : 0;
+                objetivoLog.quantidadeAtual = quantidadeAtualNoInventario;
+
+                if (quantidadeAtualNoInventario >= definicaoObjetivo.quantidadeNecessaria) {
+                    objetivoLog.concluido = true;
+                    objetivoConcluidoNesteUpdate = true;
+                }
+                break;
+
+            case "ENTREGA":
+                if (progresso.itemEntregue) {
+                    objetivoLog.concluido = true;
+                    objetivoConcluidoNesteUpdate = true;
+                    objetivoLog.quantidadeAtual = definicaoObjetivo.quantidadeNecessaria || 1;
+                }
+                break;
+
+            case "EXPLORAR":
+                if (progresso.areaExplorada) {
+                    objetivoLog.concluido = true;
+                    objetivoConcluidoNesteUpdate = true;
+                    objetivoLog.quantidadeAtual = 1;
+                }
+                break;
+
+            default:
+                console.warn(`[atualizarProgressoMissao] Tipo de objetivo desconhecido: ${definicaoObjetivo.tipo}`);
+                return false;
+        }
+
+        // Atualizar o log no array da ficha
+        ficha.logMissoes[missaoIndex].objetivos[objetivoIndex] = objetivoLog;
+        
+        // Salvar a ficha
+        await atualizarFichaNoCacheEDb(idJogador, ficha);
+
+        if (objetivoConcluidoNesteUpdate) {
+            console.log(`[Progresso Missão] ✅ Jogador ${ficha.nomePersonagem}: Objetivo "${objetivoLog.descricao}" da missão "${definicaoMissao.titulo}" CONCLUÍDO!`);
+        } else if (quantidadeAnterior !== objetivoLog.quantidadeAtual) {
+            console.log(`[Progresso Missão] 📈 Jogador ${ficha.nomePersonagem}: Progresso do objetivo "${objetivoLog.descricao}": ${objetivoLog.quantidadeAtual}/${definicaoObjetivo.quantidadeNecessaria}`);
+        }
+
+        return objetivoConcluidoNesteUpdate;
+
+    } catch (error) {
+        console.error(`[atualizarProgressoMissao] Erro ao atualizar progresso:`, error);
+        return false;
     }
-    return objetivoConcluidoNesteUpdate;
 }
 
 async function aceitarMissao(idJogador, idMissao, idNpcQueOfereceu) {
