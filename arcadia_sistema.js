@@ -171,8 +171,8 @@ const fichaModeloArcadia = {
     },
     cooldownsFeiticos: {}, // { "id_feitico_idJogador": timestamp_proximo_uso }
     inventario: [
-        { ...JSON.parse(JSON.stringify(ITENS_BASE_ARCADIA["adaga simples"])), quantidade: 1 },
-        { ...JSON.parse(JSON.stringify(ITENS_BASE_ARCADIA["rações de viagem"])), quantidade: 3 }
+        { ...JSON.parse(JSON.stringify(itens["adaga simples"])), quantidade: 1 },
+        { ...JSON.parse(JSON.stringify(itens["rações de viagem"])), quantidade: 3 }
     ],
     historiaPersonagem: "",
     idiomas: ["Comum Arcádiano"],
