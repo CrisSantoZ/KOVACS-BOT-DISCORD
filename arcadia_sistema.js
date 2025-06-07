@@ -18,8 +18,24 @@ const NOME_CARGO_VISITANTE = process.env.NOME_CARGO_VISITANTE || "Visitante de A
 const NOME_CARGO_AVENTUREIRO = process.env.NOME_CARGO_AVENTUREIRO || "Aventureiro De Arcádia";
 
 // =====================================================================================
-// DADOS DO JOGO (RAÇAS, CLASSES, REINOS, FEITIÇOS, ITENS)
+// IMPORTAÇÃO DOS DADOS DO JOGO (RAÇAS, CLASSES, REINOS, FEITIÇOS, ITENS)
 // =====================================================================================
+
+// Importando dados modulares da pasta "dados"
+const racas = require('./dados/racas');
+const classes = require('./dados/classes');
+const classesEspeciais = require('./dados/classesEspeciais');
+const reinos = require('./dados/reinos');
+const itens = require('./dados/itens');
+const feiticos = require('./dados/feiticos');
+
+// Criando aliases para compatibilidade com código existente
+const RACAS_ARCADIA = racas;
+const CLASSES_ARCADIA = classes;
+const CLASSES_ESPECIAIS_ARCADIA = classesEspeciais;
+const REINOS_ARCADIA = reinos;
+const ITENS_BASE_ARCADIA = itens;
+const FEITICOS_BASE_ARCADIA = feiticos;
 
 const ATRIBUTOS_FOCO_POR_CLASSE = {
     "Arcanista": "Intelecto e Mana Base",
@@ -61,19 +77,11 @@ const ATRIBUTOS_FOCO_POR_RACA = {
 };
 
 
-const racas = require('./dados/racas');
-const classes = require('./dados/classes');
-const classesEspeciais = require('./dados/classesEspeciais');
-const reinos = require('./dados/reinos');
-const itens = require('./dados/itens');
-const feiticos = require('./dados/feiticos');
-
-
 // Mapas para fácil acesso aos nomes dos cargos
-const MAPA_CARGOS_RACAS = Object.fromEntries(racas.map(r => [r.nome, r.nomeCargo]));
-const TODAS_AS_CLASSES_PARA_MAPA = [...classes,...classesEspeciais];
+const MAPA_CARGOS_RACAS = Object.fromEntries(RACAS_ARCADIA.map(r => [r.nome, r.nomeCargo]));
+const TODAS_AS_CLASSES_PARA_MAPA = [...CLASSES_ARCADIA, ...CLASSES_ESPECIAIS_ARCADIA];
 const MAPA_CARGOS_CLASSES = Object.fromEntries(TODAS_AS_CLASSES_PARA_MAPA.map(c => [c.nome, c.nomeCargo]));
-const MAPA_CARGOS_REINOS = Object.fromEntries(reinos.map(re => [re.nome, re.nomeCargo]));
+const MAPA_CARGOS_REINOS = Object.fromEntries(REINOS_ARCADIA.map(re => [re.nome, re.nomeCargo]));
 
 const MAPA_NOMES_ORIGEM_FEITICO_DISPLAY = {
     "raca": "Raça",
@@ -2521,9 +2529,9 @@ async function getTodosNPCsParaAutocomplete() {
 console.log(">>> [arcadia_sistema.js | FIM DO ARQUIVO] Estado de missoesCollection ANTES do module.exports:", typeof missoesCollection, !!missoesCollection);
 module.exports = {
     // Dados e Constantes
-    racas, classes, classesEspeciais, reinos,
-  feiticos, itens,
-    MAPA_CARGOS_REINOS,
+    RACAS_ARCADIA, CLASSES_ARCADIA, CLASSES_ESPECIAIS_ARCADIA, REINOS_ARCADIA,
+    FEITICOS_BASE_ARCADIA, ITENS_BASE_ARCADIA,
+    MAPA_CARGOS_RACAS, MAPA_CARGOS_CLASSES, MAPA_CARGOS_REINOS,
     NOME_CARGO_AVENTUREIRO, NOME_CARGO_VISITANTE,
     ID_CANAL_BOAS_VINDAS_RPG, ID_CANAL_RECRUTAMENTO, ID_CANAL_ATUALIZACAO_FICHAS,
     fichaModeloArcadia,
