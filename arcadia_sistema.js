@@ -4673,14 +4673,27 @@ async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspe
         }
         // ---- FIM DA LÓGICA DE FINALIZAÇÃO DE MISSÃO ----
 
+
+        let imagemMissaoFinal = "";
+if (dialogoParaMostrar && (dialogoParaMostrar.ofereceMissao || dialogoParaMostrar.encerraMissao)) {
+    // Tenta buscar missão no banco pelo ID
+    const idMissao = dialogoParaMostrar.ofereceMissao || dialogoParaMostrar.encerraMissao;
+    const missaoDef = idMissao ? (await missoesCollection.findOne({ _id: idMissao })) : null;
+    if (missaoDef && missaoDef.imagem) {
+        imagemMissaoFinal = missaoDef.imagem;
+    }
+}
+
         return {
             idNPC: npcData._id,
             nomeNPC: npcData.nome,
             tituloNPC: npcData.titulo,
+            imagemNPC: npcData.imagem || "",
             descricaoVisualNPC: npcData.descricaoVisual,
             dialogoAtual: dialogoParaMostrar,
             recompensasConcedidasTexto: recompensasConcedidasLinhas, // Novo campo para o index.js usar
-            missaoRealmenteConcluida: todosObjetivosRealmenteCompletosParaFinalizar && dialogoParaMostrar.encerraMissao && fichaJogador.logMissoes.find(m=>m.idMissao === dialogoParaMostrar.encerraMissao)?.status === "concluida"
+            missaoRealmenteConcluida: todosObjetivosRealmenteCompletosParaFinalizar && dialogoParaMostrar.encerraMissao && fichaJogador.logMissoes.find(m=>m.idMissao === dialogoParaMostrar.encerraMissao)?.status === "concluida",
+            imagemMissao: imagemMissaoFinal
         };
 
     } catch (error) {
