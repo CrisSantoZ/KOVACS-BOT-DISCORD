@@ -990,39 +990,58 @@ if (!interaction.replied && !interaction.deferred) {
 
             if (resultadoAcaoJogador.mobDerrotado) {
                 console.log(`>>> [INDEX | Combate Action] Mob derrotado. Chamando finalizarCombate para idCombate: ${idCombate}`);
-                const eUltimoMob = resultadoAcaoJogador.dadosParaFinalizar ? resultadoAcaoJogador.dadosParaFinalizar.eUltimoMobDaMissao : false;
+                const eUltimoMob = resultadoAcaoJogador.dadosParaFinalizar ? resultadoAcaoJogador.dadosParaFinalizar.eUltimoMobDaMissao : true;
                 const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true, eUltimoMob);
                 console.log(">>> [INDEX | Combate Action] Retorno de finalizarCombate:", JSON.stringify(resultadoFinal, null, 2));
 
-                // Criar embed atualizado
-                const embedCombateAtualizado = new EmbedBuilder()
+                if (resultadoFinal.erro) {
+                    await interaction.editReply({ content: `Erro ao finalizar combate: ${resultadoFinal.erro}`, embeds: [], components: [] });
+                    return;
+                }
+
+                // Criar embed de vitória
+                const embedVitoria = new EmbedBuilder()
                     .setColor(0x00FF00)
-                    .setTitle("🏆 Vitória!")
-                    .setDescription((resultadoFinal.logCombateFinal || logCombateAtualizado).join('\n'))
-                    .addFields(
-                        { name: `👤 ${nomeJogadorAcao}`, value: `❤️ PV: **${pvAtualJogadorAcao}/${pvMaxJogadorAcao}**\n💧 PM: **${pmAtualJogadorAcao}/${pmMaxJogadorAcao}**`, inline: true },
-                        { name: `\u200B`, value: `\u200B`, inline: true }, // Espaçador
-                        { name: `👹 ${nomeMobAcao} (Nv. ${nivelMobCombat})`, value: `❤️ PV: **0/${pvMaxMobAcao}** ☠️`, inline: true }
-                    );
+                    .setTitle("🏆 VITÓRIA! 🏆")
+                    .setDescription(resultadoFinal.mensagemFinal || `${nomeJogadorAcao} venceu o combate!`);
+
+                // Adicionar informações do estado final
+                embedVitoria.addFields(
+                    { name: `👤 ${nomeJogadorAcao}`, value: `❤️ PV: **${pvAtualJogadorAcao}/${pvMaxJogadorAcao}**\n💧 PM: **${pmAtualJogadorAcao}/${pmMaxJogadorAcao}**`, inline: true },
+                    { name: `\u200B`, value: `\u200B`, inline: true },
+                    { name: `👹 ${nomeMobAcao} (Nv. ${nivelMobCombat})`, value: `❤️ PV: **0/${pvMaxMobAcao}** ☠️`, inline: true }
+                );
+
+                // Adicionar recompensas se houver
+                if (resultadoFinal.recompensasTextoFinal && resultadoFinal.recompensasTextoFinal.length > 0) {
+                    embedVitoria.addFields({ 
+                        name: "🎁 Recompensas Obtidas", 
+                        value: resultadoFinal.recompensasTextoFinal.join('\n'),
+                        inline: false 
+                    });
+                }
+
+                // Adicionar log do combate se disponível
+                if (resultadoFinal.logCombateFinal && resultadoFinal.logCombateFinal.length > 0) {
+                    const logResumido = resultadoFinal.logCombateFinal.slice(-3).join('\n'); // Últimas 3 linhas
+                    embedVitoria.addFields({ 
+                        name: "📋 Resultado do Combate", 
+                        value: logResumido,
+                        inline: false 
+                    });
+                }
 
                 // Adicionar imagem do mob se disponível
-               if (mobEstado && mobEstado.imagem && mobEstado.imagem.trim() && (mobEstado.imagem.startsWith('http://') || mobEstado.imagem.startsWith('https://'))) {
-    embedCombate.setThumbnail(mobEstado.imagem.trim());
-    console.log(`[DEBUG] Imagem do mob adicionada no combate: ${mobEstado.imagem}`);
-}
-
-                if (resultadoFinal && resultadoFinal.recompensasTextoFinal && Array.isArray(resultadoFinal.recompensasTextoFinal) && resultadoFinal.recompensasTextoFinal.length > 0) {
-                     embedCombateAtualizado.addFields({ name: "🎁 Recompensas", value: resultadoFinal.recompensasTextoFinal.join('\n') });
-                } else {
-                     embedCombateAtualizado.addFields({ name: "🎁 Recompensas", value: "Nenhuma recompensa específica." });
+                if (mobEstadoAcao && mobEstadoAcao.imagem && mobEstadoAcao.imagem.trim() && 
+                    (mobEstadoAcao.imagem.startsWith('http://') || mobEstadoAcao.imagem.startsWith('https://'))) {
+                    embedVitoria.setThumbnail(mobEstadoAcao.imagem.trim());
                 }
-                await interaction.editReply({ embeds: [embedCombateAtualizado], components: [] });
 
-                // Limpar combate do cache após vitória
-                if (combatesAtivos[idCombate]) {
-                    delete combatesAtivos[idCombate];
-                    console.log(`[COMBATE] Combate ${idCombate} removido do cache após vitória do jogador.`);
-                }
+                embedVitoria.setFooter({ text: "Combate finalizado com sucesso!" });
+                embedVitoria.setTimestamp();
+
+                await interaction.editReply({ embeds: [embedVitoria], components: [] });
+                console.log(`[COMBATE] Combate ${idCombate} finalizado com sucesso - vitória do jogador`);
                 return;
             }
 
