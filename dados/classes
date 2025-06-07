@@ -1,3 +1,4 @@
+//Lista de Classes
 module.exports = [
  { nome: "Arcanista", desc: "Mestre da magia pura e elemental, focado no dano arcano e controle de área. Tipo Predominante: Mágico (Dano/Controle).", nomeCargo: "Classe: Arcanista" },
     { nome: "Guerreiro Real", desc: "Lutador disciplinado e especialista em combate corpo a corpo, utilizando diversas armas e armaduras pesadas. Tipo Predominante: Físico (Tanque/Dano).", nomeCargo: "Classe: Guerreiro Real" },
