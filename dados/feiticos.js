@@ -1,4 +1,4 @@
-//Lista de Feiticos:
+// Lista de Feitiços de Arcádia
 module.exports = {
     // --- FEITIÇOS DE RAÇA: ELDARI ---
 "raca_eldari_toque_da_floresta": {
@@ -533,7 +533,7 @@ module.exports = {
         { nivel: 2, custoPM: 18, efeitoDesc: "Passivo: +2 PV/PM por min. Ativo: Cura (Carisma * 2.5) PV em si ou em um aliado tocado.", efeitoDetalhes: { passivo: { regeneracaoPVPMporMinuto: 2 }, ativo: { alvo: "self_ou_aliado_toque", tipoCura: "PV", formulaCura: "(carisma*2.5)", tempoCanalizacaoTurnos: 1 } }, pontosParaProximoNivel: 4 },
         { nivel: 3, custoPM: 21, efeitoDesc: "Passivo: +3 PV/PM por min. Ativo: Cura (Carisma * 3.0) PV. Pode remover um debuff de atributo menor.", efeitoDetalhes: { passivo: { regeneracaoPVPMporMinuto: 3 }, ativo: { alvo: "self_ou_aliado_toque", tipoCura: "PV", formulaCura: "(carisma*3.0)", removeCondicao: "debuff_atributo_menor", tempoCanalizacaoTurnos: 1 } }, pontosParaProximoNivel: 5 },
         { nivel: 4, custoPM: 24, efeitoDesc: "Passivo: +4 PV/PM por min. Ativo: Cura (Carisma * 3.5) PV. Remove debuffs de atributo menores e lentidão.", efeitoDetalhes: { passivo: { regeneracaoPVPMporMinuto: 4 }, ativo: { alvo: "self_ou_aliado_toque", tipoCura: "PV", formulaCura: "(carisma*3.5)", removeCondicao: ["debuff_atributo_menor", "lentidao_leve"], tempoCanalizacaoTurnos: 1 } }, pontosParaProximoNivel: 6 },
-        { nivel: 5, custoPM: 27, efeitoDesc: "Passivo: +5 PV/PM por min. Ativo: Cura (Carisma * 4.0) PV e (Intelecto * 1.0) PM. Remove a maioria dos debuffs não mágicos. A cura pode ser em área pequena (raio 2m) se canalizada por 2 turnos.", efeitoDetalhes: { passivo: { regeneracaoPVPMporMinuto: 5 }, ativo: { alvo: "self_ou_aliado_toque_ou_area_canalizada", tipoCura: ["PV", "PM"], formulaCuraPV: "(carisma*4.0)", formulaCuraPM: "(intelecto*1.0)", removeCondicao: "debuff_nao_magico_comum", canalizacaoParaArea: { turnos: 2, raioMetros: 2 } } } }
+        { nivel: 5, custoPM: 25, efeitoDesc: "Passivo: +5 PV/PM por min. Ativo: Cura (Carisma * 4.0) PV e (Intelecto * 1.0) PM. Remove a maioria dos debuffs não mágicos. A cura pode ser em área pequena (raio 2m) se canalizada por 2 turnos.", efeitoDetalhes: { passivo: { regeneracaoPVPMporMinuto: 5 }, ativo: { alvo: "self_ou_aliado_toque_ou_area_canalizada", tipoCura: ["PV", "PM"], formulaCuraPV: "(carisma*4.0)", formulaCuraPM: "(intelecto*1.0)", removeCondicao: "debuff_nao_magico_comum", canalizacaoParaArea: { turnos: 2, raioMetros: 2 } } } }
     ]
 },
 // --- FIM DOS FEITIÇOS DE RAÇA: MEI'RA ---
