@@ -70,10 +70,10 @@ const feiticos = require('./dados/feiticos');
 
 
 // Mapas para fácil acesso aos nomes dos cargos
-const MAPA_CARGOS_RACAS = Object.fromEntries(RACAS_ARCADIA.map(r => [r.nome, r.nomeCargo]));
-const TODAS_AS_CLASSES_PARA_MAPA = [...CLASSES_ARCADIA,...CLASSES_ESPECIAIS_ARCADIA];
+const MAPA_CARGOS_RACAS = Object.fromEntries(racas.map(r => [r.nome, r.nomeCargo]));
+const TODAS_AS_CLASSES_PARA_MAPA = [...classes,...classesEspeciais];
 const MAPA_CARGOS_CLASSES = Object.fromEntries(TODAS_AS_CLASSES_PARA_MAPA.map(c => [c.nome, c.nomeCargo]));
-const MAPA_CARGOS_REINOS = Object.fromEntries(REINOS_ARCADIA.map(re => [re.nome, re.nomeCargo]));
+const MAPA_CARGOS_REINOS = Object.fromEntries(reinos.map(re => [re.nome, re.nomeCargo]));
 
 const MAPA_NOMES_ORIGEM_FEITICO_DISPLAY = {
     "raca": "Raça",
