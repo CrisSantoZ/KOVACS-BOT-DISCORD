@@ -841,7 +841,7 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
     embedCombate.setThumbnail(mobEstado.imagem.trim());
     console.log(`[DEBUG] Imagem do mob adicionada no combate: ${mobEstado.imagem}`);
                         } 
-                        } catch (error) {
+                        catch (error) {
                                     console.error(`[DEBUG] Erro ao adicionar imagem do mob no combate: ${error.message}`);
                                 }
                             }
