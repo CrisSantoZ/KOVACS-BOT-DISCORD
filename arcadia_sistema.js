@@ -47,6 +47,14 @@ combates.setupCombate({
   atualizarProgressoMissao,
 });
 
+const { 
+  iniciarCombatePvE,
+  processarTurnoMobCombate,
+  processarAcaoJogadorCombate,
+  finalizarCombate,
+  getEstadoCombateParaRetorno
+} = combates;
+
 
 const ATRIBUTOS_FOCO_POR_CLASSE = {
     "Arcanista": "Intelecto e Mana Base",
