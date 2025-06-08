@@ -10,6 +10,7 @@ function setupCombate(deps) {
   adicionarItemAoInventario = deps.adicionarItemAoInventario;
   ITENS_BASE_ARCADIA = deps.ITENS_BASE_ARCADIA;
   atualizarProgressoMissao = deps.atualizarProgressoMissao;
+  conectarMongoDB = deps.conectarMongoDB;
 }
 
 
