@@ -243,6 +243,7 @@ let todasAsFichas = {}; // Cache local das fichas
         missoesCollection = db.collection("missoes_arcadia");
 console.log(">>> [arcadia_sistema.js | conectarMongoDB] missoesCollection foi atribuída:", typeof missoesCollection, !!missoesCollection);
         mobsCollection = db.collection("mobs_arcadia");
+        combates.setMobsCollection(mobsCollection);
 
         console.log("Conectado com sucesso ao MongoDB Atlas e às coleções:", MONGODB_FICHAS_COLLECTION, ", npcs_arcadia, missoes_arcadia, e mobs_arcadia");
 
