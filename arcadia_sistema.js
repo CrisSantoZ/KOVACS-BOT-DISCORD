@@ -30,6 +30,16 @@ const itens = require('./dados/itens');
 const feiticos = require('./dados/feiticos');
 const combates = require('./sistemas/combates');
 
+
+combates.setupCombate({
+  getFichaOuCarregar,
+  atualizarFichaNoCacheEDb,
+  adicionarXPELevelUp,
+  adicionarItemAoInventario,
+  ITENS_BASE_ARCADIA,
+  atualizarProgressoMissao,
+});
+
 // Criando aliases para compatibilidade com código existente
 const RACAS_ARCADIA = racas;
 const CLASSES_ARCADIA = classes;
