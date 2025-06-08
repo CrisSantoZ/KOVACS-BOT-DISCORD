@@ -1,4 +1,3 @@
-
 const { MongoClient } = require('mongodb');
 const { EmbedBuilder } = require('discord.js');
 
