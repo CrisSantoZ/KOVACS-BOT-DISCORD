@@ -1,8 +1,6 @@
-const { EmbedBuilder } = require('discord.js');
 
-// Importar sistemas separados
-const combateSistema = require('./sistemas/combate_sistema.js');
-const npcsMissoesSistema = require('./sistemas/npcs_missoes_sistema.js');
+const { MongoClient } = require('mongodb');
+const { EmbedBuilder } = require('discord.js');
 
 // --- ATRIBUTOS VÁLIDOS ---
 const atributosValidos = ["forca", "agilidade", "vitalidade", "manabase", "intelecto", "carisma"];
@@ -205,9 +203,6 @@ let todasAsFichas = {}; // Cache local das fichas
 let mobsCollection;
 let combatesAtivos = {};
 
-// Configurar cache de combates no sistema separado
-combateSistema.setCombatesAtivos(combatesAtivos);
-
 
 
 
@@ -230,13 +225,6 @@ combateSistema.setCombatesAtivos(combatesAtivos);
         missoesCollection = db.collection("missoes_arcadia");
 console.log(">>> [arcadia_sistema.js | conectarMongoDB] missoesCollection foi atribuída:", typeof missoesCollection, !!missoesCollection);
         mobsCollection = db.collection("mobs_arcadia");
-
-        // Inicializar sistema de NPCs e Missões
-        npcsMissoesSistema.inicializarNpcsMissoesSistema(
-            { npcsCollection, missoesCollection },
-            { MAPA_NOMES_ORIGEM_FEITICO_DISPLAY },
-            { adicionarItemAoInventario, atualizarFichaNoCacheEDb }
-        );
 
         console.log("Conectado com sucesso ao MongoDB Atlas e às coleções:", MONGODB_FICHAS_COLLECTION, ", npcs_arcadia, missoes_arcadia, e mobs_arcadia");
 
@@ -838,6 +826,7 @@ async function getFeiticosUparaveisParaAutocomplete(idJogador) {
 async function iniciarCombatePvE(idJogador, idMob, idMissaoVinculada = null, idObjetivoVinculado = null) {
     const ficha = await getFichaOuCarregar(idJogador);
     if (!ficha) return { erro: "Sua ficha não foi encontrada para iniciar o combate." };
+    if (ficha.pvAtual <= 0) return { erro: `${ficha.nomePersonagem} está incapacitado e não pode iniciar um combate.` };
 
     if (!mobsCollection) {
         console.error("[COMBATE PvE] mobsCollection não está inicializada!");
@@ -847,25 +836,150 @@ async function iniciarCombatePvE(idJogador, idMob, idMissaoVinculada = null, idO
     const mobBase = await mobsCollection.findOne({ _id: idMob });
     if (!mobBase) return { erro: `A criatura hostil "${idMob}" não foi encontrada nos registros de Arcádia.` };
 
-    // Usar o sistema de combate separado
-    return await combateSistema.iniciarCombatePvE(idJogador, idMob, ficha, mobBase, idMissaoVinculada, idObjetivoVinculado);
+    // Cria uma instância do mob para este combate
+    const mobInstancia = JSON.parse(JSON.stringify(mobBase));
+    mobInstancia.pvAtual = mobInstancia.atributos.pvMax; // Garante PV cheio no início
+
+    const idCombate = `${idJogador}_${idMob}_${Date.now()}`;
+    combatesAtivos[idCombate] = {
+        idJogador: idJogador,
+        fichaJogador: ficha, 
+        mobOriginalId: idMob, // Guardar o ID original do mob base
+        mobInstancia: mobInstancia,
+        idMissaoVinculada: idMissaoVinculada,
+        idObjetivoVinculado: idObjetivoVinculado,
+        log: [`⚔️ ${ficha.nomePersonagem} (PV: ${ficha.pvAtual}/${ficha.pvMax}) encontra ${mobInstancia.nome} (PV: ${mobInstancia.pvAtual}/${mobInstancia.atributos.pvMax})! ⚔️`],
+        turnoDoJogador: true, // Jogador sempre começa
+        numeroMobsDerrotadosNaMissao: 0 // Para missões de matar X monstros
+    };
+    console.log(`[COMBATE PvE] Combate ${idCombate} iniciado: ${ficha.nomePersonagem} vs ${mobInstancia.nome}`);
+    return { 
+        sucesso: true, 
+        idCombate: idCombate, 
+        mensagemInicial: combatesAtivos[idCombate].log[0],
+        estadoCombate: getEstadoCombateParaRetorno(combatesAtivos[idCombate])  
+    };
 }
 
 async function processarTurnoMobCombate(idCombate) {
-    return await combateSistema.processarTurnoMobCombate(idCombate, atualizarFichaNoCacheEDb);
+    const combate = combatesAtivos[idCombate];
+    if (!combate) return { erro: "Combate não encontrado ou já finalizado.", combateTerminou: true };
+    if (combate.turnoDoJogador) return { erro: "Ainda é o turno do jogador!", combateTerminou: false };
+    if (combate.mobInstancia.pvAtual <= 0) return { erro: "Oponente já derrotado.", combateTerminou: true, vencedor: "jogador" }
+
+    const fichaJogador = combate.fichaJogador;
+    const mob = combate.mobInstancia;
+    let logDoTurno = [];
+
+    // Ação do Mob (Ataque Básico)
+    const ataqueMob = mob.atributos.ataqueBase || 5;
+    // Calcula defesa do jogador (considerando item equipado, se houver)
+    let defesaJogador = fichaJogador.atributos.defesaBase || 0;
+    if (fichaJogador.equipamento) {
+        for (const slot in fichaJogador.equipamento) {
+            if (fichaJogador.equipamento[slot] && fichaJogador.equipamento[slot].efeitoEquipamento && fichaJogador.equipamento[slot].efeitoEquipamento.bonusAtributos && fichaJogador.equipamento[slot].efeitoEquipamento.bonusAtributos.defesaBase) {
+                defesaJogador += fichaJogador.equipamento[slot].efeitoEquipamento.bonusAtributos.defesaBase;
+            }
+        }
+    }
+    const danoCausadoAoJogador = Math.max(1, ataqueMob - defesaJogador);
+
+    fichaJogador.pvAtual = Math.max(0, fichaJogador.pvAtual - danoCausadoAoJogador);
+    logDoTurno.push(`💢 ${mob.nome} ataca ${fichaJogador.nomePersonagem}, causando ${danoCausadoAoJogador} de dano!`);
+    logDoTurno.push(`❤️ ${fichaJogador.nomePersonagem} agora tem ${fichaJogador.pvAtual}/${fichaJogador.pvMax} PV.`);
+
+    combate.log.push(...logDoTurno);
+    await atualizarFichaNoCacheEDb(combate.idJogador, fichaJogador); // Salva o PV do jogador
+
+    if (fichaJogador.pvAtual <= 0) {
+        logDoTurno.push(`☠️ ${fichaJogador.nomePersonagem} foi derrotado!`);
+        const resultadoFinal = await finalizarCombate(idCombate, combate.idJogador, false); // false = jogador perdeu
+        return { 
+            ...resultadoFinal, 
+            log: [...combate.log] 
+        };
+    }
+
+    combate.turnoDoJogador = true; // Passa o turno para o jogador
+
+    return { 
+        sucesso: true, 
+        idCombate: idCombate,
+        logTurnoAnterior: logDoTurno,
+        proximoTurno: "jogador",
+        estadoCombate: getEstadoCombateParaRetorno(combate)
+    };
 }
 
 async function processarAcaoJogadorCombate(idCombate, idJogadorAcao, tipoAcao = "ATAQUE_BASICO", detalhesAcao = {}) {
-    return await combateSistema.processarAcaoJogadorCombate(
-        idCombate, 
-        idJogadorAcao, 
-        tipoAcao, 
-        detalhesAcao, 
-        atualizarFichaNoCacheEDb, 
-        calcularValorDaFormula, 
-        FEITICOS_BASE_ARCADIA, 
-        ITENS_BASE_ARCADIA
-    );
+    const combate = combatesAtivos[idCombate];
+    if (!combate) return { erro: "Combate não encontrado ou já finalizado.", combateTerminou: true };
+    if (combate.idJogador !== idJogadorAcao) return { erro: "Não é você quem está neste combate.", combateTerminou: false }; // Não encerra, só avisa
+    if (!combate.turnoDoJogador) return { erro: "Aguarde, não é o seu turno de agir!", combateTerminou: false };
+
+    const fichaJogador = combate.fichaJogador;
+    const mob = combate.mobInstancia;
+    let logDoTurno = []; // Log específico desta ação e suas consequências imediatas
+
+    if (fichaJogador.pvAtual <= 0) { // Checagem extra
+        return { erro: "Você está incapacitado!", terminou: true, vencedor: "mob", logCombate: combate.log, recompensasTexto: [] };
+    }
+
+    if (tipoAcao === "ATAQUE_BASICO") {
+        const ataqueJogador = (fichaJogador.atributos.forca || 5) + (fichaJogador.ataqueBase || 0) + (fichaJogador.equipamento?.maoDireita?.efeitoEquipamento?.bonusAtributos?.ataqueBase || 0);
+        const defesaMob = mob.atributos.defesaBase || 0;
+        const danoCausado = Math.max(1, ataqueJogador - defesaMob);
+
+        mob.pvAtual = Math.max(0, mob.pvAtual - danoCausado);
+        logDoTurno.push(`💥 ${fichaJogador.nomePersonagem} ataca ${mob.nome}, causando ${danoCausado} de dano!`);
+        logDoTurno.push(`🩸 ${mob.nome} agora tem ${mob.pvAtual}/${mob.atributos.pvMax} PV.`);
+    } 
+    // Futuramente: else if (tipoAcao === "USAR_FEITICO") { ... }
+    // Futuramente: else if (tipoAcao === "USAR_ITEM") { ... }
+    else {
+        logDoTurno.push(`Ação "${tipoAcao}" ainda não é suportada.`);
+        combate.log.push(...logDoTurno); // Adiciona ao log principal
+        return { 
+            sucesso: false, 
+            erro: `Ação "${tipoAcao}" não suportada.`,
+            idCombate: idCombate,
+            logTurnoAnterior: logDoTurno, // Renomeado para clareza
+            proximoTurno: "jogador", // Devolve o turno se a ação falhou
+            estadoCombate: getEstadoCombateParaRetorno(combate)
+        };
+    }
+
+    combate.log.push(...logDoTurno);
+
+    if (mob.pvAtual <= 0) {
+        logDoTurno.push(`🏆 ${mob.nome} foi derrotado!`);
+        combate.numeroMobsDerrotadosNaMissao = (combate.numeroMobsDerrotadosNaMissao || 0) + 1;
+        // finalizarCombate agora será chamado pelo index.js após verificar se mais mobs são necessários para a missão
+        return { 
+            sucesso: true,
+            mobDerrotado: true,
+            idCombate: idCombate,
+            logTurnoAnterior: logDoTurno,
+            estadoCombate: getEstadoCombateParaRetorno(combate),
+            dadosParaFinalizar: { // Passa dados para finalizar, se for o caso
+                idJogador: combate.idJogador,
+                mobInstancia: mob, // Mob derrotado
+                idMissaoVinculada: combate.idMissaoVinculada,
+                idObjetivoVinculado: combate.idObjetivoVinculado,
+                numeroMobsJaDerrotados: combate.numeroMobsDerrotadosNaMissao
+            }
+        };
+    }
+
+    combate.turnoDoJogador = false; 
+
+    return { 
+        sucesso: true, 
+        idCombate: idCombate,
+        logTurnoAnterior: logDoTurno,
+        proximoTurno: "mob", 
+        estadoCombate: getEstadoCombateParaRetorno(combate)
+    };
 }
 
 async function finalizarCombate(idCombate, idJogadorFicha, jogadorVenceuEsteMob, eUltimoMobDaMissao = true) {
@@ -1581,7 +1695,13 @@ async function adicionarItemAoInventario(ficha, nomeItem, quantidade) {
 // NPC'S E MISSÕES
 
 async function processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspecifico = null) {
-    return await npcsMissoesSistema.processarInteracaoComNPC(nomeOuIdNPC, fichaJogador, idDialogoEspecifico);
+    if (!npcsCollection || !fichasCollection || !missoesCollection) {
+        console.error("Uma ou mais coleções não inicializadas em processarInteracaoComNPC! Tentando reconectar...");
+        await conectarMongoDB();
+        if (!npcsCollection || !fichasCollection || !missoesCollection) {
+            return { erro: "Erro interno: As coleções do banco de dados não estão prontas." };
+        }
+    }
 
     // Em arcadia_sistema.js, substitua a lógica de query dentro de processarInteracaoComNPC por isto:
     try {
