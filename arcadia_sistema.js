@@ -44,6 +44,7 @@ combates.setupCombate({
   adicionarXPELevelUp,
   adicionarItemAoInventario,
   ITENS_BASE_ARCADIA,
+  conectarMongoDB,
   atualizarProgressoMissao,
 });
 
