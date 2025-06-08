@@ -17,7 +17,7 @@ process.on('uncaughtException', error => {
 
 // --- CONSTANTES DE RESTRIÇÃO DE CANAL ---
 const COMANDOS_CANAL_BEMVINDO = ['historia', 'listaracas', 'listaclasses', 'listareinos', 'comandos', 'ping', 'oi', 'arcadia', 'bemvindo'];
-const COMANDOS_GERAIS_PERMITIDOS_EM_OUTROS_CANAIS = ['comandos', 'comandos', 'ficha', 'distribuirpontos', 'jackpot', 'usaritem', 'usarfeitico', 'aprenderfeitico', 'ping', 'historia', 'interagir', 'viajar', 'statusviagem', 'explorar', 'cancelarviagem']; // Adicionei comandos de viagem
+const COMANDOS_GERAIS_PERMITIDOS_EM_OUTROS_CANAIS = ['comandos', 'comandos', 'ficha', 'distribuirpontos', 'jackpot', 'usaritem', 'usarfeitico', 'aprenderfeitico', 'ping', 'historia', 'interagir']; // Adicionei 'interagir' aqui
 const COMANDOS_CANAL_RECRUTAMENTO = ['criar', 'ficha', 'comandos', 'ping', 'listaracas', 'listaclasses', 'listareinos'];
 const COMANDOS_CANAL_ATUALIZACAO_FICHAS = ['ficha', 'distribuirpontos', 'comandos', 'ping'];
 
@@ -161,16 +161,6 @@ client.on('interactionCreate', async interaction => {
                     choices = todosNPCs
                         .filter(npc => npc.name.toLowerCase().includes(focusedOption.value.toLowerCase()))
                         .map(npc => ({ name: npc.name, value: npc.value }));
-                }
-            } else if (commandName === 'viajar' && focusedOption.name === 'destino') {
-                const regioesDisponiveis = await Arcadia.getRegioesDisponiveis(jogadorId);
-                if (regioesDisponiveis) {
-                    choices = regioesDisponiveis
-                        .filter(regiao => regiao.nome.toLowerCase().includes(focusedOption.value.toLowerCase()))
-                        .map(regiao => ({ 
-                            name: `${regiao.nome} (Nv.${regiao.nivelMinimo}-${regiao.nivelMaximo}) - ${regiao.custo} FO, ${regiao.tempoEstimado}min`, 
-                            value: regiao.id 
-                        }));
                 }
             }
 
@@ -523,134 +513,6 @@ client.on('interactionCreate', async interaction => {
                             }
                         }
                         break; 
-                    }
-
-                    // ===== COMANDOS DO SISTEMA DE VIAGENS =====
-                    case 'viajar': {
-                        const regiaoDestino = options.getString('destino');
-                        const resultado = await Arcadia.iniciarViagem(senderId, regiaoDestino);
-                        
-                        if (resultado.erro) {
-                            respostaParaEnviar = Arcadia.gerarEmbedErro("Viagem Falhou", resultado.erro);
-                        } else {
-                            const embed = Arcadia.gerarEmbedSucesso("🌍 Viagem Iniciada!", 
-                                `Você começou sua jornada para **${resultado.destino}**!\n\n` +
-                                `⏱️ **Tempo estimado:** ${resultado.tempoViagem} minutos\n` +
-                                `🎯 **Chegada prevista:** ${resultado.chegadaEstimada}\n\n` +
-                                `*Use \`/statusviagem\` para acompanhar seu progresso.*`
-                            );
-                            embed.setFooter({ text: "Boa viagem! Eventos podem ocorrer durante o trajeto." });
-                            respostaParaEnviar = embed;
-                        }
-                        break;
-                    }
-
-                    case 'statusviagem': {
-                        const resultado = await Arcadia.verificarStatusViagem(senderId);
-                        
-                        if (resultado.erro) {
-                            respostaParaEnviar = Arcadia.gerarEmbedAviso("Status de Viagem", resultado.erro);
-                        } else if (resultado.viagemConcluida) {
-                            const embed = Arcadia.gerarEmbedSucesso("🎉 Viagem Concluída!", 
-                                `Você chegou em **${resultado.destino}**!\n\n` +
-                                `${resultado.descricaoRegiao}\n\n` +
-                                `🔍 **Pontos de Interesse:**\n${resultado.pontosInteresse.map(p => `• ${p.nome}`).join('\n')}`
-                            );
-                            if (resultado.xpGanho > 0) {
-                                embed.addFields({ name: "💫 XP de Exploração", value: `+${resultado.xpGanho} XP` });
-                            }
-                            if (resultado.novasRegioes.length > 0) {
-                                embed.addFields({ name: "🗺️ Novas Regiões Desbloqueadas", value: resultado.novasRegioes.join(', ') });
-                            }
-                            respostaParaEnviar = embed;
-                        } else if (resultado.evento) {
-                            const embed = new EmbedBuilder()
-                                .setColor(0xFFAA00)
-                                .setTitle("⚠️ Evento Durante a Viagem!")
-                                .setDescription(
-                                    `**Destino:** ${resultado.destino}\n` +
-                                    `**Progresso:** ${resultado.progresso || 'N/A'}%\n` +
-                                    `**Tempo restante:** ${resultado.tempoRestanteMinutos} minutos\n\n` +
-                                    `**🎲 Evento:** ${resultado.evento.evento.nome}\n` +
-                                    `${resultado.evento.evento.descricao}`
-                                );
-                            
-                            if (resultado.evento.evento.opcoes) {
-                                const actionRow = new ActionRowBuilder();
-                                resultado.evento.evento.opcoes.slice(0, 5).forEach((opcao, index) => {
-                                    actionRow.addComponents(
-                                        new ButtonBuilder()
-                                            .setCustomId(`evento_viagem_${resultado.evento.evento.id}_${index}_${senderId}`)
-                                            .setLabel(opcao.texto.substring(0, 80))
-                                            .setStyle(ButtonStyle.Secondary)
-                                    );
-                                });
-                                respostaParaEnviar = { embeds: [embed], components: [actionRow] };
-                            } else {
-                                respostaParaEnviar = embed;
-                            }
-                        } else {
-                            const embed = new EmbedBuilder()
-                                .setColor(0x00AAFF)
-                                .setTitle("🌍 Viagem em Andamento")
-                                .setDescription(
-                                    `**Destino:** ${resultado.destino}\n` +
-                                    `**Tempo restante:** ${resultado.tempoRestanteMinutos} minutos\n` +
-                                    `**Progresso:** ${resultado.progresso}%`
-                                )
-                                .setFooter({ text: "Use /statusviagem novamente para verificar atualizações" });
-                            respostaParaEnviar = embed;
-                        }
-                        break;
-                    }
-
-                    case 'explorar': {
-                        const resultado = await Arcadia.explorarRegiao(senderId);
-                        
-                        if (resultado.erro) {
-                            respostaParaEnviar = Arcadia.gerarEmbedErro("Exploração Falhou", resultado.erro);
-                        } else {
-                            const embed = new EmbedBuilder()
-                                .setColor(0x228B22)
-                                .setTitle(`🔍 Explorando ${resultado.localizacao}`)
-                                .setDescription(resultado.descricao)
-                                .addFields({ name: "⚡ Energia Restante", value: `${resultado.energiaRestante}/100` });
-
-                            if (resultado.evento === "tesouro") {
-                                embed.setColor(0xFFD700);
-                                embed.addFields({ name: "💰 Tesouro!", value: `+${resultado.florinsGanhos} Florins de Ouro` });
-                            } else if (resultado.evento === "combate") {
-                                embed.setColor(0xFF4500);
-                                // Aqui poderia iniciar um combate
-                                embed.addFields({ name: "⚔️ Combate!", value: "Prepare-se para lutar!" });
-                            } else if (resultado.evento === "descoberta") {
-                                embed.setColor(0x9370DB);
-                                embed.addFields({ 
-                                    name: "🏛️ Descoberta!", 
-                                    value: `**${resultado.descoberta.nome}**\n${resultado.descoberta.descricao}` 
-                                });
-                            } else if (resultado.xpGanho) {
-                                embed.addFields({ name: "💫 XP Ganho", value: `+${resultado.xpGanho} XP` });
-                            }
-
-                            respostaParaEnviar = embed;
-                        }
-                        break;
-                    }
-
-                    case 'cancelarviagem': {
-                        const resultado = await Arcadia.cancelarViagem(senderId);
-                        
-                        if (resultado.erro) {
-                            respostaParaEnviar = Arcadia.gerarEmbedErro("Cancelamento Falhou", resultado.erro);
-                        } else {
-                            respostaParaEnviar = Arcadia.gerarEmbedAviso("🚫 Viagem Cancelada", 
-                                `Sua viagem foi cancelada.\n\n` +
-                                `💰 **Penalidade:** ${resultado.penalidade} Florins de Ouro\n` +
-                                `📍 **Localização atual:** ${resultado.localizacaoAtual}`
-                            );
-                        }
-                        break;
                     }
 
                     // --- Comandos de Admin ---
