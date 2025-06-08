@@ -1305,34 +1305,6 @@ async function regenerarEnergiaViagem() {
 // Executar regeneração a cada 30 minutos
 setInterval(regenerarEnergiaViagem, 30 * 60 * 1000);
 
-
-    if (!mobBase) return { erro: `A criatura hostil "${idMob}" não foi encontrada nos registros de Arcádia.` };
-
-    // Cria uma instância do mob para este combate
-    const mobInstancia = JSON.parse(JSON.stringify(mobBase));
-    mobInstancia.pvAtual = mobInstancia.atributos.pvMax; // Garante PV cheio no início
-
-    const idCombate = `${idJogador}_${idMob}_${Date.now()}`;
-    combatesAtivos[idCombate] = {
-        idJogador: idJogador,
-        fichaJogador: ficha, 
-        mobOriginalId: idMob, // Guardar o ID original do mob base
-        mobInstancia: mobInstancia,
-        idMissaoVinculada: idMissaoVinculada,
-        idObjetivoVinculado: idObjetivoVinculado,
-        log: [`⚔️ ${ficha.nomePersonagem} (PV: ${ficha.pvAtual}/${ficha.pvMax}) encontra ${mobInstancia.nome} (PV: ${mobInstancia.pvAtual}/${mobInstancia.atributos.pvMax})! ⚔️`],
-        turnoDoJogador: true, // Jogador sempre começa
-        numeroMobsDerrotadosNaMissao: 0 // Para missões de matar X monstros
-    };
-    console.log(`[COMBATE PvE] Combate ${idCombate} iniciado: ${ficha.nomePersonagem} vs ${mobInstancia.nome}`);
-    return { 
-        sucesso: true, 
-        idCombate: idCombate, 
-        mensagemInicial: combatesAtivos[idCombate].log[0],
-        estadoCombate: getEstadoCombateParaRetorno(combatesAtivos[idCombate])  
-    };
-}
-
 async function processarTurnoMobCombate(idCombate) {
     const combate = combatesAtivos[idCombate];
     if (!combate) return { erro: "Combate não encontrado ou já finalizado.", combateTerminou: true };
