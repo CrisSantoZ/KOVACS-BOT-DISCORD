@@ -1,3 +1,4 @@
+
 const { MongoClient } = require('mongodb');
 const { EmbedBuilder } = require('discord.js');
 
@@ -27,7 +28,6 @@ const classesEspeciais = require('./dados/classesEspeciais');
 const reinos = require('./dados/reinos');
 const itens = require('./dados/itens');
 const feiticos = require('./dados/feiticos');
-const viagens = require('./dados/viagens');
 
 // Criando aliases para compatibilidade com código existente
 const RACAS_ARCADIA = racas;
@@ -188,15 +188,7 @@ const fichaModeloArcadia = {
     cooldownsItens: {}, // { "nome_item_lowercase_idJogador": timestamp_proximo_uso }
     ultimaAtualizacao: "",
     logMissoes: [],
-    notacoesDM: "",
-    // Sistema de Viagens
-    localizacaoAtual: "pradarias_valdoria", // Local atual do jogador
-    viagemAtiva: null, // ID da viagem ativa se houver
-    locaisDesbloqueados: ["pradarias_valdoria"], // Locais que o jogador pode visitar
-    tempoUltimaViagem: null, // Timestamp da última viagem
-    energiaViagem: 100, // Energia para viajar (0-100)
-    conquistasExploracao: [], // Conquistas de exploração
-    eventosViagemVividos: [] // Histórico de eventos únicos
+    notacoesDM: ""
 };
 
 // =====================================================================================
@@ -210,8 +202,6 @@ let missoesCollection; // Adicionando para futuras missões
 let todasAsFichas = {}; // Cache local das fichas
 let mobsCollection;
 let combatesAtivos = {};
-let viagensCollection; // Nova coleção para sistema de viagens
-let viagensAtivas = {}; // Cache de viagens em andamento
 
 
 
@@ -235,9 +225,8 @@ let viagensAtivas = {}; // Cache de viagens em andamento
         missoesCollection = db.collection("missoes_arcadia");
 console.log(">>> [arcadia_sistema.js | conectarMongoDB] missoesCollection foi atribuída:", typeof missoesCollection, !!missoesCollection);
         mobsCollection = db.collection("mobs_arcadia");
-        viagensCollection = db.collection("viagens_arcadia");
 
-        console.log("Conectado com sucesso ao MongoDB Atlas e às coleções:", MONGODB_FICHAS_COLLECTION, ", npcs_arcadia, missoes_arcadia, mobs_arcadia, e viagens_arcadia");
+        console.log("Conectado com sucesso ao MongoDB Atlas e às coleções:", MONGODB_FICHAS_COLLECTION, ", npcs_arcadia, missoes_arcadia, e mobs_arcadia");
 
     } catch (error) {
         console.error("ERRO CRÍTICO ao conectar ao MongoDB:", error);
@@ -380,7 +369,6 @@ function getFichasCollection() { return fichasCollection; }
 function getNpcsCollection() { return npcsCollection; }
 function getMissoesCollection() { return missoesCollection; }
 function getMobsCollection() { return mobsCollection; }
-function getViagensCollection() { return viagensCollection; }
 
 // =====================================================================================
 // FUNÇÕES DE LÓGICA DE COMANDOS
@@ -846,7 +834,6 @@ async function iniciarCombatePvE(idJogador, idMob, idMissaoVinculada = null, idO
         if (!mobsCollection) return { erro: "Sistema de combate indisponível (mobs)." };
     }
     const mobBase = await mobsCollection.findOne({ _id: idMob });
-
     if (!mobBase) return { erro: `A criatura hostil "${idMob}" não foi encontrada nos registros de Arcádia.` };
 
     // Cria uma instância do mob para este combate
@@ -873,437 +860,6 @@ async function iniciarCombatePvE(idJogador, idMob, idMissaoVinculada = null, idO
         estadoCombate: getEstadoCombateParaRetorno(combatesAtivos[idCombate])  
     };
 }
-
-// =====================================================================================
-// SISTEMA DE VIAGENS E EXPLORAÇÃO
-// =====================================================================================
-
-async function iniciarViagem(idJogador, idRegiaoDestino) {
-    const ficha = await getFichaOuCarregar(idJogador);
-    if (!ficha) return { erro: "Sua ficha não foi encontrada." };
-
-    // Verificar se já está viajando
-    if (ficha.viagemAtiva) {
-        return { erro: "Você já está em uma viagem. Use `/statusviagem` para verificar o progresso." };
-    }
-
-    // Verificar se a região existe
-    const regiao = viagens.regioes[idRegiaoDestino];
-    if (!regiao) {
-        return { erro: "Região de destino não encontrada." };
-    }
-
-    // Verificar se o jogador desbloqueou esta região
-    if (!ficha.locaisDesbloqueados.includes(idRegiaoDestino)) {
-        return { erro: `Você ainda não desbloqueou "${regiao.nome}". Explore outras áreas primeiro.` };
-    }
-
-    // Verificar nível mínimo
-    if (ficha.nivel < regiao.nivelMinimo) {
-        return { erro: `Você precisa ser pelo menos nível ${regiao.nivelMinimo} para viajar para "${regiao.nome}".` };
-    }
-
-    // Verificar recursos necessários
-    if (ficha.florinsDeOuro < regiao.custoFlorins) {
-        return { erro: `Você precisa de ${regiao.custoFlorins} Florins de Ouro para esta viagem.` };
-    }
-
-    // Verificar energia
-    if (ficha.energiaViagem < 20) {
-        return { erro: "Você está muito cansado para viajar. Descanse um pouco." };
-    }
-
-    // Calcular tempo de viagem
-    let tempoViagem = regiao.tempoViagemBaseMinutos;
-    
-    // Aplicar modificadores baseados em atributos
-    const agilidade = ficha.atributos.agilidade || 5;
-    if (agilidade >= 75) tempoViagem *= 0.70;
-    else if (agilidade >= 50) tempoViagem *= 0.80;
-    else if (agilidade >= 25) tempoViagem *= 0.90;
-
-    // Criar objeto de viagem
-    const idViagem = `viagem_${idJogador}_${Date.now()}`;
-    const inicioViagem = Date.now();
-    const fimViagem = inicioViagem + (tempoViagem * 60 * 1000); // Converter para milissegundos
-
-    const dadosViagem = {
-        _id: idViagem,
-        idJogador: idJogador,
-        nomeJogador: ficha.nomePersonagem,
-        regiaoOrigem: ficha.localizacaoAtual,
-        regiaoDestino: idRegiaoDestino,
-        inicioViagem: inicioViagem,
-        fimViagem: fimViagem,
-        tempoTotalMinutos: tempoViagem,
-        status: "em_andamento",
-        eventosOcorridos: [],
-        proximoEventoCheck: inicioViagem + (Math.random() * tempoViagem * 60 * 1000 * 0.3) // Primeiro evento em até 30% do caminho
-    };
-
-    // Deduzir custos
-    ficha.florinsDeOuro -= regiao.custoFlorins;
-    ficha.energiaViagem = Math.max(0, ficha.energiaViagem - 25);
-    ficha.viagemAtiva = idViagem;
-
-    // Salvar no banco
-    try {
-        if (!viagensCollection) {
-            await conectarMongoDB();
-        }
-        await viagensCollection.insertOne(dadosViagem);
-        viagensAtivas[idViagem] = dadosViagem;
-        await atualizarFichaNoCacheEDb(idJogador, ficha);
-
-        console.log(`[VIAGEM] ${ficha.nomePersonagem} iniciou viagem para ${regiao.nome} (${tempoViagem} min)`);
-        
-        return {
-            sucesso: true,
-            idViagem: idViagem,
-            tempoViagem: tempoViagem,
-            destino: regiao.nome,
-            chegadaEstimada: new Date(fimViagem).toLocaleString("pt-BR")
-        };
-    } catch (error) {
-        console.error("[VIAGEM] Erro ao salvar viagem:", error);
-        return { erro: "Erro interno ao iniciar viagem." };
-    }
-}
-
-async function verificarStatusViagem(idJogador) {
-    const ficha = await getFichaOuCarregar(idJogador);
-    if (!ficha || !ficha.viagemAtiva) {
-        return { erro: "Você não está viajando no momento." };
-    }
-
-    let viagemData = viagensAtivas[ficha.viagemAtiva];
-    if (!viagemData && viagensCollection) {
-        viagemData = await viagensCollection.findOne({ _id: ficha.viagemAtiva });
-        if (viagemData) viagensAtivas[ficha.viagemAtiva] = viagemData;
-    }
-
-    if (!viagemData) {
-        return { erro: "Dados da viagem não encontrados." };
-    }
-
-    const agora = Date.now();
-    const tempoRestante = viagemData.fimViagem - agora;
-    
-    if (tempoRestante <= 0) {
-        // Viagem concluída
-        return await finalizarViagem(ficha.viagemAtiva);
-    }
-
-    // Verificar se deve ocorrer algum evento
-    if (agora >= viagemData.proximoEventoCheck && viagemData.status === "em_andamento") {
-        const eventoResult = await processarEventoViagem(viagemData);
-        if (eventoResult) {
-            return { 
-                viagemAndamento: true,
-                tempoRestanteMinutos: Math.ceil(tempoRestante / (1000 * 60)),
-                destino: viagens.regioes[viagemData.regiaoDestino].nome,
-                evento: eventoResult
-            };
-        }
-    }
-
-    return {
-        viagemAndamento: true,
-        tempoRestanteMinutos: Math.ceil(tempoRestante / (1000 * 60)),
-        destino: viagens.regioes[viagemData.regiaoDestino].nome,
-        progresso: Math.round(((viagemData.fimViagem - viagemData.inicioViagem) - tempoRestante) / (viagemData.fimViagem - viagemData.inicioViagem) * 100)
-    };
-}
-
-async function processarEventoViagem(viagemData) {
-    const regiao = viagens.regioes[viagemData.regiaoDestino];
-    if (!regiao) return null;
-
-    // Filtrar eventos disponíveis para esta região/nível
-    const eventosDisponiveis = Object.values(viagens.eventosViagem).filter(evento => {
-        const ficha = todasAsFichas[viagemData.idJogador];
-        if (!ficha) return false;
-        
-        return evento.nivelMinimo <= ficha.nivel && 
-               Math.random() < evento.chance &&
-               !viagemData.eventosOcorridos.includes(evento.id);
-    });
-
-    if (eventosDisponiveis.length === 0) {
-        // Programar próximo check
-        const tempoRestante = viagemData.fimViagem - Date.now();
-        viagemData.proximoEventoCheck = Date.now() + (Math.random() * tempoRestante * 0.5);
-        return null;
-    }
-
-    // Selecionar evento aleatório
-    const evento = eventosDisponiveis[Math.floor(Math.random() * eventosDisponiveis.length)];
-    viagemData.eventosOcorridos.push(evento.id);
-    
-    // Programar próximo evento
-    const tempoRestante = viagemData.fimViagem - Date.now();
-    if (tempoRestante > 600000) { // Se ainda resta mais de 10 min
-        viagemData.proximoEventoCheck = Date.now() + (Math.random() * tempoRestante * 0.4) + 300000; // Entre 5min e 40% do tempo restante
-    }
-
-    // Salvar alterações
-    try {
-        await viagensCollection.updateOne(
-            { _id: viagemData._id }, 
-            { $set: { eventosOcorridos: viagemData.eventosOcorridos, proximoEventoCheck: viagemData.proximoEventoCheck } }
-        );
-        viagensAtivas[viagemData._id] = viagemData;
-    } catch (error) {
-        console.error("[EVENTO VIAGEM] Erro ao salvar evento:", error);
-    }
-
-    return {
-        eventoOcorreu: true,
-        evento: evento
-    };
-}
-
-async function finalizarViagem(idViagem) {
-    let viagemData = viagensAtivas[idViagem];
-    if (!viagemData && viagensCollection) {
-        viagemData = await viagensCollection.findOne({ _id: idViagem });
-    }
-
-    if (!viagemData) {
-        return { erro: "Dados da viagem não encontrados." };
-    }
-
-    const ficha = await getFichaOuCarregar(viagemData.idJogador);
-    if (!ficha) {
-        return { erro: "Ficha do jogador não encontrada." };
-    }
-
-    const regiao = viagens.regioes[viagemData.regiaoDestino];
-    
-    // Atualizar localização do jogador
-    ficha.localizacaoAtual = viagemData.regiaoDestino;
-    ficha.viagemAtiva = null;
-    ficha.tempoUltimaViagem = Date.now();
-
-    // Regenerar energia gradualmente
-    ficha.energiaViagem = Math.min(100, ficha.energiaViagem + 10);
-
-    // Verificar se desbloqueou novas regiões
-    const novasRegioes = verificarRegioesDesbloqueadas(ficha);
-    
-    // Dar XP por exploração
-    const xpExploracao = Math.floor(regiao.nivelMinimo * 5);
-    if (xpExploracao > 0) {
-        const resultadoXP = await adicionarXPELevelUp(ficha, xpExploracao);
-        
-        // Atualizar no banco
-        await atualizarFichaNoCacheEDb(viagemData.idJogador, ficha);
-    }
-
-    // Limpar viagem
-    viagemData.status = "concluida";
-    viagemData.fimReal = Date.now();
-
-    try {
-        await viagensCollection.updateOne({ _id: idViagem }, { $set: { status: "concluida", fimReal: Date.now() } });
-        delete viagensAtivas[idViagem];
-    } catch (error) {
-        console.error("[VIAGEM] Erro ao finalizar viagem:", error);
-    }
-
-    console.log(`[VIAGEM] ${ficha.nomePersonagem} chegou em ${regiao.nome}`);
-
-    return {
-        viagemConcluida: true,
-        destino: regiao.nome,
-        xpGanho: xpExploracao,
-        novasRegioes: novasRegioes,
-        descricaoRegiao: regiao.descricao,
-        pontosInteresse: regiao.pontos_interesse
-    };
-}
-
-function verificarRegioesDesbloqueadas(ficha) {
-    const novasRegioes = [];
-    
-    for (const [idRegiao, dadosRegiao] of Object.entries(viagens.regioes)) {
-        if (!ficha.locaisDesbloqueados.includes(idRegiao) && ficha.nivel >= dadosRegiao.nivelMinimo) {
-            // Verificar se está em região adjacente ou tem outros requisitos
-            // Por simplicidade, desbloqueamos baseado no nível
-            if (ficha.nivel >= dadosRegiao.nivelMinimo) {
-                ficha.locaisDesbloqueados.push(idRegiao);
-                novasRegioes.push(dadosRegiao.nome);
-            }
-        }
-    }
-    
-    return novasRegioes;
-}
-
-async function cancelarViagem(idJogador) {
-    const ficha = await getFichaOuCarregar(idJogador);
-    if (!ficha || !ficha.viagemAtiva) {
-        return { erro: "Você não está viajando no momento." };
-    }
-
-    let viagemData = viagensAtivas[ficha.viagemAtiva];
-    if (!viagemData && viagensCollection) {
-        viagemData = await viagensCollection.findOne({ _id: ficha.viagemAtiva });
-    }
-
-    if (!viagemData) {
-        return { erro: "Dados da viagem não encontrados." };
-    }
-
-    const regiao = viagens.regioes[viagemData.regiaoDestino];
-    const penalidade = Math.floor(regiao.custoFlorins * viagens.configuracoes.penaliadeCancelamento);
-
-    // Aplicar penalidade
-    ficha.florinsDeOuro = Math.max(0, ficha.florinsDeOuro - penalidade);
-    ficha.viagemAtiva = null;
-    ficha.energiaViagem = Math.max(0, ficha.energiaViagem - 15); // Penalidade extra de energia
-
-    try {
-        await viagensCollection.updateOne({ _id: ficha.viagemAtiva }, { $set: { status: "cancelada" } });
-        delete viagensAtivas[ficha.viagemAtiva];
-        await atualizarFichaNoCacheEDb(idJogador, ficha);
-    } catch (error) {
-        console.error("[VIAGEM] Erro ao cancelar viagem:", error);
-    }
-
-    return {
-        viagemCancelada: true,
-        penalidade: penalidade,
-        localizacaoAtual: viagens.regioes[ficha.localizacaoAtual].nome
-    };
-}
-
-async function explorarRegiao(idJogador) {
-    const ficha = await getFichaOuCarregar(idJogador);
-    if (!ficha) return { erro: "Sua ficha não foi encontrada." };
-
-    if (ficha.viagemAtiva) {
-        return { erro: "Você não pode explorar enquanto está viajando." };
-    }
-
-    const regiao = viagens.regioes[ficha.localizacaoAtual];
-    if (!regiao) {
-        return { erro: "Localização atual inválida." };
-    }
-
-    // Verificar energia
-    if (ficha.energiaViagem < 15) {
-        return { erro: "Você está muito cansado para explorar. Descanse um pouco." };
-    }
-
-    // Consumir energia
-    ficha.energiaViagem = Math.max(0, ficha.energiaViagem - 15);
-
-    // Chance de encontrar algo interessante
-    const chanceEvento = 0.40; // 40% de chance base
-    const chanceTesouro = 0.15; // 15% de chance de tesouro
-    const chanceCombate = 0.25; // 25% de chance de combate
-
-    let resultado = {
-        exploracao: true,
-        localizacao: regiao.nome,
-        energiaRestante: ficha.energiaViagem
-    };
-
-    const roll = Math.random();
-
-    if (roll < chanceTesouro) {
-        // Encontrou tesouro
-        const florinsEncontrados = Math.floor(Math.random() * (regiao.nivelMinimo * 3)) + 5;
-        ficha.florinsDeOuro += florinsEncontrados;
-        
-        resultado.evento = "tesouro";
-        resultado.recompensa = `Você encontrou ${florinsEncontrados} Florins de Ouro escondidos!`;
-        resultado.florinsGanhos = florinsEncontrados;
-        
-    } else if (roll < (chanceTesouro + chanceCombate)) {
-        // Encontrou combate
-        const mobRegiao = regiao.mobs_regiao[Math.floor(Math.random() * regiao.mobs_regiao.length)];
-        
-        resultado.evento = "combate";
-        resultado.mobEncontrado = mobRegiao;
-        resultado.descricao = `Você encontrou um ${mobRegiao} hostil durante sua exploração!`;
-        
-    } else if (roll < (chanceTesouro + chanceCombate + chanceEvento)) {
-        // Evento especial
-        const pontosInteresse = regiao.pontos_interesse;
-        const pontoEscolhido = pontosInteresse[Math.floor(Math.random() * pontosInteresse.length)];
-        
-        resultado.evento = "descoberta";
-        resultado.descoberta = pontoEscolhido;
-        resultado.descricao = `Você descobriu: ${pontoEscolhido.nome} - ${pontoEscolhido.descricao}`;
-        
-    } else {
-        // Exploração sem eventos
-        resultado.evento = "pacifico";
-        resultado.descricao = "Você explorou a região tranquilamente, ganhando conhecimento sobre o local.";
-        resultado.xpGanho = Math.floor(regiao.nivelMinimo * 0.5);
-        
-        if (resultado.xpGanho > 0) {
-            await adicionarXPELevelUp(ficha, resultado.xpGanho);
-        }
-    }
-
-    await atualizarFichaNoCacheEDb(idJogador, ficha);
-    return resultado;
-}
-
-async function getRegioesDisponiveis(idJogador) {
-    const ficha = await getFichaOuCarregar(idJogador);
-    if (!ficha) return [];
-
-    return Object.values(viagens.regioes)
-        .filter(regiao => 
-            ficha.locaisDesbloqueados.includes(regiao.id) && 
-            regiao.id !== ficha.localizacaoAtual
-        )
-        .map(regiao => ({
-            id: regiao.id,
-            nome: regiao.nome,
-            nivelMinimo: regiao.nivelMinimo,
-            nivelMaximo: regiao.nivelMaximo,
-            custo: regiao.custoFlorins,
-            tempoEstimado: regiao.tempoViagemBaseMinutos,
-            podeViajar: ficha.nivel >= regiao.nivelMinimo && ficha.florinsDeOuro >= regiao.custoFlorins
-        }));
-}
-
-// Função para regenerar energia gradualmente
-async function regenerarEnergiaViagem() {
-    if (!fichasCollection) return;
-    
-    try {
-        // Regenera 1 ponto de energia a cada 30 minutos para todos os jogadores
-        const agora = Date.now();
-        const trintaMinutos = 30 * 60 * 1000;
-        
-        const fichasParaAtualizar = Object.values(todasAsFichas).filter(ficha => 
-            ficha.energiaViagem < 100 && 
-            (!ficha.tempoUltimaViagem || (agora - ficha.tempoUltimaViagem) > trintaMinutos)
-        );
-        
-        for (const ficha of fichasParaAtualizar) {
-            const tempoDiferenca = agora - (ficha.tempoUltimaViagem || agora - trintaMinutos);
-            const pontosEnergia = Math.floor(tempoDiferenca / trintaMinutos);
-            
-            if (pontosEnergia > 0) {
-                ficha.energiaViagem = Math.min(100, ficha.energiaViagem + pontosEnergia);
-                ficha.tempoUltimaViagem = agora;
-                await atualizarFichaNoCacheEDb(ficha._id, ficha);
-            }
-        }
-    } catch (error) {
-        console.error("[ENERGIA] Erro ao regenerar energia:", error);
-    }
-}
-
-// Executar regeneração a cada 30 minutos
-setInterval(regenerarEnergiaViagem, 30 * 60 * 1000);
 
 async function processarTurnoMobCombate(idCombate) {
     const combate = combatesAtivos[idCombate];
@@ -2944,7 +2500,6 @@ function gerarListaComandos(isOwner) {
         { name: '✨ Personagem', value: "`/criar nome:<Nome> raca:<Raça> classe:<Classe> reino:<Reino>`\n*Cria seu personagem.*\n\n`/ficha [@jogador]` (opcional)\n*Exibe sua ficha ou de outro jogador (admin).*\n\n`/distribuirpontos [forca:val] [agilidade:val] ...`\n*Distribui seus pontos de atributo.*", inline: false },
         { name: '⚔️ Combate & Magia', value: "`/aprenderfeitico feitico:<nome>`\n*Aprende um feitiço disponível.*\n\n`/usarfeitico feitico:<nome> [alvo:@jogador]`\n*Usa um feitiço conhecido.*", inline: false },
         { name: '🎒 Itens & Ações', value: "`/usaritem item:<nome> [quantidade:val]`\n*Usa um item.*\n\n`/jackpot [giros:val]` (Custo: 25 FO)\n*Tente sua sorte!*", inline: false },
-        { name: '🌍 Sistema de Viagens', value: "`/viajar destino:<região>`\n*Inicia uma viagem para outra região.*\n\n`/statusviagem`\n*Verifica o progresso da viagem atual.*\n\n`/explorar`\n*Explora a região atual.*\n\n`/cancelarviagem`\n*Cancela a viagem atual (com penalidade).*", inline: false },
         { name: '📚 Informativos', value: "`/listaracas`, `/listaclasses`, `/listareinos`, `/historia`", inline: false }
     );
     if (isOwner) {
@@ -3088,14 +2643,4 @@ getFichasCollection,
     getFeiticosUparaveisParaAutocomplete,
     getTodosFeiticosBaseParaAutocomplete,
     getTodosNPCsParaAutocomplete,
-
-    // Sistema de Viagens
-    getViagensCollection,
-    iniciarViagem,
-    verificarStatusViagem,
-    cancelarViagem,
-    explorarRegiao,
-    getRegioesDisponiveis,
-    finalizarViagem,
-    viagens, // Dados das regiões
 };
