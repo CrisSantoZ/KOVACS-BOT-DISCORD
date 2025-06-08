@@ -28,6 +28,7 @@ const classesEspeciais = require('./dados/classesEspeciais');
 const reinos = require('./dados/reinos');
 const itens = require('./dados/itens');
 const feiticos = require('./dados/feiticos');
+const combates = require('./sistemas/combates');
 
 // Criando aliases para compatibilidade com código existente
 const RACAS_ARCADIA = racas;
@@ -2282,7 +2283,7 @@ console.log(">>> [arcadia_sistema.js | FIM DO ARQUIVO] Estado de missoesCollecti
 module.exports = {
     // Dados e Constantes
     RACAS_ARCADIA, CLASSES_ARCADIA, CLASSES_ESPECIAIS_ARCADIA, REINOS_ARCADIA,
-    FEITICOS_BASE_ARCADIA, ITENS_BASE_ARCADIA,
+    FEITICOS_BASE_ARCADIA, ITENS_BASE_ARCADIA, combates,
     MAPA_CARGOS_RACAS, MAPA_CARGOS_CLASSES, MAPA_CARGOS_REINOS,
     NOME_CARGO_AVENTUREIRO, NOME_CARGO_VISITANTE,
     ID_CANAL_BOAS_VINDAS_RPG, ID_CANAL_RECRUTAMENTO, ID_CANAL_ATUALIZACAO_FICHAS,
