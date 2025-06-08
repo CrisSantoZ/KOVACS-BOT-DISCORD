@@ -148,14 +148,32 @@ new SlashCommandBuilder().setName('uparfeitico')
         .addIntegerOption(o => o.setName('quantidade').setDescription('Quantos usar (Padrão: 1).').setMinValue(1).setRequired(false)),
 
 new SlashCommandBuilder().setName('interagir')
-    .setDescription('Interage com um personagem (NPC) em Arcádia.')
-    .addStringOption(option =>
-        option.setName('npc')
-            .setDescription('O nome do NPC com quem você quer falar.')
-            .setRequired(true)
-            .setAutocomplete(true)
-    ),
-    
+        .setDescription('Interage com um personagem (NPC) em Arcádia.')
+        .addStringOption(option =>
+            option.setName('npc')
+                .setDescription('O nome do NPC com quem você quer falar.')
+                .setRequired(true)
+                .setAutocomplete(true)
+        ),
+
+    new SlashCommandBuilder().setName('viajar')
+        .setDescription('Inicia uma viagem para uma região em Arcádia.')
+        .addStringOption(option =>
+            option.setName('destino')
+                .setDescription('A região de destino (comece a digitar para ver opções).')
+                .setRequired(true)
+                .setAutocomplete(true)
+        ),
+
+    new SlashCommandBuilder().setName('statusviagem')
+        .setDescription('Verifica o status da sua viagem atual.'),
+
+    new SlashCommandBuilder().setName('explorar')
+        .setDescription('Explora a região atual em busca de tesouros e aventuras.'),
+
+    new SlashCommandBuilder().setName('cancelarviagem')
+        .setDescription('Cancela sua viagem atual (com penalidade).'),
+
 
     // --- Comandos de Admin ---
     new SlashCommandBuilder().setName('admincriar')
@@ -254,3 +272,5 @@ const rest = new REST({ version: '10' }).setToken(token);
         }
     }
 })();
+// Lista de comandos gerais que podem ser usados em outros canais (referência)
+// const COMANDOS_GERAIS_PERMITIDOS_EM_OUTROS_CANAIS = ['comandos', 'ficha', 'distribuirpontos', 'jackpot', 'usaritem', 'usarfeitico', 'aprenderfeitico', 'ping', 'historia', 'interagir', 'viajar', 'statusviagem', 'explorar', 'cancelarviagem', 'meusfeiticos', 'uparfeitico'];
