@@ -870,7 +870,7 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                                 .addComponents(
                                     new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${resultadoInicioCombate.idCombate}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
                                     new ButtonBuilder().setCustomId(`combate_USARFEITICO_${resultadoInicioCombate.idCombate}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
-                                    new ButtonBuilder().setCustomId(`combate_USARITEM_${resultadoInicioCombate.idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success)
+                                    new ButtonBuilder().setCustomId(`combate_USARITEM_${resultadoInicioCombate.idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
                                 );
 
                             await interaction.editReply({ embeds: [embedConfirmacao], components: [] }); 
@@ -1119,7 +1119,7 @@ if (!interaction.replied && !interaction.deferred) {
                 .addComponents(
                     new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${idCombate}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
                     new ButtonBuilder().setCustomId(`combate_USARFEITICO_${idCombate}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
-                    new ButtonBuilder().setCustomId(`combate_USARITEM_${idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success)
+                    new ButtonBuilder().setCustomId(`combate_USARITEM_${idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
                 );
             await interaction.editReply({ embeds: [embedCombateAtualizado], components: [combatActionRowContinuacao] });
             // --- FIM DA LÓGICA DE PROCESSAMENTO DO RESULTADO DA AÇÃO DO JOGADOR ---
@@ -1239,7 +1239,7 @@ else if (acaoCombate === 'USARFEITICO') {
                 .addComponents(
                     new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${idCombate}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
                     new ButtonBuilder().setCustomId(`combate_USARFEITICO_${idCombate}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
-                    new ButtonBuilder().setCustomId(`combate_USARITEM_${idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success)
+                    new ButtonBuilder().setCustomId(`combate_USARITEM_${idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
                 );
             await interaction.editReply({ embeds: [embedCombateAtualizado], components: [combatActionRow] });
             return;
@@ -1355,7 +1355,7 @@ else if (interaction.isStringSelectMenu()) {
     embedCombate.setThumbnail(mobEstado.imagem.trim());
     console.log(`[DEBUG] Imagem do mob adicionada no combate: ${mobEstado.imagem}`);
 }
-
+            
             if (resultado.mobDerrotado) {
                 const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true, resultado.dadosParaFinalizar && resultado.dadosParaFinalizar.eUltimoMobDaMissao);
                 embedCombateAtualizado.setTitle("🏆 Vitória! 🏆");
@@ -1391,7 +1391,7 @@ else if (interaction.isStringSelectMenu()) {
                 const pvAtualJogadorTurnoMob = jogadorEstadoTurnoMob.pvAtual;
                 const pvMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pvMax;
                 const pmAtualJogadorTurnoMob = jogadorEstadoTurnoMob.pmAtual;
-                const pmMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pmMax;
+                const pmMaxJogadorTurnoMob = jogadorEstadoTurnoMob.pmAtual;
                 const nomeMobTurnoMob = mobEstadoTurnoMob.nome;
                 const pvAtualMobTurnoMob = mobEstadoTurnoMob.pvAtual;
                 const pvMaxMobTurnoMob = mobEstadoTurnoMob.pvMax;
@@ -1429,7 +1429,7 @@ else if (interaction.isStringSelectMenu()) {
             .addComponents(
                 new ButtonBuilder().setCustomId(`combate_ATAQUEBASICO_${combateIdFinal}`).setLabel("⚔️ Ataque Básico").setStyle(ButtonStyle.Danger),
                 new ButtonBuilder().setCustomId(`combate_USARFEITICO_${combateIdFinal}`).setLabel("🔮 Usar Feitiço").setStyle(ButtonStyle.Primary),
-                new ButtonBuilder().setCustomId(`combate_USARITEM_${combateIdFinal}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success)
+                new ButtonBuilder().setCustomId(`combate_USARITEM_${combateIdFinal}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success).setDisabled(true)
             );
         await interaction.update({ embeds: [embedCombateAtualizado], components: [combatActionRowContinuacao] });
             return;
