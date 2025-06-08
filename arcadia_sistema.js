@@ -30,6 +30,13 @@ const itens = require('./dados/itens');
 const feiticos = require('./dados/feiticos');
 const combates = require('./sistemas/combates');
 
+// Criando aliases para compatibilidade com código existente
+const RACAS_ARCADIA = racas;
+const CLASSES_ARCADIA = classes;
+const CLASSES_ESPECIAIS_ARCADIA = classesEspeciais;
+const REINOS_ARCADIA = reinos;
+const ITENS_BASE_ARCADIA = itens;
+const FEITICOS_BASE_ARCADIA = feiticos;
 
 combates.setupCombate({
   getFichaOuCarregar,
@@ -40,13 +47,6 @@ combates.setupCombate({
   atualizarProgressoMissao,
 });
 
-// Criando aliases para compatibilidade com código existente
-const RACAS_ARCADIA = racas;
-const CLASSES_ARCADIA = classes;
-const CLASSES_ESPECIAIS_ARCADIA = classesEspeciais;
-const REINOS_ARCADIA = reinos;
-const ITENS_BASE_ARCADIA = itens;
-const FEITICOS_BASE_ARCADIA = feiticos;
 
 const ATRIBUTOS_FOCO_POR_CLASSE = {
     "Arcanista": "Intelecto e Mana Base",
