@@ -18,6 +18,7 @@ function setMobsCollection(collection) {
 }
 
 module.exports = {
+  setupCombate,
     iniciarCombatePvE,
     processarTurnoMobCombate,
     processarAcaoJogadorCombate,
