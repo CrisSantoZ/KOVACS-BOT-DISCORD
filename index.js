@@ -4,9 +4,6 @@ const express = require('express');
 require('dotenv').config();
 const Arcadia = require('./arcadia_sistema.js');
 
-const ITENS_BASE_ARCADIA = Arcadia.ITENS_BASE_ARCADIA;
-const FEITICOS_BASE_ARCADIA = Arcadia.FEITICOS_BASE_ARCADIA;
-
 process.on('unhandledRejection', error => {
     console.error('GRAVE: Unhandled promise rejection:', error);
     // Em um ambiente de produção, você poderia notificar um canal de desenvolvimento aqui
@@ -1148,7 +1145,8 @@ if (!interaction.replied && !interaction.deferred) {
 else if (acaoCombate === 'USARFEITICO') {
         // Buscar feitiços conhecidos do jogador para combate
         const magiasConhecidas = await Arcadia.getMagiasConhecidasParaAutocomplete(senderIdButton);
-
+const FEITICOS_BASE_ARCADIA = Arcadia.FEITICOS_BASE_ARCADIA;
+    
         if (!magiasConhecidas || magiasConhecidas.length === 0) {
             await interaction.followUp({ content: "Você não conhece nenhum feitiço para usar!", ephemeral: true });
             return;
@@ -1281,6 +1279,7 @@ else if (acaoCombate === 'USARFEITICO') {
 
 // Handler do botão USARITEM durante o combate
 else if (acaoCombate === 'USARITEM') {
+    const ITENS_BASE_ARCADIA = Arcadia.ITENS_BASE_ARCADIA;
     const ficha = await Arcadia.getFichaOuCarregar(senderIdButton);
     if (!ficha || !ficha.inventario) {
         await interaction.followUp({ content: "Seu inventário não foi encontrado!", ephemeral: true });
@@ -1419,6 +1418,7 @@ else if (acaoCombate === 'USARITEM') {
 
 // Handler do SELECT MENU de itens
 else if (interaction.isStringSelectMenu()) {
+    const ITENS_BASE_ARCADIA = Arcadia.ITENS_BASE_ARCADIA;
     const customIdParts = interaction.customId.split('_');
     if (customIdParts[0] === 'combate' && customIdParts[1] === 'SELECTITEM') {
         await interaction.deferUpdate();
@@ -1561,6 +1561,7 @@ else if (interaction.isStringSelectMenu()) {
 // --- TRATAMENTO DE SELECT MENUS ---
 else if (interaction.isStringSelectMenu()) {
     try {
+        const FEITICOS_BASE_ARCADIA = Arcadia.FEITICOS_BASE_ARCADIA;
         const customIdParts = interaction.customId.split('_');
         if (customIdParts[0] === 'combate' && customIdParts[1] === 'SELECTFEITICO') {
             const idCombate = customIdParts.slice(2).join('_');
