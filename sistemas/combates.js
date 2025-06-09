@@ -9,6 +9,7 @@ function setupCombate(deps) {
   adicionarXPELevelUp = deps.adicionarXPELevelUp;
   adicionarItemAoInventario = deps.adicionarItemAoInventario;
   ITENS_BASE_ARCADIA = deps.ITENS_BASE_ARCADIA;
+  processarUsarItem = deps.processarUsarItem;
   atualizarProgressoMissao = deps.atualizarProgressoMissao;
   conectarMongoDB = deps.conectarMongoDB;
 }
