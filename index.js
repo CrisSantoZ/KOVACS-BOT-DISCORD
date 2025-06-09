@@ -387,6 +387,16 @@ client.on('interactionCreate', async interaction => {
                         break;
                     }
 
+                        case 'inventario': {
+    const fichaJogador = await Arcadia.getFichaOuCarregar(senderId);
+    if (!fichaJogador) {
+        respostaParaEnviar = { embeds: [Arcadia.gerarEmbedErro("Ficha não encontrada", "Você precisa criar uma ficha primeiro com `/criar`.")] };
+        break;
+    }
+    respostaParaEnviar = await Arcadia.processarInventario(senderId);
+    break;
+                        }
+
                     case 'interagir': {
                         // Verificar se a interação ainda é válida antes de defer
                         if (interaction.replied || interaction.deferred) {
