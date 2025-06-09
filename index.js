@@ -4,6 +4,9 @@ const express = require('express');
 require('dotenv').config();
 const Arcadia = require('./arcadia_sistema.js');
 
+const ITENS_BASE_ARCADIA = Arcadia.ITENS_BASE_ARCADIA;
+const FEITICOS_BASE_ARCADIA = Arcadia.FEITICOS_BASE_ARCADIA;
+
 process.on('unhandledRejection', error => {
     console.error('GRAVE: Unhandled promise rejection:', error);
     // Em um ambiente de produção, você poderia notificar um canal de desenvolvimento aqui
