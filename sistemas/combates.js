@@ -140,8 +140,229 @@ async function processarAcaoJogadorCombate(idCombate, idJogadorAcao, tipoAcao = 
         logDoTurno.push(`💥 ${fichaJogador.nomePersonagem} ataca ${mob.nome}, causando ${danoCausado} de dano!`);
         logDoTurno.push(`🩸 ${mob.nome} agora tem ${mob.pvAtual}/${mob.atributos.pvMax} PV.`);
     } 
-    // Futuramente: else if (tipoAcao === "USAR_FEITICO") { ... }
-    // Futuramente: else if (tipoAcao === "USAR_ITEM") { ... }
+    
+else if (tipoAcao === "USAR_ITEM") {
+    const nomeItem = detalhesAcao.nomeItem;
+    if (!nomeItem) {
+        logDoTurno.push("Nenhum item foi especificado.");
+        combate.log.push(...logDoTurno);
+        return {
+            sucesso: false,
+            erro: "Nenhum item foi especificado.",
+            idCombate,
+            logTurnoAnterior: logDoTurno,
+            proximoTurno: "jogador",
+            estadoCombate: getEstadoCombateParaRetorno(combate)
+        };
+    }
+
+    // Use a função de uso de item já existente
+    const resultadoItem = await Arcadia.processarUsarItem(idJogadorAcao, nomeItem, 1);
+
+    // Se o retorno for um erro ou aviso (embed), trate como erro no combate
+    if (resultadoItem?.data?.title === "Erro" || resultadoItem?.data?.title === "Aviso" || resultadoItem?.erro) {
+        logDoTurno.push(
+            (resultadoItem?.data?.description || resultadoItem?.erro || "Não foi possível usar o item.")
+        );
+        combate.log.push(...logDoTurno);
+        return {
+            sucesso: false,
+            erro: resultadoItem?.data?.description || resultadoItem?.erro || "Não foi possível usar o item.",
+            idCombate,
+            logTurnoAnterior: logDoTurno,
+            proximoTurno: "jogador",
+            estadoCombate: getEstadoCombateParaRetorno(combate)
+        };
+    }
+
+    // Se sucesso, recarregue a ficha do jogador para estado atualizado
+    combate.fichaJogador = await Arcadia.getFichaOuCarregar(idJogadorAcao);
+
+    // Adicione mensagem de efeito ao log
+    if (resultadoItem?.data?.description) {
+        logDoTurno.push(resultadoItem.data.description);
+    } else if (typeof resultadoItem === "string") {
+        logDoTurno.push(resultadoItem);
+    } else {
+        logDoTurno.push("Item usado com sucesso!");
+    }
+
+    combate.log.push(...logDoTurno);
+    combate.turnoDoJogador = false;
+
+    return {
+        sucesso: true,
+        idCombate,
+        logTurnoAnterior: logDoTurno,
+        proximoTurno: "mob",
+        estadoCombate: getEstadoCombateParaRetorno(combate)
+    };
+}
+
+else if (tipoAcao === "USAR_FEITICO") {
+    const idFeitico = detalhesAcao.idFeitico;
+    if (!idFeitico) {
+        logDoTurno.push("Nenhum feitiço foi especificado.");
+        combate.log.push(...logDoTurno);
+        return {
+            sucesso: false,
+            erro: "Nenhum feitiço foi especificado.",
+            idCombate,
+            logTurnoAnterior: logDoTurno,
+            proximoTurno: "jogador",
+            estadoCombate: getEstadoCombateParaRetorno(combate)
+        };
+    }
+
+    // Carregar dados do feitiço e do jogador
+    const fichaConjurador = combate.fichaJogador;
+    const feiticoBase = FEITICOS_BASE_ARCADIA[idFeitico];
+    if (!feiticoBase) {
+        logDoTurno.push("Feitiço não encontrado.");
+        combate.log.push(...logDoTurno);
+        return {
+            sucesso: false,
+            erro: "Feitiço não encontrado.",
+            idCombate,
+            logTurnoAnterior: logDoTurno,
+            proximoTurno: "jogador",
+            estadoCombate: getEstadoCombateParaRetorno(combate)
+        };
+    }
+
+    const magiaAprendida = fichaConjurador.magiasConhecidas.find(m => m.id === idFeitico);
+    if (!magiaAprendida) {
+        logDoTurno.push("Você não conhece este feitiço.");
+        combate.log.push(...logDoTurno);
+        return {
+            sucesso: false,
+            erro: "Você não conhece este feitiço.",
+            idCombate,
+            logTurnoAnterior: logDoTurno,
+            proximoTurno: "jogador",
+            estadoCombate: getEstadoCombateParaRetorno(combate)
+        };
+    }
+
+    const nivelDoFeiticoNoJogador = magiaAprendida.nivel;
+    const detalhesDoNivelFeitico = feiticoBase.niveis.find(n => n.nivel === nivelDoFeiticoNoJogador);
+    if (!detalhesDoNivelFeitico) {
+        logDoTurno.push("Detalhes para este nível de feitiço não encontrados.");
+        combate.log.push(...logDoTurno);
+        return {
+            sucesso: false,
+            erro: "Detalhes para este nível de feitiço não encontrados.",
+            idCombate,
+            logTurnoAnterior: logDoTurno,
+            proximoTurno: "jogador",
+            estadoCombate: getEstadoCombateParaRetorno(combate)
+        };
+    }
+
+    if (fichaConjurador.pmAtual < detalhesDoNivelFeitico.custoPM) {
+        logDoTurno.push(`Mana insuficiente. Necessário: ${detalhesDoNivelFeitico.custoPM} PM.`);
+        combate.log.push(...logDoTurno);
+        return {
+            sucesso: false,
+            erro: `Mana insuficiente. Necessário: ${detalhesDoNivelFeitico.custoPM} PM.`,
+            idCombate,
+            logTurnoAnterior: logDoTurno,
+            proximoTurno: "jogador",
+            estadoCombate: getEstadoCombateParaRetorno(combate)
+        };
+    }
+
+    const cooldownKey = `${idFeitico}_${fichaConjurador._id || fichaConjurador.id || fichaConjurador.idJogador || idJogadorAcao}`;
+    if (fichaConjurador.cooldownsFeiticos && fichaConjurador.cooldownsFeiticos[cooldownKey] > Date.now()) {
+        const tempoRestante = Math.ceil((fichaConjurador.cooldownsFeiticos[cooldownKey] - Date.now()) / 1000);
+        logDoTurno.push(`Feitiço "${feiticoBase.nome}" em recarga. Aguarde ${tempoRestante}s.`);
+        combate.log.push(...logDoTurno);
+        return {
+            sucesso: false,
+            erro: `Feitiço "${feiticoBase.nome}" em recarga. Aguarde ${tempoRestante}s.`,
+            idCombate,
+            logTurnoAnterior: logDoTurno,
+            proximoTurno: "jogador",
+            estadoCombate: getEstadoCombateParaRetorno(combate)
+        };
+    }
+
+    // Consome PM
+    fichaConjurador.pmAtual -= detalhesDoNivelFeitico.custoPM;
+
+    // Aplica cooldown se houver
+    const cooldownBaseSegundos = feiticoBase.cooldownSegundos || 0;
+    const cooldownNivelSegundos = detalhesDoNivelFeitico.cooldownSegundos;
+    const cooldownFinalSegundos = typeof cooldownNivelSegundos === 'number' ? cooldownNivelSegundos : cooldownBaseSegundos;
+    if (cooldownFinalSegundos > 0) {
+        if (!fichaConjurador.cooldownsFeiticos) fichaConjurador.cooldownsFeiticos = {};
+        fichaConjurador.cooldownsFeiticos[cooldownKey] = Date.now() + (cooldownFinalSegundos * 1000);
+    }
+
+    const efeitoConfig = detalhesDoNivelFeitico.efeitoDetalhes;
+    let mensagemEfeito = `✨ ${fichaConjurador.nomePersonagem} usou **${feiticoBase.nome}** (Nível ${nivelDoFeiticoNoJogador})!\n`;
+
+    // ----------- Lógica de efeito no combate -----------
+    if (efeitoConfig && efeitoConfig.alvo === 'self') {
+        // Exemplo: cura/buff próprio
+        if (feiticoBase.tipo === "cura" && efeitoConfig.formulaCura) {
+            const cura = calcularValorDaFormula(efeitoConfig.formulaCura, fichaConjurador.atributos, fichaConjurador.atributos);
+            const pvAntes = fichaConjurador.pvAtual;
+            fichaConjurador.pvAtual = Math.min(fichaConjurador.pvMax, fichaConjurador.pvAtual + cura);
+            mensagemEfeito += `💖 Curou **${cura}** PV! (PV: ${pvAntes} → ${fichaConjurador.pvAtual}/${fichaConjurador.pvMax})`;
+        }
+        // Outros tipos: buffs, etc. (implemente conforme necessidade)
+    } else if (efeitoConfig && ["inimigo", "único"].includes(efeitoConfig.alvo)) {
+        // Exemplo: dano no mob
+        if (feiticoBase.tipo === "ataque" && efeitoConfig.formulaDano) {
+            const dano = calcularValorDaFormula(efeitoConfig.formulaDano, fichaConjurador.atributos, combate.mobInstancia.atributos);
+            const pvAntes = combate.mobInstancia.pvAtual;
+            combate.mobInstancia.pvAtual = Math.max(0, combate.mobInstancia.pvAtual - dano);
+            mensagemEfeito += `💥 Causou **${dano}** de dano em **${combate.mobInstancia.nome}**! (PV: ${pvAntes} → ${combate.mobInstancia.pvAtual}/${combate.mobInstancia.pvMax})`;
+        }
+        // Outros tipos: debuff, condicionais, etc. (implemente conforme necessidade)
+    } else {
+        mensagemEfeito += "(Efeito do feitiço não implementado para este alvo.)";
+    }
+
+    // Atualiza ficha do jogador no combate
+    combate.fichaJogador = fichaConjurador;
+
+    // Verifica vitória do jogador
+    if (combate.mobInstancia.pvAtual <= 0) {
+        logDoTurno.push(mensagemEfeito);
+        logDoTurno.push(`🏆 ${combate.mobInstancia.nome} foi derrotado!`);
+        combate.log.push(...logDoTurno);
+        combate.numeroMobsDerrotadosNaMissao = (combate.numeroMobsDerrotadosNaMissao || 0) + 1;
+        return {
+            sucesso: true,
+            mobDerrotado: true,
+            idCombate,
+            logTurnoAnterior: logDoTurno,
+            estadoCombate: getEstadoCombateParaRetorno(combate),
+            dadosParaFinalizar: {
+                idJogador: combate.idJogador,
+                mobInstancia: combate.mobInstancia,
+                idMissaoVinculada: combate.idMissaoVinculada,
+                idObjetivoVinculado: combate.idObjetivoVinculado,
+                numeroMobsJaDerrotados: combate.numeroMobsDerrotadosNaMissao
+            }
+        };
+    }
+
+    combate.turnoDoJogador = false;
+    logDoTurno.push(mensagemEfeito);
+    combate.log.push(...logDoTurno);
+    return {
+        sucesso: true,
+        idCombate,
+        logTurnoAnterior: logDoTurno,
+        proximoTurno: "mob",
+        estadoCombate: getEstadoCombateParaRetorno(combate)
+    };
+}
+
+      
     else {
         logDoTurno.push(`Ação "${tipoAcao}" ainda não é suportada.`);
         combate.log.push(...logDoTurno); // Adiciona ao log principal
