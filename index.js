@@ -1480,6 +1480,7 @@ else if (acaoCombate === 'USARITEM') {
             }
         }
     }
+}
 
 // Handler do SELECT MENU de itens
 else if (interaction.isStringSelectMenu() && interaction.customId.startsWith('combate_SELECTITEM_')) {
