@@ -93,6 +93,7 @@ client.on('guildMemberAdd', async member => {
 
 // --- Evento: Interação (Slash Commands, Autocomplete, Buttons) ---
 client.on('interactionCreate', async interaction => {
+     console.log("Recebi interaction!", interaction.type, interaction.customId || "");
     // --- BLOCO DE AUTOCOMPLETE ---
     if (interaction.isAutocomplete()) {
         const commandName = interaction.commandName;
