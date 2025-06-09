@@ -1,7 +1,7 @@
 //Combates Lógica
 const combatesAtivos = {}; // Cache local de combates ativos
 let mobsCollection = null; // Deve ser setada na inicialização do módulo
-let getFichaOuCarregar, atualizarFichaNoCacheEDb, adicionarXPELevelUp, adicionarItemAoInventario, ITENS_BASE_ARCADIA, atualizarProgressoMissao;
+let getFichaOuCarregar, atualizarFichaNoCacheEDb, adicionarXPELevelUp, adicionarItemAoInventario, processarUsarItem, ITENS_BASE_ARCADIA, atualizarProgressoMissao;
 
 function setupCombate(deps) {
   getFichaOuCarregar = deps.getFichaOuCarregar;
