@@ -158,7 +158,7 @@ else if (tipoAcao === "USAR_ITEM") {
     }
 
     // Use a função de uso de item já existente
-    const resultadoItem = await Arcadia.processarUsarItem(idJogadorAcao, nomeItem, 1);
+    const resultadoItem = await processarUsarItem(idJogadorAcao, nomeItem, 1);
 
     // Se o retorno for um erro ou aviso (embed), trate como erro no combate
     if (resultadoItem?.data?.title === "Erro" || resultadoItem?.data?.title === "Aviso" || resultadoItem?.erro) {
@@ -177,7 +177,7 @@ else if (tipoAcao === "USAR_ITEM") {
     }
 
     // Se sucesso, recarregue a ficha do jogador para estado atualizado
-    combate.fichaJogador = await Arcadia.getFichaOuCarregar(idJogadorAcao);
+    combate.fichaJogador = await getFichaOuCarregar(idJogadorAcao);
 
     // Adicione mensagem de efeito ao log
     if (resultadoItem?.data?.description) {
