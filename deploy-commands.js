@@ -155,6 +155,9 @@ new SlashCommandBuilder().setName('interagir')
             .setRequired(true)
             .setAutocomplete(true)
     ),
+    new SlashCommandBuilder()
+  .setName('inventario')
+  .setDescription('Veja todos os itens no seu inventário!')
     
 
     // --- Comandos de Admin ---
