@@ -157,8 +157,8 @@ new SlashCommandBuilder().setName('interagir')
     ),
     new SlashCommandBuilder()
   .setName('inventario')
-  .setDescription('Veja todos os itens no seu inventário!')
-    
+  .setDescription('Veja todos os itens no seu inventário!'),
+
 
     // --- Comandos de Admin ---
     new SlashCommandBuilder().setName('admincriar')
