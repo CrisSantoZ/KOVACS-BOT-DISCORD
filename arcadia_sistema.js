@@ -2369,7 +2369,7 @@ getFichasCollection,
     processarCriarFichaSlash, processarVerFichaEmbed, processarDistribuirPontosSlash,
     aprenderFeitico, usarFeitico,
     processarJackpot, processarUsarItem,
-    gerarListaComandos,
+    gerarListaComandos, processarInventario,
     processarMeusFeiticos, aceitarMissao,
 
     // Funções de Lógica de Comandos de Admin
