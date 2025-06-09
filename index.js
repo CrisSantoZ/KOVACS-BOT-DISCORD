@@ -173,9 +173,9 @@ client.on('interactionCreate', async interaction => {
             console.error(`[AUTOCOMPLETE] Erro ao processar autocomplete para /${commandName}, opção ${focusedOption.name}:`, error.message);
             // Só tentar responder se não foi respondido e não expirou
             if (!interaction.responded && error.code !== 10062 && !error.message.includes("Unknown interaction")) {
-                try { 
-                    await interaction.respond([]); 
-                } catch (respondError) { 
+                try {
+                    await interaction.respond([]);
+                } catch (respondError) {
                     console.error("[AUTOCOMPLETE] Erro ao responder com lista vazia:", respondError.message);
                 }
             }
@@ -229,23 +229,23 @@ client.on('interactionCreate', async interaction => {
                 respostaParaEnviar = Arcadia.gerarEmbedErro("Acesso Negado", "Este comando é apenas para administradores do bot.");
             } else {
                 switch (commandName) {
-                    case 'ping': 
-                        respostaParaEnviar = 'Pong!'; 
+                    case 'ping':
+                        respostaParaEnviar = 'Pong!';
                         break;
-                    case 'oi': 
-                    case 'arcadia': 
-                    case 'bemvindo': 
-                        respostaParaEnviar = Arcadia.gerarMensagemBoasVindas(senderUsername); 
+                    case 'oi':
+                    case 'arcadia':
+                    case 'bemvindo':
+                        respostaParaEnviar = Arcadia.gerarMensagemBoasVindas(senderUsername);
                         break;
-                    case 'comandos': 
-                    case 'help': 
-                        respostaParaEnviar = Arcadia.gerarListaComandos(isOwner); 
+                    case 'comandos':
+                    case 'help':
+                        respostaParaEnviar = Arcadia.gerarListaComandos(isOwner);
                         break;
                     case 'meusfeiticos':
                         respostaParaEnviar = await Arcadia.processarMeusFeiticos(senderId);
-                        break;  
+                        break;
                     case 'uparfeitico': {
-                        const idFeiticoParaUpar = options.getString('feitico'); 
+                        const idFeiticoParaUpar = options.getString('feitico');
                         if (!idFeiticoParaUpar || idFeiticoParaUpar === "sem_feiticos_upar" || idFeiticoParaUpar === "max_nivel_todos") {
                             let msgAviso = "Nenhum feitiço válido selecionado ou disponível para evoluir.";
                             if (idFeiticoParaUpar === "sem_feiticos_upar") msgAviso = "Você não parece conhecer feitiços que podem ser evoluídos no momento.";
@@ -256,17 +256,17 @@ client.on('interactionCreate', async interaction => {
                         }
                         break;
                     }
-                    case 'listaracas': 
-                        respostaParaEnviar = Arcadia.gerarListaRacasEmbed(); 
+                    case 'listaracas':
+                        respostaParaEnviar = Arcadia.gerarListaRacasEmbed();
                         break;
-                    case 'listaclasses': 
-                        respostaParaEnviar = Arcadia.gerarListaClassesEmbed(); 
+                    case 'listaclasses':
+                        respostaParaEnviar = Arcadia.gerarListaClassesEmbed();
                         break;
-                    case 'listareinos': 
-                        respostaParaEnviar = Arcadia.gerarListaReinosEmbed(); 
+                    case 'listareinos':
+                        respostaParaEnviar = Arcadia.gerarListaReinosEmbed();
                         break;
-                    case 'historia': 
-                        respostaParaEnviar = Arcadia.gerarEmbedHistoria(); 
+                    case 'historia':
+                        respostaParaEnviar = Arcadia.gerarEmbedHistoria();
                         break;
                     case 'criar': {
                         const nomePersonagem = options.getString('nome');
@@ -279,8 +279,8 @@ client.on('interactionCreate', async interaction => {
 
                         // Lógica de cargos após criação
                         if (resultadoCriacao && typeof resultadoCriacao.setTitle === 'function' && resultadoCriacao.data && resultadoCriacao.data.title && resultadoCriacao.data.title.includes("🎉 Personagem Criado! 🎉")) {
-                            if (member) { 
-                                const fichaCriada = await Arcadia.getFichaOuCarregar(senderId); 
+                            if (member) {
+                                const fichaCriada = await Arcadia.getFichaOuCarregar(senderId);
                                 if (fichaCriada) {
                                     let cargosAdicionadosMsgs = [];
                                     let cargosNaoEncontradosMsgs = [];
@@ -302,17 +302,17 @@ client.on('interactionCreate', async interaction => {
                                     for (const nomeCargo of nomesCargosParaAdicionar) {
                                         const cargoObj = member.guild.roles.cache.find(role => role.name === nomeCargo);
                                         if (cargoObj) {
-                                            try { 
+                                            try {
                                                 if (!member.roles.cache.has(cargoObj.id)) {
-                                                    await member.roles.add(cargoObj); 
-                                                    cargosAdicionadosMsgs.push(nomeCargo); 
+                                                    await member.roles.add(cargoObj);
+                                                    cargosAdicionadosMsgs.push(nomeCargo);
                                                 }
-                                            } catch (e) { 
-                                                console.error(`Erro ao ADICIONAR cargo ${nomeCargo} para ${senderUsername}:`, e); 
-                                                cargosNaoEncontradosMsgs.push(`${nomeCargo} (erro ao adicionar)`); 
+                                            } catch (e) {
+                                                console.error(`Erro ao ADICIONAR cargo ${nomeCargo} para ${senderUsername}:`, e);
+                                                cargosNaoEncontradosMsgs.push(`${nomeCargo} (erro ao adicionar)`);
                                             }
-                                        } else { 
-                                            cargosNaoEncontradosMsgs.push(`${nomeCargo} (não encontrado no servidor)`); 
+                                        } else {
+                                            cargosNaoEncontradosMsgs.push(`${nomeCargo} (não encontrado no servidor)`);
                                         }
                                     }
                                     if (resultadoCriacao.addFields) { // Adiciona os campos ao embed original
@@ -333,10 +333,10 @@ client.on('interactionCreate', async interaction => {
                         const jogadorAlvoFichaOpt = options.getUser('jogador');
                         let idAlvoFicha = senderId;
                         if (jogadorAlvoFichaOpt) {
-                            if (!isOwner) { 
-                                respostaParaEnviar = Arcadia.gerarEmbedErro("🚫 Acesso Negado", "Apenas administradores podem ver a ficha de outros jogadores."); 
-                            } else { 
-                                idAlvoFicha = jogadorAlvoFichaOpt.id; 
+                            if (!isOwner) {
+                                respostaParaEnviar = Arcadia.gerarEmbedErro("🚫 Acesso Negado", "Apenas administradores podem ver a ficha de outros jogadores.");
+                            } else {
+                                idAlvoFicha = jogadorAlvoFichaOpt.id;
                             }
                         }
                         if (!respostaParaEnviar) { // Só processa se não houve erro de permissão
@@ -347,7 +347,7 @@ client.on('interactionCreate', async interaction => {
                     case 'aprenderfeitico': {
                         const idFeitico = options.getString('feitico');
                         const resultado = await Arcadia.aprenderFeitico(senderId, idFeitico);
-                        respostaParaEnviar = resultado.erro 
+                        respostaParaEnviar = resultado.erro
                             ? Arcadia.gerarEmbedErro("Falha ao Aprender", resultado.erro)
                             : Arcadia.gerarEmbedSucesso("Feitiço Aprendido", resultado.sucesso);
                         break;
@@ -361,7 +361,7 @@ client.on('interactionCreate', async interaction => {
                         } else {
                             // usarFeitico retorna { embeds: [embed] } ou { erro: "..." }
                             // A lógica de envio genérica tratará { embeds: [embed] } corretamente
-                            respostaParaEnviar = resultado; 
+                            respostaParaEnviar = resultado;
                         }
                         break;
                     }
@@ -425,7 +425,7 @@ client.on('interactionCreate', async interaction => {
                             } catch (editError) {
                                 console.error("[INTERAGIR] Erro ao editar reply com erro de ficha:", editError.message);
                             }
-                            break; 
+                            break;
                         }
 
                         const resultadoInteracao = await Arcadia.processarInteracaoComNPC(nomeNPCInput, fichaJogador);
@@ -439,7 +439,7 @@ client.on('interactionCreate', async interaction => {
                             }
                         } else {
                             const embedNPC = new EmbedBuilder()
-                                .setColor(0x7289DA) 
+                                .setColor(0x7289DA)
                                 .setTitle(`🗣️ ${resultadoInteracao.tituloNPC || resultadoInteracao.nomeNPC}`)
                                 .setAuthor({ name: resultadoInteracao.nomeNPC });
 
@@ -468,8 +468,8 @@ client.on('interactionCreate', async interaction => {
                             embedNPC.addFields({ name: "💬 Diálogo:", value: resultadoInteracao.dialogoAtual.texto || "*Este personagem não diz nada no momento.*" });
 
                             if (resultadoInteracao.missaoRealmenteConcluida && resultadoInteracao.recompensasConcedidasTexto && resultadoInteracao.recompensasConcedidasTexto.length > 0) {
-                                embedNPC.addFields({ 
-                                    name: "🏅 Missão Concluída! Recompensas:", 
+                                embedNPC.addFields({
+                                    name: "🏅 Missão Concluída! Recompensas:",
                                     value: resultadoInteracao.recompensasConcedidasTexto.join("\n")
                                 });
                             } else if (resultadoInteracao.missaoRealmenteConcluida) {
@@ -523,7 +523,7 @@ client.on('interactionCreate', async interaction => {
                                 console.error("[INTERAGIR] Erro ao editar reply final:", editError.message);
                             }
                         }
-                        break; 
+                        break;
                     }
 
                     // --- Comandos de Admin ---
@@ -560,7 +560,7 @@ client.on('interactionCreate', async interaction => {
                         respostaParaEnviar = await Arcadia.processarAdminExcluirFicha(alvoExcluir.id, options.getString('confirmacao'), senderUsername, membroAlvo);
                         break;
                     default:
-                        if (commandName) { 
+                        if (commandName) {
                             respostaParaEnviar = Arcadia.gerarEmbedAviso("Comando Desconhecido", `O comando \`/${commandName}\` não foi reconhecido ou não está implementado no switch principal.`);
                         } else {
                             respostaParaEnviar = Arcadia.gerarEmbedErro("Erro Interno", "Nome do comando não recebido.");
@@ -576,13 +576,13 @@ client.on('interactionCreate', async interaction => {
                 if (typeof respostaParaEnviar === 'string') {
                     payload.content = respostaParaEnviar;
                 } else if (respostaParaEnviar.embeds && Array.isArray(respostaParaEnviar.embeds)) {
-                    payload.embeds = respostaParaEnviar.embeds; 
+                    payload.embeds = respostaParaEnviar.embeds;
                     if (respostaParaEnviar.content) { payload.content = respostaParaEnviar.content; }
                 } else if (respostaParaEnviar && typeof respostaParaEnviar.setTitle === 'function' && respostaParaEnviar.data) {
-                    payload.embeds = [respostaParaEnviar]; 
+                    payload.embeds = [respostaParaEnviar];
                 } else {
                     console.warn("[RESPOSTA FINAL ELSE] Formato de respostaParaEnviar não reconhecido:", JSON.stringify(respostaParaEnviar, null, 2));
-                    payload.content = "Ocorreu um erro inesperado ao formatar a resposta do bot."; 
+                    payload.content = "Ocorreu um erro inesperado ao formatar a resposta do bot.";
                 }
 
                 let deveSerEfêmera = false;
@@ -599,7 +599,7 @@ client.on('interactionCreate', async interaction => {
                          console.warn(`[ENVIO] Payload vazio ou incompleto para /${commandName}, mas interação já respondida/adiada ou é um comando que responde por si só.`);
                     }
                 } else {
-                     if (interaction.replied || interaction.deferred) { 
+                     if (interaction.replied || interaction.deferred) {
                         // Se o comando /interagir ou outro já deu deferReply/editReply,
                         // e mesmo assim chegamos aqui com um `respostaParaEnviar` (o que não deveria acontecer para /interagir),
                         // usamos followUp para não dar erro. Mas o ideal é que `respostaParaEnviar` seja null para esses casos.
@@ -610,29 +610,29 @@ client.on('interactionCreate', async interaction => {
                             await interaction.editReply(payload);
                         }
                     } else {
-                        await interaction.reply(payload); 
+                        await interaction.reply(payload);
                     }
                 }
-            } else if (!['criar', 'ficha', 'interagir'].includes(commandName)) { 
+            } else if (!['criar', 'ficha', 'interagir'].includes(commandName)) {
                 console.warn(`[RESPOSTA] 'respostaParaEnviar' é undefined para /${commandName}, e este comando não respondeu diretamente à interação.`);
-            } 
+            }
 
-        } catch (error) { 
+        } catch (error) {
             console.error(`Erro CRÍTICO ao processar comando /${commandName} por ${user.username}:`, error.message);
 
             // Só tentar responder se não for erro de interação expirada
             if (error.code !== 10062) {
                 let errorEmbedParaUsuario = Arcadia.gerarEmbedErro("😥 Erro Crítico", "Desculpe, ocorreu um erro crítico ao processar seu comando. O Mestre foi notificado e investigará o problema.");
                 const errorReplyPayload = { embeds: [errorEmbedParaUsuario], ephemeral: true };
-                try { 
-                    if (interaction.replied || interaction.deferred) { 
-                        await interaction.editReply(errorReplyPayload); 
-                    } else { 
-                        await interaction.reply(errorReplyPayload); 
+                try {
+                    if (interaction.replied || interaction.deferred) {
+                        await interaction.editReply(errorReplyPayload);
+                    } else {
+                        await interaction.reply(errorReplyPayload);
                     }
-                } catch (finalError) { 
+                } catch (finalError) {
                     console.error("Erro ao tentar responder sobre um erro anterior:", finalError.message);
-                } 
+                }
             }
         } // FIM DO BLOCO 'catch'
 
@@ -653,7 +653,7 @@ else if (interaction.isButton()) {
         return;
     }
 
-    try { 
+    try {
 
         if (tipoComponente === 'dialogo') {
             // Verificar se a interação ainda é válida
@@ -671,10 +671,10 @@ else if (interaction.isButton()) {
                 }
             }
 
-            const acaoDialogo = customIdParts[1] ? customIdParts[1].toUpperCase() : null; 
+            const acaoDialogo = customIdParts[1] ? customIdParts[1].toUpperCase() : null;
             const idNpc = customIdParts[2];
-            const idParametro3 = customIdParts[3]; 
-            const idDialogoOriginal = customIdParts[4]; 
+            const idParametro3 = customIdParts[3];
+            const idDialogoOriginal = customIdParts[4];
 
             if (acaoDialogo === 'ENCERRAR' || (acaoDialogo === 'CONTINUAR' && idParametro3 === 'sem_acao')) {
                 try {
@@ -684,7 +684,7 @@ else if (interaction.isButton()) {
                 }
                 return;
             } else if (acaoDialogo === 'CONTINUAR') {
-                const idProximoDialogo = idParametro3; 
+                const idProximoDialogo = idParametro3;
                 const resultadoInteracao = await Arcadia.processarInteracaoComNPC(idNpc, fichaJogador, idProximoDialogo);
 
                 if (resultadoInteracao.erro) {
@@ -768,8 +768,8 @@ else if (interaction.isButton()) {
                 await interaction.deferUpdate();
             }
 
-            const acaoMissao = customIdParts[1]; 
-            const idNpcMissao = customIdParts[2]; 
+            const acaoMissao = customIdParts[1];
+            const idNpcMissao = customIdParts[2];
             const idMissaoParaAceitar = customIdParts[3];
 
             if (acaoMissao === 'ACEITAR') {
@@ -783,17 +783,17 @@ else if (interaction.isButton()) {
                     let iniciarCombateInfo = null;
 
                     if (idMissaoParaAceitar === "mVRatos") {
-                        const missoesCol = Arcadia.getMissoesCollection(); 
+                        const missoesCol = Arcadia.getMissoesCollection();
                         if (!missoesCol) {
                             console.error("ERRO GRAVE no index.js: getMissoesCollection() retornou undefined!");
                             await interaction.followUp({ embeds: [Arcadia.gerarEmbedErro("Erro de Sistema", "Não foi possível acessar os dados da missão.")] });
-                            return; 
+                            return;
                         }
                         const missaoDef = await missoesCol.findOne({ _id: "mVRatos" });
                         if (missaoDef && missaoDef.objetivos && missaoDef.objetivos[0] && missaoDef.objetivos[0].tipo === "COMBATE") {
                             const primeiroObjetivo = missaoDef.objetivos[0];
                             iniciarCombateInfo = {
-                                idMob: primeiroObjetivo.alvo, 
+                                idMob: primeiroObjetivo.alvo,
                                 idMissao: idMissaoParaAceitar,
                                 idObjetivo: primeiroObjetivo.idObjetivo
                             };
@@ -824,7 +824,7 @@ console.log(">>> [INDEX | Início Combate] mobEstado.nivel É:", mobEstado ? mob
                             const nomeMob = mobEstado.nome || "Criatura Hostil";
                             const pvAtualMob = mobEstado.pvAtual;
                             const pvMaxMob = mobEstado.pvMax;
-                            const nivelMob = mobEstado && typeof mobEstado.nivel === 'number' && mobEstado.nivel > 0 ? mobEstado.nivel : '?'; 
+                            const nivelMob = mobEstado && typeof mobEstado.nivel === 'number' && mobEstado.nivel > 0 ? mobEstado.nivel : '?';
 console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED É:", nivelMob);
 
                             // SALVAR O COMBATE NO CACHE ANTES DE USAR
@@ -851,27 +851,27 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                             if (mobEstado && mobEstado.imagem && mobEstado.imagem.trim() && (mobEstado.imagem.startsWith('http://') || mobEstado.imagem.startsWith('https://'))) {
     embedCombate.setThumbnail(mobEstado.imagem.trim());
     console.log(`[DEBUG] Imagem do mob adicionada no combate: ${mobEstado.imagem}`);
-                        } 
+                        }
 
                             embedCombate.addFields(
-{ 
-    name: `👤 ${nomeJogador}`, 
+{
+    name: `👤 ${nomeJogador}`,
     // V---- Verifique estas linhas com atenção ----V
-    value: `❤️ PV: **${pvAtualJogador}/${pvMaxJogador}**\n💧 PM: **${pmAtualJogador}/${pmMaxJogador}**`, 
+    value: `❤️ PV: **${pvAtualJogador}/${pvMaxJogador}**\n💧 PM: **${pmAtualJogador}/${pmMaxJogador}**`,
     // ^---- Verifique estas linhas com atenção ----^
-    inline: true 
+    inline: true
 },
-{ 
+{
     name: `\u200B`, // Campo invisível para espaçamento
     value: `\u200B`,
     inline: true
 },
-{ 
-    name: `👹 ${nomeMob} (Nv. ${nivelMob})`, 
+{
+    name: `👹 ${nomeMob} (Nv. ${nivelMob})`,
     // V---- Verifique esta linha com atenção ----V
-    value: `❤️ PV: **${pvAtualMob}/${pvMaxMob}**`, 
+    value: `❤️ PV: **${pvAtualMob}/${pvMaxMob}**`,
     // ^---- Verifique esta linha com atenção ----^
-    inline: true 
+    inline: true
 }
 )
                                 .setFooter({ text: "Prepare-se para a batalha!" });
@@ -884,9 +884,9 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
                                     new ButtonBuilder().setCustomId(`combate_USARITEM_${resultadoInicioCombate.idCombate}`).setLabel("🎒 Usar Item").setStyle(ButtonStyle.Success)
                                 );
 
-                            await interaction.editReply({ embeds: [embedConfirmacao], components: [] }); 
+                            await interaction.editReply({ embeds: [embedConfirmacao], components: [] });
                             await interaction.followUp({ embeds: [embedCombate], components: [combatActionRow] });
-                            return; 
+                            return;
 
                         } else {
                             embedConfirmacao.addFields({ name: "⚠️ Falha ao Iniciar Combate", value: resultadoInicioCombate.erro || "Não foi possível iniciar o combate." });
@@ -930,7 +930,7 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
         } // <<<<<<<<<<<< FECHA O "else if (tipoComponente === 'missao')"
 
         else if (tipoComponente === 'combate') {
-    const acaoCombate = customIdParts[1]; 
+    const acaoCombate = customIdParts[1];
     const idCombate = customIdParts.slice(2).join('_');
 
 // Fazer deferUpdate
@@ -1025,25 +1025,25 @@ if (!interaction.replied && !interaction.deferred) {
 
                 // Adicionar recompensas se houver
                 if (resultadoFinal.recompensasTextoFinal && resultadoFinal.recompensasTextoFinal.length > 0) {
-                    embedVitoria.addFields({ 
-                        name: "🎁 Recompensas Obtidas", 
+                    embedVitoria.addFields({
+                        name: "🎁 Recompensas Obtidas",
                         value: resultadoFinal.recompensasTextoFinal.join('\n'),
-                        inline: false 
+                        inline: false
                     });
                 }
 
                 // Adicionar log do combate se disponível
                 if (resultadoFinal.logCombateFinal && resultadoFinal.logCombateFinal.length > 0) {
                     const logResumido = resultadoFinal.logCombateFinal.slice(-3).join('\n'); // Últimas 3 linhas
-                    embedVitoria.addFields({ 
-                        name: "📋 Resultado do Combate", 
+                    embedVitoria.addFields({
+                        name: "📋 Resultado do Combate",
                         value: logResumido,
-                        inline: false 
+                        inline: false
                     });
                 }
 
                 // Adicionar imagem do mob se disponível
-                if (mobEstadoAcao && mobEstadoAcao.imagem && mobEstadoAcao.imagem.trim() && 
+                if (mobEstadoAcao && mobEstadoAcao.imagem && mobEstadoAcao.imagem.trim() &&
                     (mobEstadoAcao.imagem.startsWith('http://') || mobEstadoAcao.imagem.startsWith('https://'))) {
                     embedVitoria.setThumbnail(mobEstadoAcao.imagem.trim());
                 }
@@ -1090,13 +1090,13 @@ if (!interaction.replied && !interaction.deferred) {
                 const nivelMobTurnoMob = typeof mobEstadoTurnoMob.nivel === 'number' ? mobEstadoTurnoMob.nivel : '?';
 
 
-                embedCombateAtualizado.setFields( 
+                embedCombateAtualizado.setFields(
                     { name: `👤 ${nomeJogadorTurnoMob}`, value: `❤️ PV: **${pvAtualJogadorTurnoMob}/${pvMaxJogadorTurnoMob}**\n💧 PM: **${pmAtualJogadorTurnoMob}/${pmMaxJogadorTurnoMob}**`, inline: true },
                     { name: `\u200B`, value: `\u200B`, inline: true },
                     { name: `👹 ${nomeMobTurnoMob} (Nv. ${nivelMobTurnoMob})`, value: `❤️ PV: **${pvAtualMobTurnoMob}/${pvMaxMobTurnoMob}**`, inline: true }
                 );
 
-                if (resultadoTurnoMob.combateTerminou && resultadoTurnoMob.vencedorFinal === "mob") { 
+                if (resultadoTurnoMob.combateTerminou && resultadoTurnoMob.vencedorFinal === "mob") {
                     embedCombateAtualizado.setTitle("☠️ Derrota... ☠️");
                     embedCombateAtualizado.setColor(0x8B0000); // Vermelho escuro para derrota
                     // A descrição já foi atualizada com o log do turno do mob, que deve incluir a derrota do jogador
@@ -1111,7 +1111,7 @@ if (!interaction.replied && !interaction.deferred) {
                         console.log(`[COMBATE] Combate ${idCombate} removido do cache após derrota do jogador.`);
                     }
                 return;
-                } else if (resultadoTurnoMob.combateTerminou) { 
+                } else if (resultadoTurnoMob.combateTerminou) {
                     // Outro caso de término, ex: mob se derrotou ou venceu por outra condição
                     embedCombateAtualizado.setTitle(resultadoTurnoMob.vencedorFinal === "jogador" ? "🏆 Vitória Inesperada! 🏆" : "⚔️ Combate Encerrado ⚔️");
                     if (resultadoTurnoMob.logCombateFinal) {
@@ -1138,7 +1138,7 @@ if (!interaction.replied && !interaction.deferred) {
         } catch (e) {
             console.error(">>> [INDEX] ERRO BRUTO no bloco ATAQUEBASICO:", e);
             await interaction.editReply({ content: "Ocorreu um erro crítico severo ao processar seu ataque.", components: [], embeds:[] });
-            return; 
+            return;
         }
     } // Fecha if (acaoCombate === 'ATAQUEBASICO')
 
@@ -1451,37 +1451,6 @@ else if (acaoCombate === 'USARITEM') {
     }
 }
 
-        // Select menu de itens
-        if (!interaction.replied && !interaction.deferred) {
-            const selectMenu = new StringSelectMenuBuilder()
-                .setCustomId(`combate_SELECTITEM_${idCombate}`)
-                .setPlaceholder('🎒 Selecione um item para usar...')
-                .addOptions(
-                    itensUsaveis.slice(0, 25).map(item => ({
-                        label: `${item.itemNome} x${item.quantidade}`,
-                        value: item.itemNome.toLowerCase(),
-                        description: ITENS_BASE_ARCADIA[item.itemNome?.toLowerCase()]?.efeito?.mensagemAoUsar?.slice(0, 90) || ""
-                    }))
-                );
-            const selectRow = new ActionRowBuilder().addComponents(selectMenu);
-            await interaction.reply({
-                content: "🧪 **Escolha o item que deseja usar:**",
-                components: [selectRow],
-                ephemeral: true
-            });
-        }
-    } catch (e) {
-        console.error("Erro CRÍTICO ao processar botão de item:", e);
-        if (!interaction.replied && !interaction.deferred) {
-            try {
-                await interaction.reply({ content: "Ocorreu um erro ao processar uso de item.", ephemeral: true });
-            } catch (replyError) {
-                console.error("Erro ao tentar responder sobre erro de botão de item:", replyError);
-            }
-        }
-    }
-}
-
 // Handler do SELECT MENU de itens
 else if (interaction.isStringSelectMenu() && interaction.customId.startsWith('combate_SELECTITEM_')) {
     try {
@@ -1732,11 +1701,11 @@ else if (interaction.isStringSelectMenu() && interaction.customId.startsWith('co
         }
     }
 }
-            
-} // FECHA else if (tipoComponente === 'combate')    
+
+} // FECHA else if (tipoComponente === 'combate')
 
         else if (tipoComponente === 'conversa') {
-            const acaoConversa = customIdParts[1]; 
+            const acaoConversa = customIdParts[1];
             if (acaoConversa === 'ENCERRAR') {
                 await interaction.editReply({ content: "Conversa encerrada.", embeds: [], components: [] });
                 return;
