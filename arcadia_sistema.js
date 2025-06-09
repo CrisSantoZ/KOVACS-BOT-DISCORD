@@ -617,6 +617,43 @@ async function processarVerFichaEmbed(idAlvoDiscord, isAdminConsultandoOutro, id
     return embed;
 }
 
+async function processarInventario(idJogador) {
+    const ficha = await getFichaOuCarregar(idJogador);
+    if (!ficha) {
+        return { embeds: [gerarEmbedErro("Ficha não encontrada", "Use `/criar` para criar sua ficha!")] };
+    }
+    if (!ficha.inventario || ficha.inventario.length === 0) {
+        return { embeds: [gerarEmbedAviso("Inventário Vazio", "Você não possui itens no inventário.")] };
+    }
+
+    // Agrupa por nome e soma quantidades
+    const itensAgrupados = {};
+    ficha.inventario.forEach(item => {
+        const nome = item.itemNome || item.nome || item;
+        if (!itensAgrupados[nome]) {
+            itensAgrupados[nome] = { ...item, quantidade: 0 };
+        }
+        itensAgrupados[nome].quantidade += item.quantidade || 1;
+    });
+
+    // Monta descrição dos itens
+    const linhas = Object.values(itensAgrupados).map(item => {
+        let linha = `**${item.itemNome || item.nome}**`;
+        if (item.quantidade > 1) linha += ` x${item.quantidade}`;
+        if (item.descricao) linha += `\n> ${item.descricao}`;
+        return linha;
+    });
+
+    const embed = new EmbedBuilder()
+        .setColor(0xF8C300)
+        .setTitle('🎒 Seu Inventário')
+        .setDescription(linhas.join('\n\n'))
+        .setFooter({ text: 'Para usar um item: /usaritem [nome]' })
+        .setTimestamp();
+
+    return { embeds: [embed] };
+}
+
 async function processarDistribuirPontosSlash(idJogadorDiscord, atributosOpcoes) {
     const ficha = await getFichaOuCarregar(idJogadorDiscord);
     if (!ficha || ficha.nomePersonagem === "N/A") {
