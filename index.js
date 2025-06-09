@@ -1693,9 +1693,6 @@ else if (interaction.isStringSelectMenu() && interaction.customId.startsWith('co
         }
     }
     return; // Fim do manipulador de isButton
-} // FECHA else if (interaction.isButton())
-
-// --- TRATAMENTO DE SELECT MENUS ---
 
 } // FECHA else if (interaction.isStringSelectMenu())
 
