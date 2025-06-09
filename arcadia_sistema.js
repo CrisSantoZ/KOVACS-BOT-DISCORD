@@ -46,6 +46,7 @@ combates.setupCombate({
   ITENS_BASE_ARCADIA,
   conectarMongoDB,
   atualizarProgressoMissao,
+  processarUsarItem,
 });
 
 const { 
