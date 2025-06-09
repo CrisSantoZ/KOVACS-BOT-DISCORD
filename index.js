@@ -1299,16 +1299,14 @@ else if (interaction.isButton() && interaction.customId.startsWith('combate_USAR
     }
 }
 
-// Handler do botão USARITEM durante o combate
+            // Handler do botão USARITEM durante o combate
 else if (acaoCombate === 'USARITEM') {
     try {
         const ITENS_BASE_ARCADIA = Arcadia.ITENS_BASE_ARCADIA;
         const ficha = await Arcadia.getFichaOuCarregar(senderIdButton);
 
         if (!ficha || !ficha.inventario) {
-            if (!interaction.replied && !interaction.deferred) {
-                await interaction.reply({ content: "Seu inventário não foi encontrado!", ephemeral: true });
-            }
+            await interaction.reply({ content: "Seu inventário não foi encontrado!", ephemeral: true });
             return;
         }
 
@@ -1318,17 +1316,13 @@ else if (acaoCombate === 'USARITEM') {
         });
 
         if (!itensUsaveis || itensUsaveis.length === 0) {
-            if (!interaction.replied && !interaction.deferred) {
-                await interaction.reply({ content: "Você não tem itens usáveis!", ephemeral: true });
-            }
+            await interaction.reply({ content: "Você não tem itens usáveis!", ephemeral: true });
             return;
         }
 
         // Apenas um item usável: executa direto
         if (itensUsaveis.length === 1) {
-            if (!interaction.replied && !interaction.deferred) {
-                await interaction.deferUpdate();
-            }
+            await interaction.deferUpdate();
 
             const resultado = await Arcadia.processarAcaoJogadorCombate(
                 idCombate, senderIdButton, "USAR_ITEM", { nomeItem: itensUsaveis[0].itemNome }
@@ -1429,6 +1423,33 @@ else if (acaoCombate === 'USARITEM') {
             await interaction.editReply({ embeds: [embedCombateAtualizado], components: [combatActionRow] });
             return;
         }
+
+        // Mais de um item usável: ABRE SELECT MENU (NÃO FAÇA DEFERUPDATE ANTES!)
+        const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId(`combate_SELECTITEM_${idCombate}`)
+            .setPlaceholder('🎒 Selecione um item para usar...')
+            .addOptions(
+                itensUsaveis.slice(0, 25).map(item => ({
+                    label: `${item.itemNome} x${item.quantidade}`,
+                    value: item.itemNome.toLowerCase(),
+                    description: ITENS_BASE_ARCADIA[item.itemNome?.toLowerCase()]?.efeito?.mensagemAoUsar?.slice(0, 90) || ""
+                }))
+            );
+        const selectRow = new ActionRowBuilder().addComponents(selectMenu);
+        await interaction.reply({
+            content: "🧪 **Escolha o item que deseja usar:**",
+            components: [selectRow],
+            ephemeral: true
+        });
+    } catch (e) {
+        console.error("Erro CRÍTICO ao processar botão de item:", e);
+        try {
+            await interaction.reply({ content: "Ocorreu um erro ao processar uso de item.", ephemeral: true });
+        } catch (replyError) {
+            console.error("Erro ao tentar responder sobre erro de botão de item:", replyError);
+        }
+    }
+}
 
         // Select menu de itens
         if (!interaction.replied && !interaction.deferred) {
