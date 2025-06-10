@@ -1269,23 +1269,31 @@ else if (interaction.isButton() && interaction.customId.startsWith('combate_USAR
 
         // Mais de um feitiço: abre select menu para escolha
         // Use reply apenas se ainda não respondeu/deferiu
-        if (!interaction.replied && !interaction.deferred) {
-            const selectMenu = new StringSelectMenuBuilder()
-                .setCustomId(`combate_SELECTFEITICO_${idCombate}`)
-                .setPlaceholder('🔮 Selecione um feitiço para usar...')
-                .addOptions(
-                    magiasConhecidas.slice(0, 25).map(magia => ({
-                        label: magia.name,
-                        value: magia.value
-                    }))
-                );
-            const selectRow = new ActionRowBuilder().addComponents(selectMenu);
-            await interaction.reply({
-                content: "🎯 **Escolha o feitiço que deseja usar:**",
-                components: [selectRow],
-                ephemeral: true
-            });
-        }
+const selectMenu = new StringSelectMenuBuilder()
+    .setCustomId(`combate_SELECTFEITICO_${idCombate}`)
+    .setPlaceholder('🔮 Selecione um feitiço para usar...')
+    .addOptions(
+        magiasConhecidas.slice(0, 25).map(magia => ({
+            label: magia.name,
+            value: magia.value
+        }))
+    );
+const selectRow = new ActionRowBuilder().addComponents(selectMenu);
+
+if (!interaction.replied && !interaction.deferred) {
+    await interaction.reply({
+        content: "🎯 **Escolha o feitiço que deseja usar:**",
+        components: [selectRow],
+        ephemeral: true
+    });
+} else {
+    await interaction.followUp({
+        content: "🎯 **Escolha o feitiço que deseja usar:**",
+        components: [selectRow],
+        ephemeral: true
+    });
+}
+        
     } catch (e) {
         console.error(`Erro CRÍTICO ao processar botão de feitiço:`, e);
         // Só tente responder se não respondeu/deferiu
@@ -1425,22 +1433,32 @@ else if (acaoCombate === 'USARITEM') {
         }
 
         // Mais de um item usável: ABRE SELECT MENU (NÃO FAÇA DEFERUPDATE ANTES!)
-        const selectMenu = new StringSelectMenuBuilder()
-            .setCustomId(`combate_SELECTITEM_${idCombate}`)
-            .setPlaceholder('🎒 Selecione um item para usar...')
-            .addOptions(
-                itensUsaveis.slice(0, 25).map(item => ({
-                    label: `${item.itemNome} x${item.quantidade}`,
-                    value: item.itemNome.toLowerCase(),
-                    description: ITENS_BASE_ARCADIA[item.itemNome?.toLowerCase()]?.efeito?.mensagemAoUsar?.slice(0, 90) || ""
-                }))
-            );
-        const selectRow = new ActionRowBuilder().addComponents(selectMenu);
-        await interaction.reply({
-            content: "🧪 **Escolha o item que deseja usar:**",
-            components: [selectRow],
-            ephemeral: true
-        });
+const selectMenu = new StringSelectMenuBuilder()
+    .setCustomId(`combate_SELECTITEM_${idCombate}`)
+    .setPlaceholder('🎒 Selecione um item para usar...')
+    .addOptions(
+        itensUsaveis.slice(0, 25).map(item => ({
+            label: `${item.itemNome} x${item.quantidade}`,
+            value: item.itemNome.toLowerCase(),
+            description: ITENS_BASE_ARCADIA[item.itemNome?.toLowerCase()]?.efeito?.mensagemAoUsar?.slice(0, 90) || ""
+        }))
+    );
+const selectRow = new ActionRowBuilder().addComponents(selectMenu);
+
+if (!interaction.replied && !interaction.deferred) {
+    await interaction.reply({
+        content: "🧪 **Escolha o item que deseja usar:**",
+        components: [selectRow],
+        ephemeral: true
+    });
+} else {
+    await interaction.followUp({
+        content: "🧪 **Escolha o item que deseja usar:**",
+        components: [selectRow],
+        ephemeral: true
+    });
+}
+        
     } catch (e) {
         console.error("Erro CRÍTICO ao processar botão de item:", e);
         try {
