@@ -44,6 +44,7 @@ combates.setupCombate({
   adicionarXPELevelUp,
   adicionarItemAoInventario,
   ITENS_BASE_ARCADIA,
+  FEITICOS_BASE_ARCADIA,
   conectarMongoDB,
   atualizarProgressoMissao,
   processarUsarItem,
@@ -824,23 +825,39 @@ async function getFeiticosDisponiveisParaAprender(idJogador) {
 }
 
 function calcularValorDaFormula(formula, atributosConjurador, atributosAlvo = {}) {
+    if (!formula || typeof formula !== 'string') {
+        console.warn("[Parser Fórmula] Fórmula inválida:", formula);
+        return 0;
+    }
+
     let expressao = formula.replace(/\s/g, '').toLowerCase();
     const todosAtributos = { ...atributosConjurador, ...atributosAlvo };
 
+    // Substituir atributos na fórmula
     for (const atr in todosAtributos) {
-        const regex = new RegExp(atr.toLowerCase().replace('base', ''), 'g'); // Remove 'base' do nome do atributo na regex
-        expressao = expressao.replace(regex, String(todosAtributos[atr] || 0));
+        const valor = todosAtributos[atr] || 0;
+        // Criar regex para substituir o nome do atributo
+        const regex = new RegExp(atr.toLowerCase().replace('base', ''), 'gi');
+        expressao = expressao.replace(regex, String(valor));
     }
-    // Substitui atributos específicos do modelo, como 'manabase' para 'mana' se a fórmula usar 'mana'
-    expressao = expressao.replace(/manabase/g, String(todosAtributos.manabase || 0));
 
+    // Substitui atributos específicos
+    expressao = expressao.replace(/manabase/gi, String(todosAtributos.manabase || todosAtributos.manaBase || 0));
+    expressao = expressao.replace(/forca/gi, String(todosAtributos.forca || 0));
+    expressao = expressao.replace(/agilidade/gi, String(todosAtributos.agilidade || 0));
+    expressao = expressao.replace(/vitalidade/gi, String(todosAtributos.vitalidade || 0));
+    expressao = expressao.replace(/intelecto/gi, String(todosAtributos.intelecto || 0));
+    expressao = expressao.replace(/carisma/gi, String(todosAtributos.carisma || 0));
 
     try {
-        if (!/^[0-9.+\-*/()\.]+$/.test(expressao)) {
-            console.warn("[Parser Fórmula] Expressão contém caracteres inválidos após substituição:", expressao);
+        // Validar que só contém números e operadores matemáticos
+        if (!/^[0-9.+\-*/()]+$/.test(expressao)) {
+            console.warn("[Parser Fórmula] Expressão contém caracteres inválidos após substituição:", expressao, "| Fórmula original:", formula);
             return 0;
         }
-        return Math.floor(new Function(`return ${expressao}`)());
+        
+        const resultado = Math.floor(eval(expressao));
+        return isNaN(resultado) ? 0 : Math.max(0, resultado);
     } catch (e) {
         console.error(`[Parser Fórmula] Erro ao calcular fórmula "${formula}" (expressão resultante: "${expressao}"):`, e);
         return 0;
@@ -1272,7 +1289,7 @@ async function usarFeitico(idJogador, idFeitico, idAlvo = null) {
         .setTitle(`✨ Feitiço Lançado: ${feiticoBase.nome}! ✨`)
         .setDescription(mensagemResultadoEfeito + mensagemEfeitoEspecifico.trim())
         .setFooter({text: `PM restante de ${fichaConjurador.nomePersonagem}: ${fichaConjurador.pmAtual}/${fichaConjurador.pmMax}`});
-    return { embed: embedResultado };
+    return { embeds: [embedResultado] };
 }
 
 
