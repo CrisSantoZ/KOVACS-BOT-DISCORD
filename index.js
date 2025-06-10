@@ -1309,7 +1309,6 @@ if (!interaction.replied && !interaction.deferred) {
 
             // Handler do botão USARITEM durante o combate
 else if (acaoCombate === 'USARITEM') {
-else if (acaoCombate === 'USARITEM') {
     try {
         const ITENS_BASE_ARCADIA = Arcadia.ITENS_BASE_ARCADIA;
         const ficha = await Arcadia.getFichaOuCarregar(senderIdButton);
