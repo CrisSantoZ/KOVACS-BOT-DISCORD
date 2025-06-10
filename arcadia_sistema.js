@@ -1276,12 +1276,22 @@ async function usarFeitico(idJogador, idFeitico, idAlvo = null) {
 }
 
 
+function normalizaNomeItemArcadia(str) {
+    return str
+        ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/\s+/g, '')
+            .toLowerCase()
+        : '';
+}
+
 async function processarUsarItem(idJogadorDiscord, nomeItemInput, quantidadeUsar = 1) {
     const ficha = await getFichaOuCarregar(idJogadorDiscord);
     if (!ficha) return gerarEmbedErro("Uso de Item", "Sua ficha não foi encontrada.");
 
-    const nomeItemNormalizado = nomeItemInput.toLowerCase();
-    const itemNoInventario = ficha.inventario.find(i => i.itemNome.toLowerCase() === nomeItemNormalizado);
+    const nomeItemNormalizado = normalizaNomeItemArcadia(nomeItemInput);
+    const itemNoInventario = ficha.inventario.find(i => 
+        normalizaNomeItemArcadia(i.itemNome) === nomeItemNormalizado
+    );
 
     if (!itemNoInventario) {
         return gerarEmbedAviso("Item Não Encontrado", `Você não possui o item "${nomeItemInput}" no seu inventário.`);
@@ -1290,12 +1300,13 @@ async function processarUsarItem(idJogadorDiscord, nomeItemInput, quantidadeUsar
         return gerarEmbedAviso("Quantidade Insuficiente", `Você tentou usar ${quantidadeUsar} de "${itemNoInventario.itemNome}", mas só tem ${itemNoInventario.quantidade}.`);
     }
 
-    const itemBase = ITENS_BASE_ARCADIA[nomeItemNormalizado]; // Pega a definição base do item
+    // O restante do seu código permanece igual:
+    const itemBase = ITENS_BASE_ARCADIA[normalizaNomeItemArcadia(itemNoInventario.itemNome)];
     if (!itemBase || !itemBase.usavel) {
         return gerarEmbedAviso("Item Não Usável", `O item "${itemNoInventario.itemNome}" não pode ser usado desta forma.`);
     }
 
-    const cooldownKey = `${nomeItemNormalizado}_${idJogadorDiscord}`;
+    const cooldownKey = `${normalizaNomeItemArcadia(itemNoInventario.itemNome)}_${idJogadorDiscord}`;
     if (itemBase.cooldownSegundos && ficha.cooldownsItens && ficha.cooldownsItens[cooldownKey] > Date.now()) {
         const tempoRestante = Math.ceil((ficha.cooldownsItens[cooldownKey] - Date.now()) / 1000);
         return gerarEmbedAviso("Item em Recarga", `"${itemBase.itemNome}" está em recarga. Aguarde ${tempoRestante}s.`);
@@ -1335,15 +1346,14 @@ async function processarUsarItem(idJogadorDiscord, nomeItemInput, quantidadeUsar
         // Adicionar mais tipos de efeito conforme necessário (REMOVE_CONDICAO, BUFF_ARMA, etc.)
         default:
             mensagemEfeito += "\n(Efeito específico não implementado ou item de utilidade.)";
-            // Para itens de utilidade, o efeito pode ser narrativo ou gerenciado externamente.
-            efeitoAplicado = true; // Assume que foi usado, mesmo que o efeito seja passivo/narrativo
+            efeitoAplicado = true;
             break;
     }
 
     if (efeitoAplicado) {
         itemNoInventario.quantidade -= quantidadeUsar;
         if (itemNoInventario.quantidade <= 0) {
-            ficha.inventario = ficha.inventario.filter(i => i.itemNome.toLowerCase() !== nomeItemNormalizado);
+            ficha.inventario = ficha.inventario.filter(i => normalizaNomeItemArcadia(i.itemNome) !== nomeItemNormalizado);
         }
 
         if (itemBase.cooldownSegundos) {
@@ -1356,7 +1366,6 @@ async function processarUsarItem(idJogadorDiscord, nomeItemInput, quantidadeUsar
         return gerarEmbedAviso("Efeito Não Aplicado", `Não foi possível aplicar o efeito do item "${itemBase.itemNome}".`);
     }
 }
-
 
 async function processarJackpot(idJogadorDiscord, args) {
     const ficha = await getFichaOuCarregar(idJogadorDiscord);
