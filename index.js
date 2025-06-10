@@ -1482,8 +1482,9 @@ else if (interaction.isStringSelectMenu() && interaction.customId.startsWith('co
         const nomeItemSelecionado = interaction.values[0];
 
         const resultado = await Arcadia.processarAcaoJogadorCombate(
-            idCombate, interaction.user.id, "USAR_ITEM", { nomeItem: nomeItemSelecionado }
-        );
+    idCombate, interaction.user.id, "USAR_ITEM", { nomeItem: nomeItemSelecionado }
+);
+console.log("[DEBUG Handler] Resultado do uso de item:", resultado);
 
         if (!resultado || typeof resultado !== 'object') {
             await interaction.editReply({ content: "Erro crítico ao usar item.", components: [], embeds: [] });
