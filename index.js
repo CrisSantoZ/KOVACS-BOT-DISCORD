@@ -1307,7 +1307,39 @@ if (!interaction.replied && !interaction.deferred) {
     }
 }
 
-            // Handler do botão USARITEM durante o combate
+} // FECHA else if (tipoComponente === 'combate')
+
+        else if (tipoComponente === 'conversa') {
+            const acaoConversa = customIdParts[1];
+            if (acaoConversa === 'ENCERRAR') {
+                await interaction.editReply({ content: "Conversa encerrada.", embeds: [], components: [] });
+                return;
+            } else {
+                await interaction.editReply({ content: `Ação de conversa "${acaoConversa}" não reconhecida.`, embeds:[], components: [] });
+            }
+        } // FECHA else if (tipoComponente === 'conversa')
+
+        else { // Para tipoComponente não reconhecido
+            console.warn(`[AVISO BOTÃO] Tipo de componente não reconhecido no botão: ${tipoComponente} (customId: ${interaction.customId})`);
+            await interaction.editReply({ content: 'Ação de botão não reconhecida ou não implementada.', embeds:[], components: [] });
+        } // FECHA o else final da cadeia if/else if
+
+    } catch(buttonError) { // FECHA o try principal
+        console.error(`Erro CRÍTICO ao processar botão ${interaction.customId} para ${interaction.user.username}:`, buttonError.message);
+        // Só tentar responder se não for erro de interação expirada E se não foi respondido ainda
+        if (buttonError.code !== 10062 && !interaction.replied && !interaction.deferred) {
+            try {
+                await interaction.reply({ content: "Ocorreu um erro interno ao processar esta ação.", embeds: [], components: [], ephemeral: true });
+            } catch (editError) {
+                console.error("Erro ao tentar responder sobre erro de botão:", editError.message);
+            }
+        }
+    }
+    return; // Fim do manipulador de isButton
+
+} // FECHA else if (interaction.isStringSelectMenu())
+
+              // Handler do botão USARITEM durante o combate
 else if (acaoCombate === 'USARITEM') {
     try {
         const ITENS_BASE_ARCADIA = Arcadia.ITENS_BASE_ARCADIA;
@@ -1726,40 +1758,6 @@ else if (interaction.isStringSelectMenu() && interaction.customId.startsWith('co
         }
     }
 }
-
-} // FECHA else if (tipoComponente === 'combate')
-
-        else if (tipoComponente === 'conversa') {
-            const acaoConversa = customIdParts[1];
-            if (acaoConversa === 'ENCERRAR') {
-                await interaction.editReply({ content: "Conversa encerrada.", embeds: [], components: [] });
-                return;
-            } else {
-                await interaction.editReply({ content: `Ação de conversa "${acaoConversa}" não reconhecida.`, embeds:[], components: [] });
-            }
-        } // FECHA else if (tipoComponente === 'conversa')
-
-        else { // Para tipoComponente não reconhecido
-            console.warn(`[AVISO BOTÃO] Tipo de componente não reconhecido no botão: ${tipoComponente} (customId: ${interaction.customId})`);
-            await interaction.editReply({ content: 'Ação de botão não reconhecida ou não implementada.', embeds:[], components: [] });
-        } // FECHA o else final da cadeia if/else if
-
-    } catch(buttonError) { // FECHA o try principal
-        console.error(`Erro CRÍTICO ao processar botão ${interaction.customId} para ${interaction.user.username}:`, buttonError.message);
-        // Só tentar responder se não for erro de interação expirada E se não foi respondido ainda
-        if (buttonError.code !== 10062 && !interaction.replied && !interaction.deferred) {
-            try {
-                await interaction.reply({ content: "Ocorreu um erro interno ao processar esta ação.", embeds: [], components: [], ephemeral: true });
-            } catch (editError) {
-                console.error("Erro ao tentar responder sobre erro de botão:", editError.message);
-            }
-        }
-    }
-    return; // Fim do manipulador de isButton
-
-} // FECHA else if (interaction.isStringSelectMenu())
-
-    // Outros 'else if' para outros tipos de interação podem vir aqui.
 
 }); // FIM DO client.on('interactionCreate'...)
 
