@@ -1471,6 +1471,7 @@ if (!interaction.replied && !interaction.deferred) {
 
 // Handler do SELECT MENU de itens
 else if (interaction.isStringSelectMenu() && interaction.customId.startsWith('combate_SELECTITEM_')) {
+    console.log('[DEBUG] Entrou no handler do SELECT MENU de item!');
     try {
         if (!interaction.replied && !interaction.deferred) {
             await interaction.deferUpdate();
@@ -1480,10 +1481,12 @@ else if (interaction.isStringSelectMenu() && interaction.customId.startsWith('co
         const customIdParts = interaction.customId.split('_');
         const idCombate = customIdParts.slice(2).join('_');
         const nomeItemSelecionado = interaction.values[0];
+console.log('[DEBUG] Item selecionado:', nomeItemSelecionado);
 
         const resultado = await Arcadia.processarAcaoJogadorCombate(
     idCombate, interaction.user.id, "USAR_ITEM", { nomeItem: nomeItemSelecionado }
 );
+        console.log('[DEBUG] Resultado de processarAcaoJogadorCombate:', resultado);
 console.log("[DEBUG Handler] Resultado do uso de item:", resultado);
 
         if (!resultado || typeof resultado !== 'object') {
