@@ -1341,42 +1341,33 @@ if (!interaction.replied && !interaction.deferred) {
 
               // Handler do botão USARITEM durante o combate
 else if (acaoCombate === 'USARITEM') {
-    try {
-        const ITENS_BASE_ARCADIA = Arcadia.ITENS_BASE_ARCADIA;
-        const ficha = await Arcadia.getFichaOuCarregar(senderIdButton);
+                try {
+                    const ITENS_BASE_ARCADIA = Arcadia.ITENS_BASE_ARCADIA;
+                    const ficha = await Arcadia.getFichaOuCarregar(senderIdButton);
 
-        if (!ficha || !ficha.inventario) {
-            await interaction.reply({ content: "Seu inventário não foi encontrado!", ephemeral: true });
-            return;
-        }
+                    if (!ficha || !ficha.inventario) {
+                        await interaction.reply({ content: "Seu inventário não foi encontrado!", ephemeral: true });
+                        return;
+                    }
 
-        // Apenas itens usáveis (com base robusta, case-insensitive)
-        const itensUsaveis = ficha.inventario.filter(item => {
-            const base = ITENS_BASE_ARCADIA[item.itemNome?.toLowerCase()];
-            return base && base.usavel && item.quantidade > 0;
-        });
+                    // Apenas itens usáveis (com base robusta, case-insensitive)
+                    const itensUsaveis = ficha.inventario.filter(item => {
+                        const base = ITENS_BASE_ARCADIA[item.itemNome?.toLowerCase()];
+                        return base && base.usavel && item.quantidade > 0;
+                    });
 
-        if (!itensUsaveis || itensUsaveis.length === 0) {
-            await interaction.reply({ content: "Você não tem itens usáveis!", ephemeral: true });
-            return;
-        }
+                    if (!itensUsaveis || itensUsaveis.length === 0) {
+                        await interaction.reply({ content: "Você não tem itens usáveis!", ephemeral: true });
+                        return;
+                    }
 
-        // Apenas 1 item usável: usa direto
-        if (itensUsaveis.length === 1) {
-            await interaction.deferUpdate();
+                    // Apenas 1 item usável: usa direto
+                    if (itensUsaveis.length === 1) {
+                        await interaction.deferUpdate();
 
-            const resultado = await Arcadia.processarAcaoJogadorCombate(
-                idCombate, senderIdButton, "USAR_ITEM", { nomeItem: itensUsaveis[0].itemNome }
-            );
-
-            if (!resultado || typeof resultado !== 'object') {
-                await interaction.editReply({ content: "Erro crítico ao usar item.", components: [], embeds: [] });
-                return;
-            }
-            if (resultado.erro) {
-                await interaction.editReply({ content: `Erro ao usar item: ${resultado.erro}`, components: [] });
-                return;
-            }
+                        const resultado = await Arcadia.processarAcaoJogadorCombate(
+                            idCombate, senderIdButton, "USAR_ITEM", { nomeItem: itensUsaveis[0].itemNome }
+                        );
 
             // Atualização do embed
             const jogadorEstadoAcao = resultado.estadoCombate?.jogador;
