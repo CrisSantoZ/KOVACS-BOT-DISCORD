@@ -144,7 +144,8 @@ async function processarAcaoJogadorCombate(idCombate, idJogadorAcao, tipoAcao = 
     
 else if (tipoAcao === "USAR_ITEM") {
     const nomeItem = detalhesAcao.nomeItem;
-    if (!nomeItem) {
+   console.log("DEBUG Detalhes da ação:", detalhesAcao);
+  if (!nomeItem) {
         logDoTurno.push("Nenhum item foi especificado.");
         combate.log.push(...logDoTurno);
         return {
