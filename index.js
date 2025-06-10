@@ -1472,7 +1472,10 @@ if (!interaction.replied && !interaction.deferred) {
 // Handler do SELECT MENU de itens
 else if (interaction.isStringSelectMenu() && interaction.customId.startsWith('combate_SELECTITEM_')) {
     try {
-        await interaction.deferUpdate();
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.deferUpdate();
+        }
+
         const ITENS_BASE_ARCADIA = Arcadia.ITENS_BASE_ARCADIA;
         const customIdParts = interaction.customId.split('_');
         const idCombate = customIdParts.slice(2).join('_');
