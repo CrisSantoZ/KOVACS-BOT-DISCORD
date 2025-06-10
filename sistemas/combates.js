@@ -143,9 +143,8 @@ async function processarAcaoJogadorCombate(idCombate, idJogadorAcao, tipoAcao = 
     } 
     
 else if (tipoAcao === "USAR_ITEM") {
-    const nomeItem = detalhesAcao.nomeItem;
-   console.log("DEBUG Detalhes da ação:", detalhesAcao);
-  if (!nomeItem) {
+    const nomeItem = detalhesAcao.nomeItem || combate.itemSelecionado;
+    if (!nomeItem) {
         logDoTurno.push("Nenhum item foi especificado.");
         combate.log.push(...logDoTurno);
         return {
@@ -160,6 +159,8 @@ else if (tipoAcao === "USAR_ITEM") {
 
     // Use a função de uso de item já existente
     const resultadoItem = await processarUsarItem(idJogadorAcao, nomeItem, 1);
+
+  combate.itemSelecionado = undefined;
 
     // Se o retorno for um erro ou aviso (embed), trate como erro no combate
     if (resultadoItem?.data?.title === "Erro" || resultadoItem?.data?.title === "Aviso" || resultadoItem?.erro) {
