@@ -159,6 +159,7 @@ else if (tipoAcao === "USAR_ITEM") {
 
     // Use a função de uso de item já existente
     const resultadoItem = await processarUsarItem(idJogadorAcao, nomeItem, 1);
+console.log("[DEBUG Combate] Resultado de processarUsarItem:", resultadoItem);
 
   combate.itemSelecionado = undefined;
 
