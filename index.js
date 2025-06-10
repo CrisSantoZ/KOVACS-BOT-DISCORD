@@ -1437,48 +1437,72 @@ else if (acaoCombate === 'USARITEM') {
         }
 
         // Mais de um item usável: ABRE SELECT MENU (NÃO FAÇA DEFERUPDATE ANTES!)
-const selectMenu = new StringSelectMenuBuilder()
-    .setCustomId(`combate_SELECTITEM_${idCombate}`)
-    .setPlaceholder('🎒 Selecione um item para usar...')
-    .addOptions(
-  itensUsaveis.slice(0, 25).map(item => ({
-    label: `${item.itemNome} x${item.quantidade}`,
-    value: item.itemNome // NÃO use .toLowerCase() aqui!
-  }))
-);
-const selectRow = new ActionRowBuilder().addComponents(selectMenu);
+                        const selectMenu = new StringSelectMenuBuilder()
+                            .setCustomId(`combate_SELECTITEM_${idCombate}`)
+                            .setPlaceholder('🎒 Selecione um item para usar...')
+                            .addOptions(
+                                itensUsaveis.slice(0, 25).map(item => ({
+                                    label: `${item.itemNome} x${item.quantidade}`,
+                                    value: item.itemNome // NÃO use .toLowerCase() aqui!
+                                }))
+                            );
+                        const selectRow = new ActionRowBuilder().addComponents(selectMenu);
 
-if (!interaction.replied && !interaction.deferred) {
-    await interaction.reply({
-        content: "🧪 **Escolha o item que deseja usar:**",
-        components: [selectRow],
-        ephemeral: true
-    });
-} else {
-    await interaction.followUp({
-        content: "🧪 **Escolha o item que deseja usar:**",
-        components: [selectRow],
-        ephemeral: true
-    });
-}
+                        if (!interaction.replied && !interaction.deferred) {
+                            await interaction.reply({
+                                content: "🧪 **Escolha o item que deseja usar:**",
+                                components: [selectRow],
+                                ephemeral: true
+                            });
+                        } else {
+                            await interaction.followUp({
+                                content: "🧪 **Escolha o item que deseja usar:**",
+                                components: [selectRow],
+                                ephemeral: true
+                            });
+                        }
 
-    } catch (e) {
-        console.error("Erro CRÍTICO ao processar botão de item:", e);
-        try {
-            await interaction.reply({ content: "Ocorreu um erro ao processar uso de item.", ephemeral: true });
-        } catch (replyError) {
-            console.error("Erro ao tentar responder sobre erro de botão de item:", replyError);
+                    } catch (e) {
+                        console.error("Erro CRÍTICO ao processar botão de item:", e);
+                        try {
+                            await interaction.reply({ content: "Ocorreu um erro ao processar uso de item.", ephemeral: true });
+                        } catch (replyError) {
+                            console.error("Erro ao tentar responder sobre erro de botão de item:", replyError);
+                        }
+                    }
+                } // Fecha else if (acaoCombate === 'USARITEM')
+
+            } // Fecha else if (tipoComponente === 'combate')
+
+            else if (tipoComponente === 'conversa') {
+                const acaoConversa = customIdParts[1];
+                if (acaoConversa === 'ENCERRAR') {
+                    await interaction.editReply({ content: "Conversa encerrada.", embeds: [], components: [] });
+                    return;
+                } else {
+                    await interaction.editReply({ content: `Ação de conversa "${acaoConversa}" não reconhecida.`, embeds:[], components: [] });
+                }
+            } // FECHA else if (tipoComponente === 'conversa')
+
+            else { // Para tipoComponente não reconhecido
+                console.warn(`[AVISO BOTÃO] Tipo de componente não reconhecido no botão: ${tipoComponente} (customId: ${interaction.customId})`);
+                await interaction.editReply({ content: 'Ação de botão não reconhecida ou não implementada.', embeds:[], components: [] });
+            } // FECHA o else final da cadeia if/else if
+
+        } catch(buttonError) { // FECHA o try principal
+            console.error(`Erro CRÍTICO ao processar botão ${interaction.customId} para ${interaction.user.username}:`, buttonError.message);
+            // Só tentar responder se não for erro de interação expirada E se não foi respondido ainda
+            if (buttonError.code !== 10062 && !interaction.replied && !interaction.deferred) {
+                try {
+                    await interaction.reply({ content: "Ocorreu um erro interno ao processar esta ação.", embeds: [], components: [], ephemeral: true });
+                } catch (editError) {
+                    console.error("Erro ao tentar responder sobre erro de botão:", editError.message);
+                }
+            }
         }
-    }
-}
+        return; // Fim do manipulador de isButton
 
-} else {
-        console.log('[DEBUG] Select menu não reconhecido:', interaction.customId);
-        if (!interaction.replied && !interaction.deferred) {
-            await interaction.reply({ content: "Seleção não reconhecida.", ephemeral: true });
-        }
-    }
-}
+    } // FECHA else if (interaction.isStringSelectMenu())
 
 // Handler de SELECT MENU separado
 else if (interaction.isStringSelectMenu()) {
