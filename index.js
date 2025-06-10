@@ -849,9 +849,9 @@ console.log(">>> [INDEX | Início Combate] Valor final de nivelMob PARA O EMBED 
 
                             // Adicionar imagem do mob se existir
                             if (mobEstado && mobEstado.imagem && mobEstado.imagem.trim() && (mobEstado.imagem.startsWith('http://') || mobEstado.imagem.startsWith('https://'))) {
-    embedCombate.setThumbnail(mobEstado.imagem.trim());
-    console.log(`[DEBUG] Imagem do mob adicionada no combate: ${mobEstado.imagem}`);
-                        }
+                                embedCombate.setThumbnail(mobEstado.imagem.trim());
+                                console.log(`[DEBUG] Imagem do mob adicionada no combate: ${mobEstado.imagem}`);
+                            }
 
                             embedCombate.addFields(
 {
