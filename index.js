@@ -1309,6 +1309,7 @@ if (!interaction.replied && !interaction.deferred) {
 
             // Handler do botão USARITEM durante o combate
 else if (acaoCombate === 'USARITEM') {
+else if (acaoCombate === 'USARITEM') {
     try {
         const ITENS_BASE_ARCADIA = Arcadia.ITENS_BASE_ARCADIA;
         const ficha = await Arcadia.getFichaOuCarregar(senderIdButton);
@@ -1318,6 +1319,7 @@ else if (acaoCombate === 'USARITEM') {
             return;
         }
 
+        // Apenas itens usáveis (com base robusta, case-insensitive)
         const itensUsaveis = ficha.inventario.filter(item => {
             const base = ITENS_BASE_ARCADIA[item.itemNome?.toLowerCase()];
             return base && base.usavel && item.quantidade > 0;
@@ -1328,7 +1330,7 @@ else if (acaoCombate === 'USARITEM') {
             return;
         }
 
-        // Apenas um item usável: executa direto
+        // Apenas 1 item usável: usa direto
         if (itensUsaveis.length === 1) {
             await interaction.deferUpdate();
 
@@ -1437,12 +1439,11 @@ const selectMenu = new StringSelectMenuBuilder()
     .setCustomId(`combate_SELECTITEM_${idCombate}`)
     .setPlaceholder('🎒 Selecione um item para usar...')
     .addOptions(
-        itensUsaveis.slice(0, 25).map(item => ({
-            label: `${item.itemNome} x${item.quantidade}`,
-            value: item.itemNome.toLowerCase(),
-            description: ITENS_BASE_ARCADIA[item.itemNome?.toLowerCase()]?.efeito?.mensagemAoUsar?.slice(0, 90) || ""
-        }))
-    );
+  itensUsaveis.slice(0, 25).map(item => ({
+    label: `${item.itemNome} x${item.quantidade}`,
+    value: item.itemNome // NÃO use .toLowerCase() aqui!
+  }))
+);
 const selectRow = new ActionRowBuilder().addComponents(selectMenu);
 
 if (!interaction.replied && !interaction.deferred) {
