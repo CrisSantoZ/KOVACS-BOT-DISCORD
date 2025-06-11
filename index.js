@@ -1473,8 +1473,6 @@ else if (acaoCombate === 'USARFEITICO') {
             }
         } // Fecha else if (acaoCombate === 'USARITEM')
 
-    } // Fecha else if (tipoComponente === 'combate')
-
     else if (tipoComponente === 'conversa') {
         const acaoConversa = customIdParts[1];
         if (acaoConversa === 'ENCERRAR') {
