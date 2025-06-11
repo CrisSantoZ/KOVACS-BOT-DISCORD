@@ -1,46 +1,7 @@
 //Combates Lógica
 const combatesAtivos = {}; // Cache local de combates ativos
 let mobsCollection = null; // Deve ser setada na inicialização do módulo
-let getFichaOuCarregar, atualizarFichaNoCacheEDb, adicionarXPELevelUp, adicionarItemAoInventario, processarUsarItem, ITENS_BASE_ARCADIA, FEITICOS_BASE_ARCADIA, atualizarProgressoMissao;
-
-// Função para calcular fórmulas matemáticas com atributos
-function calcularValorDaFormula(formula, atributosConjurador, atributosAlvo = {}) {
-    if (!formula || typeof formula !== 'string') {
-        console.warn("[Parser Fórmula] Fórmula inválida:", formula);
-        return 0;
-    }
-
-    let expressao = formula.replace(/\s/g, '').toLowerCase();
-    const todosAtributos = { ...atributosConjurador, ...atributosAlvo };
-
-    // Substituir atributos na fórmula
-    for (const atr in todosAtributos) {
-        const valor = todosAtributos[atr] || 0;
-        const regex = new RegExp(atr.toLowerCase().replace('base', ''), 'gi');
-        expressao = expressao.replace(regex, String(valor));
-    }
-
-    // Substitui atributos específicos
-    expressao = expressao.replace(/manabase/gi, String(todosAtributos.manabase || todosAtributos.manaBase || 0));
-    expressao = expressao.replace(/forca/gi, String(todosAtributos.forca || 0));
-    expressao = expressao.replace(/agilidade/gi, String(todosAtributos.agilidade || 0));
-    expressao = expressao.replace(/vitalidade/gi, String(todosAtributos.vitalidade || 0));
-    expressao = expressao.replace(/intelecto/gi, String(todosAtributos.intelecto || 0));
-    expressao = expressao.replace(/carisma/gi, String(todosAtributos.carisma || 0));
-
-    try {
-        if (!/^[0-9.+\-*/()]+$/.test(expressao)) {
-            console.warn("[Parser Fórmula] Expressão contém caracteres inválidos:", expressao);
-            return 0;
-        }
-        
-        const resultado = Math.floor(eval(expressao));
-        return isNaN(resultado) ? 0 : Math.max(0, resultado);
-    } catch (e) {
-        console.error(`[Parser Fórmula] Erro ao calcular fórmula "${formula}":`, e);
-        return 0;
-    }
-}
+let getFichaOuCarregar, atualizarFichaNoCacheEDb, adicionarXPELevelUp, adicionarItemAoInventario, processarUsarItem, ITENS_BASE_ARCADIA, atualizarProgressoMissao;
 
 function setupCombate(deps) {
   getFichaOuCarregar = deps.getFichaOuCarregar;
@@ -48,7 +9,6 @@ function setupCombate(deps) {
   adicionarXPELevelUp = deps.adicionarXPELevelUp;
   adicionarItemAoInventario = deps.adicionarItemAoInventario;
   ITENS_BASE_ARCADIA = deps.ITENS_BASE_ARCADIA;
-  FEITICOS_BASE_ARCADIA = deps.FEITICOS_BASE_ARCADIA;
   processarUsarItem = deps.processarUsarItem;
   atualizarProgressoMissao = deps.atualizarProgressoMissao;
   conectarMongoDB = deps.conectarMongoDB;
