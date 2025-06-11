@@ -899,6 +899,142 @@ async function handleUsarItem(interaction, idCombate, senderIdButton) {
     }
 }
 
+// Handler específico para select menus
+async function handleSelectMenu(interaction) {
+    const customIdParts = interaction.customId.split('_');
+    const tipoComponente = customIdParts[0];
+    const acaoSelect = customIdParts[1];
+    const idCombate = customIdParts.slice(2).join('_');
+    const senderIdSelect = interaction.user.id;
+
+    console.log(`[SELECT MENU] Processando: ${interaction.customId} pelo usuário ${senderIdSelect}`);
+
+    try {
+        if (tipoComponente === 'combate') {
+            if (acaoSelect === 'SELECTFEITICO') {
+                await handleSelectFeitico(interaction, idCombate, senderIdSelect);
+            } else if (acaoSelect === 'SELECTITEM') {
+                await handleSelectItem(interaction, idCombate, senderIdSelect);
+            } else {
+                console.warn(`[SELECT MENU] Ação de combate não reconhecida: ${acaoSelect}`);
+                if (!interaction.replied && !interaction.deferred) {
+                    await interaction.reply({ 
+                        content: "❌ Ação de seleção não reconhecida.", 
+                        ephemeral: true 
+                    });
+                }
+            }
+        } else {
+            console.warn(`[SELECT MENU] Tipo não reconhecido: ${tipoComponente}`);
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({ 
+                    content: "❌ Tipo de seleção não reconhecida.", 
+                    ephemeral: true 
+                });
+            }
+        }
+    } catch (error) {
+        console.error(`[SELECT MENU] Erro crítico ao processar ${interaction.customId}:`, error);
+        
+        if (!interaction.replied && !interaction.deferred) {
+            try {
+                await interaction.reply({ 
+                    content: "❌ Ocorreu um erro interno ao processar esta seleção.", 
+                    ephemeral: true 
+                });
+            } catch (editError) {
+                console.error("[SELECT MENU] Erro ao tentar responder sobre erro:", editError);
+            }
+        }
+    }
+}
+
+// Handler específico para seleção de feitiço
+async function handleSelectFeitico(interaction, idCombate, senderIdSelect) {
+    try {
+        await interaction.deferUpdate();
+
+        const idFeiticoSelecionado = interaction.values[0];
+        
+        const resultado = await Arcadia.processarAcaoJogadorCombate(
+            idCombate, 
+            senderIdSelect, 
+            "USAR_FEITICO", 
+            { idFeitico: idFeiticoSelecionado }
+        );
+
+        if (!resultado || typeof resultado !== 'object') {
+            await interaction.editReply({ 
+                content: "❌ Erro crítico ao usar feitiço.", 
+                components: [], 
+                embeds: [] 
+            });
+            return;
+        }
+
+        if (resultado.erro) {
+            await interaction.editReply({ 
+                content: `❌ Erro ao usar feitiço: ${resultado.erro}`, 
+                components: [] 
+            });
+            return;
+        }
+
+        await processarResultadoCombate(interaction, resultado, idCombate, senderIdSelect, "🔮 Combate (Feitiço)", 0x800080);
+        
+    } catch (error) {
+        console.error("[SELECT MENU] Erro ao processar seleção de feitiço:", error);
+        await interaction.editReply({ 
+            content: "❌ Erro crítico ao processar seleção de feitiço.", 
+            components: [], 
+            embeds: [] 
+        });
+    }
+}
+
+// Handler específico para seleção de item
+async function handleSelectItem(interaction, idCombate, senderIdSelect) {
+    try {
+        await interaction.deferUpdate();
+
+        const nomeItemSelecionado = interaction.values[0];
+        
+        const resultado = await Arcadia.processarAcaoJogadorCombate(
+            idCombate, 
+            senderIdSelect, 
+            "USAR_ITEM", 
+            { nomeItem: nomeItemSelecionado }
+        );
+
+        if (!resultado || typeof resultado !== 'object') {
+            await interaction.editReply({ 
+                content: "❌ Erro crítico ao usar item.", 
+                components: [], 
+                embeds: [] 
+            });
+            return;
+        }
+
+        if (resultado.erro) {
+            await interaction.editReply({ 
+                content: `❌ Erro ao usar item: ${resultado.erro}`, 
+                components: [] 
+            });
+            return;
+        }
+
+        await processarResultadoCombate(interaction, resultado, idCombate, senderIdSelect, "🎒 Combate (Item)", 0xF8C300);
+        
+    } catch (error) {
+        console.error("[SELECT MENU] Erro ao processar seleção de item:", error);
+        await interaction.editReply({ 
+            content: "❌ Erro crítico ao processar seleção de item.", 
+            components: [], 
+            embeds: [] 
+        });
+    }
+}
+
 // Função auxiliar para iniciar combate automático
 async function iniciarCombateAutomatico(interaction, embedConfirmacao, idMissao, senderIdButton, fichaJogador) {
     try {
@@ -1006,6 +1142,8 @@ client.on('interactionCreate', async interaction => {
             await handleSelectMenu(interaction);
         } else if (interaction.isButton()) {
             await handleButton(interaction);
+        } else if (interaction.isStringSelectMenu()) {
+            await handleSelectMenu(interaction);
         } else if (interaction.isChatInputCommand()) {
             await handleSlashCommand(interaction);
         }
