@@ -1320,7 +1320,6 @@ else if (acaoCombate === 'USARFEITICO') {
 } // FECHA else if (interaction.isStringSelectMenu())
 
               } // FECHA else if (acaoCombate === 'USARFEITICO')
-        } // FECHA else if (tipoComponente === 'combate')
 
         // Handler do botão USARITEM durante o combate
         else if (acaoCombate === 'USARITEM') {
@@ -1492,7 +1491,7 @@ else if (acaoCombate === 'USARFEITICO') {
         await interaction.editReply({ content: 'Ação de botão não reconhecida ou não implementada.', embeds:[], components: [] });
     } // FECHA o else final da cadeia if/else if
 
-} catch(buttonError) { // FECHA o try principal
+} catch (buttonError) { // FECHA o try principal
     console.error(`Erro CRÍTICO ao processar botão ${interaction.customId} para ${interaction.user.username}:`, buttonError.message);
     // Só tentar responder se não for erro de interação expirada E se não foi respondido ainda
     if (buttonError.code !== 10062 && !interaction.replied && !interaction.deferred) {
