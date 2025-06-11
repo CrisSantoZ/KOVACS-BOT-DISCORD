@@ -1319,7 +1319,6 @@ else if (acaoCombate === 'USARFEITICO') {
 
 } // FECHA else if (interaction.isStringSelectMenu())
 
-              } // FECHA else if (acaoCombate === 'USARFEITICO')
 
         // Handler do botão USARITEM durante o combate
         else if (acaoCombate === 'USARITEM') {
