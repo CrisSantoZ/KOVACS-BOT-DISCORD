@@ -194,79 +194,41 @@ async function processarAcaoJogadorCombate(idCombate, idJogadorAcao, tipoAcao = 
     const resultadoItem = await processarUsarItem(idJogadorAcao, nomeItem, 1);
     console.log("[DEBUG Combate] Resultado de processarUsarItem:", resultadoItem);
 
-    // Verificar se o item foi usado com sucesso
-    if (resultadoItem && resultadoItem.color === 0x00FF00) { // Verde = sucesso
-        logDoTurno.push(`🎒 ${resultadoItem.description || 'Item usado com sucesso!'}`);
+    // Verificar se o item foi usado com sucesso (embed verde)
+    if (resultadoItem && resultadoItem.data && resultadoItem.data.color === 0x00FF00) {
+        // Item usado com sucesso
+        logDoTurno.push(`🎒 ${resultadoItem.data.description || 'Item usado com sucesso!'}`);
         
         // Atualizar a ficha do jogador no combate com os novos valores
         const fichaAtualizada = await getFichaOuCarregar(idJogadorAcao);
         if (fichaAtualizada) {
             combate.fichaJogador = fichaAtualizada;
         }
-    } else if (resultadoItem && resultadoItem.color === 0xFFFF00) { // Amarelo = aviso
-        logDoTurno.push(`⚠️ ${resultadoItem.description || 'Problema ao usar item.'}`);
+
         combate.log.push(...logDoTurno);
+        combate.turnoDoJogador = false;
+
         return {
-            sucesso: false,
-            erro: resultadoItem.description || "Não foi possível usar o item.",
+            sucesso: true,
             idCombate,
             logTurnoAnterior: logDoTurno,
-            proximoTurno: "jogador",
+            proximoTurno: "mob",
             estadoCombate: getEstadoCombateParaRetorno(combate)
         };
     } else {
-        logDoTurno.push("❌ Erro ao usar item.");
+        // Item não pôde ser usado (erro ou aviso)
+        const mensagemErro = resultadoItem?.data?.description || "Não foi possível usar o item.";
+        logDoTurno.push(`❌ ${mensagemErro}`);
         combate.log.push(...logDoTurno);
         return {
             sucesso: false,
-            erro: "Erro interno ao usar item.",
+            erro: mensagemErro,
             idCombate,
             logTurnoAnterior: logDoTurno,
             proximoTurno: "jogador",
             estadoCombate: getEstadoCombateParaRetorno(combate)
         };
     }
-
-    combate.itemSelecionado = undefined;
-
-    // Se o retorno for um erro ou aviso (embed), trate como erro no combate
-    if (resultadoItem?.data?.title === "Erro" || resultadoItem?.data?.title === "Aviso" || resultadoItem?.erro) {
-        logDoTurno.push(
-            (resultadoItem?.data?.description || resultadoItem?.erro || "Não foi possível usar o item.")
-        );
-        combate.log.push(...logDoTurno);
-        return {
-            sucesso: false,
-            erro: resultadoItem?.data?.description || resultadoItem?.erro || "Não foi possível usar o item.",
-            idCombate,
-            logTurnoAnterior: logDoTurno,
-            proximoTurno: "jogador",
-            estadoCombate: getEstadoCombateParaRetorno(combate)
-        };
-    }
-
-    // Se sucesso, recarregue a ficha do jogador para estado atualizado
-    combate.fichaJogador = await getFichaOuCarregar(idJogadorAcao);
-
-    // Adicione mensagem de efeito ao log
-    if (resultadoItem?.data?.description) {
-        logDoTurno.push(resultadoItem.data.description);
-    } else if (typeof resultadoItem === "string") {
-        logDoTurno.push(resultadoItem);
-    } else {
-        logDoTurno.push("Item usado com sucesso!");
-    }
-
-    combate.log.push(...logDoTurno);
-    combate.turnoDoJogador = false;
-
-    return {
-        sucesso: true,
-        idCombate,
-        logTurnoAnterior: logDoTurno,
-        proximoTurno: "mob",
-        estadoCombate: getEstadoCombateParaRetorno(combate)
-    };
 }
 
 else if (tipoAcao === "USAR_FEITICO") {
