@@ -74,7 +74,7 @@ async function processarTurnoMobCombate(idCombate) {
     const combate = combatesAtivos[idCombate];
     if (!combate) return { erro: "Combate não encontrado ou já finalizado.", combateTerminou: true };
     if (combate.turnoDoJogador) return { erro: "Ainda é o turno do jogador!", combateTerminou: false };
-    if (combate.mobInstancia.pvAtual <= 0) return { erro: "Oponente já derrotado.", combateTerminou: true, vencedor: "jogador" }
+    if (combate.mobInstancia.pvAtual <= 0) return { erro: "Oponente já derrotado.", combateTerminou: true, vencedor: "jogador" };
 
     const fichaJogador = combate.fichaJogador;
     const mob = combate.mobInstancia;
