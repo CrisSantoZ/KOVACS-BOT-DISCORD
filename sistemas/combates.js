@@ -367,14 +367,14 @@ else if (tipoAcao === "USAR_FEITICO") {
 🌪️ **${combate.mobInstancia.nome}** foi afetado por: ${efeitoConfig.condicao.nome}`;
         }
     // Implementar outros tipos de feitiços
-    } else if (efeitoConfig.alvo === "aliado_unico" || efeitoConfig.alvo === "self") {
+    } else if (efeitoConfig && (efeitoConfig.alvo === "aliado_unico" || efeitoConfig.alvo === "self")) {
         // Feitiços de cura/buff no próprio jogador
-        if (efeitoConfig.tipoCura === "PV") {
+        if (efeitoConfig.tipoCura === "PV" && efeitoConfig.formulaCura) {
             const valorCura = calcularValorDaFormula(efeitoConfig.formulaCura, fichaConjurador.atributos);
             const pvAntes = fichaConjurador.pvAtual;
             fichaConjurador.pvAtual = Math.min(fichaConjurador.pvMax, fichaConjurador.pvAtual + valorCura);
             mensagemEfeito += `💚 **${fichaConjurador.nomePersonagem}** se curou em **${fichaConjurador.pvAtual - pvAntes}** PV! (${pvAntes} → ${fichaConjurador.pvAtual}/${fichaConjurador.pvMax})`;
-        } else if (efeitoConfig.tipoCura === "PM") {
+        } else if (efeitoConfig.tipoCura === "PM" && efeitoConfig.formulaCura) {
             const valorCura = calcularValorDaFormula(efeitoConfig.formulaCura, fichaConjurador.atributos);
             const pmAntes = fichaConjurador.pmAtual;
             fichaConjurador.pmAtual = Math.min(fichaConjurador.pmMax, fichaConjurador.pmAtual + valorCura);
@@ -392,13 +392,14 @@ else if (tipoAcao === "USAR_FEITICO") {
             mensagemEfeito += `
 🔮 Buff aplicado: ${efeitoConfig.buffAdicional.nome}`;
         }
-    } else if (efeitoConfig.alvo === "area" || efeitoConfig.alvo === "multi_proximo_opcional") {
+    } else if (efeitoConfig && (efeitoConfig.alvo === "area" || efeitoConfig.alvo === "multi_proximo_opcional")) {
         // Feitiços de área (por enquanto afeta apenas o mob principal)
-        if (efeitoConfig.tipoDano) {
+        if (efeitoConfig.formulaDano) {
             const dano = calcularValorDaFormula(efeitoConfig.formulaDano, fichaConjurador.atributos);
             const pvAntes = combate.mobInstancia.pvAtual;
             combate.mobInstancia.pvAtual = Math.max(0, combate.mobInstancia.pvAtual - dano);
-            mensagemEfeito += `💥 **${feiticoBase.nome}** causou **${dano}** de dano ${efeitoConfig.tipoDano} em **${combate.mobInstancia.nome}**! (PV: ${pvAntes} → ${combate.mobInstancia.pvAtual}/${combate.mobInstancia.pvMax})`;
+            const tipoDanoTexto = efeitoConfig.tipoDano ? ` de ${efeitoConfig.tipoDano}` : '';
+            mensagemEfeito += `💥 **${feiticoBase.nome}** causou **${dano}** de dano${tipoDanoTexto} em **${combate.mobInstancia.nome}**! (PV: ${pvAntes} → ${combate.mobInstancia.pvAtual}/${combate.mobInstancia.pvMax})`;
         }
         
         // Processar condições de área
@@ -406,37 +407,45 @@ else if (tipoAcao === "USAR_FEITICO") {
             mensagemEfeito += `
 🌪️ **${combate.mobInstancia.nome}** foi afetado por: ${efeitoConfig.condicao.nome}`;
         }
-    } else if (efeitoConfig.tipoEfeito === "esquiva_ataque_fisico") {
+    } else if (efeitoConfig && efeitoConfig.tipoEfeito === "esquiva_ataque_fisico") {
         // Feitiços defensivos/passivos
         mensagemEfeito += `🛡️ **${fichaConjurador.nomePersonagem}** ativou uma defesa especial!`;
         if (efeitoConfig.chanceEsquiva) {
             mensagemEfeito += ` (${Math.round(efeitoConfig.chanceEsquiva * 100)}% chance de esquiva)`;
         }
-    } else if (efeitoConfig.tipoEfeito === "resistencia_elemental_passiva") {
+    } else if (efeitoConfig && efeitoConfig.tipoEfeito === "resistencia_elemental_passiva") {
         // Feitiços de resistência
         mensagemEfeito += `🔥❄️⚡ **${fichaConjurador.nomePersonagem}** ganhou resistências elementais!`;
         if (efeitoConfig.resistencias) {
             const resistenciasTexto = efeitoConfig.resistencias.map(r => `${r.elemento}: +${Math.round(r.percentual * 100)}%`).join(', ');
             mensagemEfeito += ` (${resistenciasTexto})`;
         }
-    } else if (efeitoConfig.tipoEfeito === "buff_atributo") {
+    } else if (efeitoConfig && efeitoConfig.tipoEfeito === "buff_atributo") {
         // Buffs de atributos
-        mensagemEfeito += `📈 **${fichaConjurador.nomePersonagem}** recebeu um buff de atributo!`;
-        if (efeitoConfig.atributo && efeitoConfig.valor) {
-            mensagemEfeito += ` (+${efeitoConfig.valor} ${efeitoConfig.atributo})`;
+        mensagemEfeito += `📈 **${fichaConjurador.nomePersonagem}** ganhou um bônus em ${efeitoConfig.atributo}!`;
+        if (efeitoConfig.valorBuff) {
+            mensagemEfeito += ` (+${efeitoConfig.valorBuff} em ${efeitoConfig.atributo})`;
         }
-    } else if (efeitoConfig.tipoInvocacao) {
+    } else if (efeitoConfig && efeitoConfig.tipoInvocacao) {
         // Feitiços de invocação
         mensagemEfeito += `🐉 **${fichaConjurador.nomePersonagem}** invocou: ${efeitoConfig.nomeCriatura || efeitoConfig.nomeCriaturaBase || 'uma criatura mágica'}!`;
         if (efeitoConfig.duracaoMinutos) {
             mensagemEfeito += ` (Duração: ${efeitoConfig.duracaoMinutos} min)`;
         }
     } else {
-        mensagemEfeito += "(Efeito do feitiço não implementado para este alvo.)";
+        // Fallback para feitiços sem configuração específica
+        mensagemEfeito += `🔮 O feitiço foi conjurado, mas seus efeitos específicos ainda não foram implementados.`;
     }
 
-    // Atualiza ficha do jogador no combate
+    // Atualiza ficha do jogador no combate e salva no banco
     combate.fichaJogador = fichaConjurador;
+    
+    // Salva a ficha atualizada no banco de dados
+    try {
+        await atualizarFichaNoCacheEDb(idJogadorAcao, fichaConjurador);
+    } catch (saveError) {
+        console.error("[COMBATE] Erro ao salvar ficha após usar feitiço:", saveError);
+    }
 
     // Verifica vitória do jogador
     if (combate.mobInstancia.pvAtual <= 0) {
@@ -470,53 +479,19 @@ else if (tipoAcao === "USAR_FEITICO") {
         proximoTurno: "mob",
         estadoCombate: getEstadoCombateParaRetorno(combate)
     };
-}
-
-      
-    else {
-        logDoTurno.push(`Ação "${tipoAcao}" ainda não é suportada.`);
-        combate.log.push(...logDoTurno); // Adiciona ao log principal
-        return { 
-            sucesso: false, 
-            erro: `Ação "${tipoAcao}" não suportada.`,
-            idCombate: idCombate,
-            logTurnoAnterior: logDoTurno, // Renomeado para clareza
-            proximoTurno: "jogador", // Devolve o turno se a ação falhou
-            estadoCombate: getEstadoCombateParaRetorno(combate)
-        };
-    }
-
+} else {
+    // Ação não reconhecida
+    logDoTurno.push(`Ação "${tipoAcao}" ainda não é suportada.`);
     combate.log.push(...logDoTurno);
-
-    if (mob.pvAtual <= 0) {
-        logDoTurno.push(`🏆 ${mob.nome} foi derrotado!`);
-        combate.numeroMobsDerrotadosNaMissao = (combate.numeroMobsDerrotadosNaMissao || 0) + 1;
-        // finalizarCombate agora será chamado pelo index.js após verificar se mais mobs são necessários para a missão
-        return { 
-            sucesso: true,
-            mobDerrotado: true,
-            idCombate: idCombate,
-            logTurnoAnterior: logDoTurno,
-            estadoCombate: getEstadoCombateParaRetorno(combate),
-            dadosParaFinalizar: { // Passa dados para finalizar, se for o caso
-                idJogador: combate.idJogador,
-                mobInstancia: mob, // Mob derrotado
-                idMissaoVinculada: combate.idMissaoVinculada,
-                idObjetivoVinculado: combate.idObjetivoVinculado,
-                numeroMobsJaDerrotados: combate.numeroMobsDerrotadosNaMissao
-            }
-        };
-    }
-
-    combate.turnoDoJogador = false; 
-
     return { 
-        sucesso: true, 
+        sucesso: false, 
+        erro: `Ação "${tipoAcao}" não suportada.`,
         idCombate: idCombate,
         logTurnoAnterior: logDoTurno,
-        proximoTurno: "mob", 
+        proximoTurno: "jogador",
         estadoCombate: getEstadoCombateParaRetorno(combate)
     };
+}
 }
 
 async function finalizarCombate(idCombate, idJogadorFicha, jogadorVenceuEsteMob, eUltimoMobDaMissao = true) {

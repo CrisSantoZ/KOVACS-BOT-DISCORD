@@ -48,6 +48,7 @@ combates.setupCombate({
   conectarMongoDB,
   atualizarProgressoMissao,
   processarUsarItem,
+  calcularValorDaFormula,
 });
 
 const { 
