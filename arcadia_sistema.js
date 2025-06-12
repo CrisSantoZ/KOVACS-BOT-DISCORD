@@ -28,7 +28,6 @@ const classesEspeciais = require('./dados/classesEspeciais');
 const reinos = require('./dados/reinos');
 const itens = require('./dados/itens');
 const feiticos = require('./dados/feiticos');
-const combates = require('./sistemas/combates');
 
 // Criando aliases para compatibilidade com código existente
 const RACAS_ARCADIA = racas;
@@ -37,6 +36,46 @@ const CLASSES_ESPECIAIS_ARCADIA = classesEspeciais;
 const REINOS_ARCADIA = reinos;
 const ITENS_BASE_ARCADIA = itens;
 const FEITICOS_BASE_ARCADIA = feiticos;
+
+// Função para calcular valores de fórmulas (definida antes do setup de combates)
+function calcularValorDaFormula(formula, atributosConjurador, atributosAlvo = {}) {
+    if (!formula || typeof formula !== 'string') {
+        console.warn("[Parser Fórmula] Fórmula inválida:", formula);
+        return 0;
+    }
+    
+    let expressao = formula.toLowerCase();
+    const todosAtributos = { ...atributosConjurador, ...atributosAlvo };
+
+    // Lista de atributos válidos para substituição
+    const atributosValidos = ['forca', 'agilidade', 'vitalidade', 'manabase', 'intelecto', 'carisma'];
+    
+    // Substituir cada atributo na expressão
+    for (const atributo of atributosValidos) {
+        if (todosAtributos[atributo] !== undefined) {
+            const regex = new RegExp(`\b${atributo}\b`, 'g');
+            expressao = expressao.replace(regex, String(todosAtributos[atributo] || 0));
+        }
+    }
+
+    // Remover espaços após substituições
+    expressao = expressao.replace(/\s/g, '');
+
+    try {
+        // Verificar se a expressão contém apenas caracteres válidos para cálculo matemático
+        if (!/^[0-9.+\-*/()]+$/.test(expressao)) {
+            console.warn(`[Parser Fórmula] Expressão contém caracteres inválidos após substituição: ${expressao}`);
+            return 0;
+        }
+        const resultado = Math.floor(new Function(`return ${expressao}`)());
+        return isNaN(resultado) ? 0 : resultado;
+    } catch (e) {
+        console.error(`[Parser Fórmula] Erro ao calcular fórmula "${formula}" (expressão resultante: "${expressao}"):`, e);
+        return 0;
+    }
+}
+
+const combates = require('./sistemas/combates');
 
 combates.setupCombate({
   getFichaOuCarregar,
@@ -825,32 +864,7 @@ async function getFeiticosDisponiveisParaAprender(idJogador) {
     return disponiveis;
 }
 
-function calcularValorDaFormula(formula, atributosConjurador, atributosAlvo = {}) {
-    let expressao = formula.replace(/\s/g, '').toLowerCase();
-    const todosAtributos = { ...atributosConjurador, ...atributosAlvo };
 
-    // Lista de atributos válidos para substituição
-    const atributosValidos = ['forca', 'agilidade', 'vitalidade', 'manabase', 'intelecto', 'carisma'];
-    
-    // Substituir cada atributo na expressão
-    for (const atributo of atributosValidos) {
-        if (todosAtributos[atributo] !== undefined) {
-            const regex = new RegExp(`\b${atributo}\b`, 'g');
-            expressao = expressao.replace(regex, String(todosAtributos[atributo] || 0));
-        }
-    }
-
-    try {
-        if (!/^[0-9.+\-*/()\.]+$/.test(expressao)) {
-            console.warn("[Parser Fórmula] Expressão contém caracteres inválidos após substituição:", expressao);
-            return 0;
-        }
-        return Math.floor(new Function(`return ${expressao}`)());
-    } catch (e) {
-        console.error(`[Parser Fórmula] Erro ao calcular fórmula "${formula}" (expressão resultante: "${expressao}"):`, e);
-        return 0;
-    }
-}
 
 async function getFeiticosUparaveisParaAutocomplete(idJogador) {
     const ficha = await getFichaOuCarregar(idJogador);
@@ -2363,6 +2377,8 @@ async function getTodosNPCsParaAutocomplete() {
 }
 
 
+
+
 // =====================================================================================
 // EXPORTS DO MÓDULO
 // =====================================================================================
@@ -2375,7 +2391,7 @@ module.exports = {
     NOME_CARGO_AVENTUREIRO, NOME_CARGO_VISITANTE,
     ID_CANAL_BOAS_VINDAS_RPG, ID_CANAL_RECRUTAMENTO, ID_CANAL_ATUALIZACAO_FICHAS,
     fichaModeloArcadia,
-    atributosValidos, iniciarCombatePvE, finalizarCombate,
+    atributosValidos, iniciarCombatePvE, finalizarCombate, processarAcaoJogadorCombate, processarTurnoMobCombate, getEstadoCombateParaRetorno,
     JACKPOT_PREMIOS_NOMES_COMUNS, JACKPOT_PREMIOS_NOMES_INCOMUNS, JACKPOT_PREMIOS_NOMES_RAROS,
     ATRIBUTOS_FOCO_POR_CLASSE,
     ATRIBUTOS_FOCO_POR_RACA,
@@ -2406,7 +2422,7 @@ getFichasCollection,
     processarAdminCriarFicha, processarAdminAddXP, processarAdminSetNivel,
     processarAdminAddMoedas, processarAdminAddItem, processarAdminDelItem,
     processarAdminSetAtributo, processarAdminAddPontosAtributo, processarAdminExcluirFicha,
-    processarUparFeitico,processarInteracaoComNPC, processarAcaoJogadorCombate, processarTurnoMobCombate,
+    processarUparFeitico,processarInteracaoComNPC,
 
 
     // Novas Funções de Autocomplete
