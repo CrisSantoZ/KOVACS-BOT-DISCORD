@@ -1,7 +1,7 @@
 //Combates Lógica
 const combatesAtivos = {}; // Cache local de combates ativos
 let mobsCollection = null; // Deve ser setada na inicialização do módulo
-let getFichaOuCarregar, atualizarFichaNoCacheEDb, adicionarXPELevelUp, adicionarItemAoInventario, processarUsarItem, ITENS_BASE_ARCADIA, FEITICOS_BASE_ARCADIA, atualizarProgressoMissao;
+let getFichaOuCarregar, atualizarFichaNoCacheEDb, adicionarXPELevelUp, adicionarItemAoInventario, processarUsarItem, ITENS_BASE_ARCADIA, FEITICOS_BASE_ARCADIA, atualizarProgressoMissao, calcularValorDaFormula;
 
 function setupCombate(deps) {
   getFichaOuCarregar = deps.getFichaOuCarregar;
@@ -13,6 +13,7 @@ function setupCombate(deps) {
   processarUsarItem = deps.processarUsarItem;
   atualizarProgressoMissao = deps.atualizarProgressoMissao;
   conectarMongoDB = deps.conectarMongoDB;
+  calcularValorDaFormula = deps.calcularValorDaFormula;
 }
 
 
