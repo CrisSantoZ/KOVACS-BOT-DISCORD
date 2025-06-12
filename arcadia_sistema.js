@@ -829,13 +829,16 @@ function calcularValorDaFormula(formula, atributosConjurador, atributosAlvo = {}
     let expressao = formula.replace(/\s/g, '').toLowerCase();
     const todosAtributos = { ...atributosConjurador, ...atributosAlvo };
 
-    for (const atr in todosAtributos) {
-        const regex = new RegExp(atr.toLowerCase().replace('base', ''), 'g'); // Remove 'base' do nome do atributo na regex
-        expressao = expressao.replace(regex, String(todosAtributos[atr] || 0));
+    // Lista de atributos válidos para substituição
+    const atributosValidos = ['forca', 'agilidade', 'vitalidade', 'manabase', 'intelecto', 'carisma'];
+    
+    // Substituir cada atributo na expressão
+    for (const atributo of atributosValidos) {
+        if (todosAtributos[atributo] !== undefined) {
+            const regex = new RegExp(`\b${atributo}\b`, 'g');
+            expressao = expressao.replace(regex, String(todosAtributos[atributo] || 0));
+        }
     }
-    // Substitui atributos específicos do modelo, como 'manabase' para 'mana' se a fórmula usar 'mana'
-    expressao = expressao.replace(/manabase/g, String(todosAtributos.manabase || 0));
-
 
     try {
         if (!/^[0-9.+\-*/()\.]+$/.test(expressao)) {
@@ -1303,7 +1306,22 @@ async function processarUsarItem(idJogadorDiscord, nomeItemInput, quantidadeUsar
     }
 
     // O restante do seu código permanece igual:
-    const itemBase = ITENS_BASE_ARCADIA[normalizaNomeItemArcadia(itemNoInventario.itemNome)];
+    // Buscar item tanto pela chave normalizada quanto pela chave original
+    let itemBase = ITENS_BASE_ARCADIA[normalizaNomeItemArcadia(itemNoInventario.itemNome)];
+    if (!itemBase) {
+        // Tentar buscar pela chave original (sem normalização)
+        itemBase = ITENS_BASE_ARCADIA[itemNoInventario.itemNome.toLowerCase()];
+    }
+    if (!itemBase) {
+        // Buscar por todas as chaves possíveis
+        const nomeNormalizado = normalizaNomeItemArcadia(itemNoInventario.itemNome);
+        const chaveEncontrada = Object.keys(ITENS_BASE_ARCADIA).find(chave => 
+            normalizaNomeItemArcadia(chave) === nomeNormalizado
+        );
+        if (chaveEncontrada) {
+            itemBase = ITENS_BASE_ARCADIA[chaveEncontrada];
+        }
+    }
     if (!itemBase || !itemBase.usavel) {
         return gerarEmbedAviso("Item Não Usável", `O item "${itemNoInventario.itemNome}" não pode ser usado desta forma.`);
     }
