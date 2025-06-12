@@ -437,6 +437,61 @@ else if (tipoAcao === "USAR_FEITICO") {
         if (efeitoConfig.duracaoMinutos) {
             mensagemEfeito += ` (Duração: ${efeitoConfig.duracaoMinutos} min)`;
         }
+    } else if (efeitoConfig && (efeitoConfig.tipoEfeito === "visao_premonitoria_basica" || 
+                                efeitoConfig.tipoEfeito === "visao_premonitoria_focada" || 
+                                efeitoConfig.tipoEfeito === "visao_premonitoria_detalhada" ||
+                                efeitoConfig.tipoEfeito === "visao_futuros_possiveis" ||
+                                efeitoConfig.tipoEfeito === "comunhao_onirica")) {
+        // Feitiços de visão/premonição
+        const chanceBase = efeitoConfig.chanceSucessoVisaoMod ? calcularValorDaFormula(efeitoConfig.chanceSucessoVisaoMod, fichaConjurador.atributos) / 100 : 0.5;
+        const sucessoVisao = Math.random() < chanceBase;
+        
+        if (sucessoVisao) {
+            mensagemEfeito += `🔮 **${fichaConjurador.nomePersonagem}** teve uma visão clara! `;
+            if (efeitoConfig.tipoEfeito === "visao_premonitoria_basica") {
+                mensagemEfeito += `Você sente que o próximo ataque do inimigo será mais previsível. (+10% esquiva no próximo turno)`;
+            } else if (efeitoConfig.tipoEfeito === "visao_futuros_possiveis") {
+                mensagemEfeito += `Você vislumbra possíveis movimentos futuros do inimigo. (+15% chance crítica e +5% esquiva por 2 turnos)`;
+            } else {
+                mensagemEfeito += `Você obtém insights valiosos sobre a situação atual.`;
+            }
+        } else {
+            mensagemEfeito += `🌫️ **${fichaConjurador.nomePersonagem}** tentou ter uma visão, mas as imagens estão nebulosas...`;
+        }
+    } else if (efeitoConfig && (efeitoConfig.tipoEfeito === "forma_eterea_parcial" || 
+                                efeitoConfig.tipoEfeito === "forma_sombria_movimento" ||
+                                efeitoConfig.tipoEfeito === "mestre_forma_sombria")) {
+        // Feitiços de forma/mobilidade
+        mensagemEfeito += `👻 **${fichaConjurador.nomePersonagem}** assume uma forma etérea! `;
+        if (efeitoConfig.bonusFurtividadeEscuridao) {
+            mensagemEfeito += `(+${efeitoConfig.bonusFurtividadeEscuridao} Furtividade, `;
+        }
+        if (efeitoConfig.duracaoTurnos) {
+            mensagemEfeito += `Duração: ${efeitoConfig.duracaoTurnos} turnos)`;
+        }
+        if (efeitoConfig.resistenciaDanoNaoMagicoPercent) {
+            mensagemEfeito += ` Resistência a dano físico: +${Math.round(efeitoConfig.resistenciaDanoNaoMagicoPercent * 100)}%`;
+        }
+    } else if (efeitoConfig && efeitoConfig.tipoEfeito === "penetracao_armadura_passiva_cac") {
+        // Feitiços passivos de penetração
+        mensagemEfeito += `⚔️ **${fichaConjurador.nomePersonagem}** fortalece seus ataques! `;
+        if (efeitoConfig.percentualIgnorado) {
+            mensagemEfeito += `(Ignora ${Math.round(efeitoConfig.percentualIgnorado * 100)}% da defesa inimiga)`;
+        }
+    } else if (efeitoConfig && efeitoConfig.passivo) {
+        // Feitiços com efeitos passivos
+        mensagemEfeito += `🌟 **${fichaConjurador.nomePersonagem}** ativa um poder passivo! `;
+        if (efeitoConfig.passivo.regeneracaoPVPMporMinuto) {
+            mensagemEfeito += `(Regeneração: +${efeitoConfig.passivo.regeneracaoPVPMporMinuto} PV/PM por minuto)`;
+        }
+        if (efeitoConfig.passivo.chanceAlertaPerigo) {
+            mensagemEfeito += `(Alerta de perigo: ${Math.round(efeitoConfig.passivo.chanceAlertaPerigo * 100)}%)`;
+        }
+    } else if (efeitoConfig && efeitoConfig.posturas) {
+        // Feitiços de postura (como Dualidade Lunar)
+        mensagemEfeito += `🌗 **${fichaConjurador.nomePersonagem}** pode alternar entre posturas! `;
+        const posturas = Object.keys(efeitoConfig.posturas);
+        mensagemEfeito += `(Posturas disponíveis: ${posturas.join(', ')})`;
     } else {
         // Fallback para feitiços sem configuração específica
         mensagemEfeito += `🔮 O feitiço foi conjurado, mas seus efeitos específicos ainda não foram implementados.`;
