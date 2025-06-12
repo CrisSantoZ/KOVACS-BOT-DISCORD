@@ -161,9 +161,42 @@ else if (tipoAcao === "USAR_ITEM") {
 
     // Use a função de uso de item já existente
     const resultadoItem = await processarUsarItem(idJogadorAcao, nomeItem, 1);
-console.log("[DEBUG Combate] Resultado de processarUsarItem:", resultadoItem);
+    console.log("[DEBUG Combate] Resultado de processarUsarItem:", resultadoItem);
 
-  combate.itemSelecionado = undefined;
+    // Verificar se o item foi usado com sucesso
+    if (resultadoItem && resultadoItem.color === 0x00FF00) { // Verde = sucesso
+        logDoTurno.push(`🎒 ${resultadoItem.description || 'Item usado com sucesso!'}`);
+        
+        // Atualizar a ficha do jogador no combate com os novos valores
+        const fichaAtualizada = await getFichaOuCarregar(idJogadorAcao);
+        if (fichaAtualizada) {
+            combate.fichaJogador = fichaAtualizada;
+        }
+    } else if (resultadoItem && resultadoItem.color === 0xFFFF00) { // Amarelo = aviso
+        logDoTurno.push(`⚠️ ${resultadoItem.description || 'Problema ao usar item.'}`);
+        combate.log.push(...logDoTurno);
+        return {
+            sucesso: false,
+            erro: resultadoItem.description || "Não foi possível usar o item.",
+            idCombate,
+            logTurnoAnterior: logDoTurno,
+            proximoTurno: "jogador",
+            estadoCombate: getEstadoCombateParaRetorno(combate)
+        };
+    } else {
+        logDoTurno.push("❌ Erro ao usar item.");
+        combate.log.push(...logDoTurno);
+        return {
+            sucesso: false,
+            erro: "Erro interno ao usar item.",
+            idCombate,
+            logTurnoAnterior: logDoTurno,
+            proximoTurno: "jogador",
+            estadoCombate: getEstadoCombateParaRetorno(combate)
+        };
+    }
+
+    combate.itemSelecionado = undefined;
 
     // Se o retorno for um erro ou aviso (embed), trate como erro no combate
     if (resultadoItem?.data?.title === "Erro" || resultadoItem?.data?.title === "Aviso" || resultadoItem?.erro) {
@@ -318,15 +351,86 @@ else if (tipoAcao === "USAR_FEITICO") {
             mensagemEfeito += `💖 Curou **${cura}** PV! (PV: ${pvAntes} → ${fichaConjurador.pvAtual}/${fichaConjurador.pvMax})`;
         }
         // Outros tipos: buffs, etc. (implemente conforme necessidade)
-    } else if (efeitoConfig && ["inimigo", "único"].includes(efeitoConfig.alvo)) {
-        // Exemplo: dano no mob
-        if (feiticoBase.tipo === "ataque" && efeitoConfig.formulaDano) {
-            const dano = calcularValorDaFormula(efeitoConfig.formulaDano, fichaConjurador.atributos, combate.mobInstancia.atributos);
+    } else if (efeitoConfig && ["inimigo", "único", "unico"].includes(efeitoConfig.alvo)) {
+        // Feitiços de dano no mob
+        if (efeitoConfig.formulaDano) {
+            const dano = calcularValorDaFormula(efeitoConfig.formulaDano, fichaConjurador.atributos);
             const pvAntes = combate.mobInstancia.pvAtual;
             combate.mobInstancia.pvAtual = Math.max(0, combate.mobInstancia.pvAtual - dano);
-            mensagemEfeito += `💥 Causou **${dano}** de dano em **${combate.mobInstancia.nome}**! (PV: ${pvAntes} → ${combate.mobInstancia.pvAtual}/${combate.mobInstancia.pvMax})`;
+            const tipoDanoTexto = efeitoConfig.tipoDano ? ` de ${efeitoConfig.tipoDano}` : '';
+            mensagemEfeito += `💥 Causou **${dano}** de dano${tipoDanoTexto} em **${combate.mobInstancia.nome}**! (PV: ${pvAntes} → ${combate.mobInstancia.pvAtual}/${combate.mobInstancia.pvMax})`;
         }
-        // Outros tipos: debuff, condicionais, etc. (implemente conforme necessidade)
+        
+        // Processar condições aplicadas ao inimigo
+        if (efeitoConfig.condicao) {
+            mensagemEfeito += `
+🌪️ **${combate.mobInstancia.nome}** foi afetado por: ${efeitoConfig.condicao.nome}`;
+        }
+    // Implementar outros tipos de feitiços
+    } else if (efeitoConfig.alvo === "aliado_unico" || efeitoConfig.alvo === "self") {
+        // Feitiços de cura/buff no próprio jogador
+        if (efeitoConfig.tipoCura === "PV") {
+            const valorCura = calcularValorDaFormula(efeitoConfig.formulaCura, fichaConjurador.atributos);
+            const pvAntes = fichaConjurador.pvAtual;
+            fichaConjurador.pvAtual = Math.min(fichaConjurador.pvMax, fichaConjurador.pvAtual + valorCura);
+            mensagemEfeito += `💚 **${fichaConjurador.nomePersonagem}** se curou em **${fichaConjurador.pvAtual - pvAntes}** PV! (${pvAntes} → ${fichaConjurador.pvAtual}/${fichaConjurador.pvMax})`;
+        } else if (efeitoConfig.tipoCura === "PM") {
+            const valorCura = calcularValorDaFormula(efeitoConfig.formulaCura, fichaConjurador.atributos);
+            const pmAntes = fichaConjurador.pmAtual;
+            fichaConjurador.pmAtual = Math.min(fichaConjurador.pmMax, fichaConjurador.pmAtual + valorCura);
+            mensagemEfeito += `💙 **${fichaConjurador.nomePersonagem}** restaurou **${fichaConjurador.pmAtual - pmAntes}** PM! (${pmAntes} → ${fichaConjurador.pmAtual}/${fichaConjurador.pmMax})`;
+        }
+        
+        // Processar remoção de condições
+        if (efeitoConfig.removeCondicao) {
+            mensagemEfeito += `
+✨ Condições removidas: ${Array.isArray(efeitoConfig.removeCondicao.tipo) ? efeitoConfig.removeCondicao.tipo.join(', ') : efeitoConfig.removeCondicao.tipo}`;
+        }
+        
+        // Processar buffs adicionais
+        if (efeitoConfig.buffAdicional) {
+            mensagemEfeito += `
+🔮 Buff aplicado: ${efeitoConfig.buffAdicional.nome}`;
+        }
+    } else if (efeitoConfig.alvo === "area" || efeitoConfig.alvo === "multi_proximo_opcional") {
+        // Feitiços de área (por enquanto afeta apenas o mob principal)
+        if (efeitoConfig.tipoDano) {
+            const dano = calcularValorDaFormula(efeitoConfig.formulaDano, fichaConjurador.atributos);
+            const pvAntes = combate.mobInstancia.pvAtual;
+            combate.mobInstancia.pvAtual = Math.max(0, combate.mobInstancia.pvAtual - dano);
+            mensagemEfeito += `💥 **${feiticoBase.nome}** causou **${dano}** de dano ${efeitoConfig.tipoDano} em **${combate.mobInstancia.nome}**! (PV: ${pvAntes} → ${combate.mobInstancia.pvAtual}/${combate.mobInstancia.pvMax})`;
+        }
+        
+        // Processar condições de área
+        if (efeitoConfig.condicao) {
+            mensagemEfeito += `
+🌪️ **${combate.mobInstancia.nome}** foi afetado por: ${efeitoConfig.condicao.nome}`;
+        }
+    } else if (efeitoConfig.tipoEfeito === "esquiva_ataque_fisico") {
+        // Feitiços defensivos/passivos
+        mensagemEfeito += `🛡️ **${fichaConjurador.nomePersonagem}** ativou uma defesa especial!`;
+        if (efeitoConfig.chanceEsquiva) {
+            mensagemEfeito += ` (${Math.round(efeitoConfig.chanceEsquiva * 100)}% chance de esquiva)`;
+        }
+    } else if (efeitoConfig.tipoEfeito === "resistencia_elemental_passiva") {
+        // Feitiços de resistência
+        mensagemEfeito += `🔥❄️⚡ **${fichaConjurador.nomePersonagem}** ganhou resistências elementais!`;
+        if (efeitoConfig.resistencias) {
+            const resistenciasTexto = efeitoConfig.resistencias.map(r => `${r.elemento}: +${Math.round(r.percentual * 100)}%`).join(', ');
+            mensagemEfeito += ` (${resistenciasTexto})`;
+        }
+    } else if (efeitoConfig.tipoEfeito === "buff_atributo") {
+        // Buffs de atributos
+        mensagemEfeito += `📈 **${fichaConjurador.nomePersonagem}** recebeu um buff de atributo!`;
+        if (efeitoConfig.atributo && efeitoConfig.valor) {
+            mensagemEfeito += ` (+${efeitoConfig.valor} ${efeitoConfig.atributo})`;
+        }
+    } else if (efeitoConfig.tipoInvocacao) {
+        // Feitiços de invocação
+        mensagemEfeito += `🐉 **${fichaConjurador.nomePersonagem}** invocou: ${efeitoConfig.nomeCriatura || efeitoConfig.nomeCriaturaBase || 'uma criatura mágica'}!`;
+        if (efeitoConfig.duracaoMinutos) {
+            mensagemEfeito += ` (Duração: ${efeitoConfig.duracaoMinutos} min)`;
+        }
     } else {
         mensagemEfeito += "(Efeito do feitiço não implementado para este alvo.)";
     }
