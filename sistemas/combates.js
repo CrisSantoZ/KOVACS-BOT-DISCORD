@@ -194,10 +194,19 @@ async function processarAcaoJogadorCombate(idCombate, idJogadorAcao, tipoAcao = 
     const resultadoItem = await processarUsarItem(idJogadorAcao, nomeItem, 1);
     console.log("[DEBUG Combate] Resultado de processarUsarItem:", resultadoItem);
 
-    // Verificar se o item foi usado com sucesso (embed verde)
-    if (resultadoItem && resultadoItem.data && resultadoItem.data.color === 0x00FF00) {
+    // Verificar se o item foi usado com sucesso
+    // Verifica se é um embed de sucesso (cor verde) ou se tem propriedade sucesso
+    const itemUsadoComSucesso = (resultadoItem && resultadoItem.data && resultadoItem.data.color === 0x00FF00) ||
+                               (resultadoItem && resultadoItem.sucesso) ||
+                               (resultadoItem && resultadoItem.data && resultadoItem.data.title && resultadoItem.data.title.includes("Item Usado"));
+
+    if (itemUsadoComSucesso) {
         // Item usado com sucesso
-        logDoTurno.push(`🎒 ${resultadoItem.data.description || 'Item usado com sucesso!'}`);
+        const mensagemSucesso = resultadoItem.data?.description || 
+                               resultadoItem.data?.fields?.[0]?.value || 
+                               resultadoItem.mensagem || 
+                               'Item usado com sucesso!';
+        logDoTurno.push(`🎒 ${mensagemSucesso}`);
         
         // Atualizar a ficha do jogador no combate com os novos valores
         const fichaAtualizada = await getFichaOuCarregar(idJogadorAcao);
@@ -217,7 +226,10 @@ async function processarAcaoJogadorCombate(idCombate, idJogadorAcao, tipoAcao = 
         };
     } else {
         // Item não pôde ser usado (erro ou aviso)
-        const mensagemErro = resultadoItem?.data?.description || "Não foi possível usar o item.";
+        const mensagemErro = resultadoItem?.data?.description || 
+                            resultadoItem?.data?.fields?.[0]?.value || 
+                            resultadoItem?.erro || 
+                            "Não foi possível usar o item.";
         logDoTurno.push(`❌ ${mensagemErro}`);
         combate.log.push(...logDoTurno);
         return {

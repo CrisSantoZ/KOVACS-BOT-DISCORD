@@ -2365,7 +2365,7 @@ module.exports = {
     // Funções de Banco de Dados e Cache
     conectarMongoDB, carregarFichasDoDB, getFichaOuCarregar,
     atualizarFichaNoCacheEDb, calcularXpProximoNivel,
-    calcularPFGanhosNoNivel,
+    calcularPFGanhosNoNivel, calcularValorDaFormula,
 
 getFichasCollection,
     getNpcsCollection,
