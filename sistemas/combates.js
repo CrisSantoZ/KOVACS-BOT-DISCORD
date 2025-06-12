@@ -142,9 +142,40 @@ async function processarAcaoJogadorCombate(idCombate, idJogadorAcao, tipoAcao = 
         mob.pvAtual = Math.max(0, mob.pvAtual - danoCausado);
         logDoTurno.push(`💥 ${fichaJogador.nomePersonagem} ataca ${mob.nome}, causando ${danoCausado} de dano!`);
         logDoTurno.push(`🩸 ${mob.nome} agora tem ${mob.pvAtual}/${mob.atributos.pvMax} PV.`);
+
+        // Verificar se o mob foi derrotado
+        if (mob.pvAtual <= 0) {
+            logDoTurno.push(`🏆 ${mob.nome} foi derrotado!`);
+            combate.log.push(...logDoTurno);
+            combate.numeroMobsDerrotadosNaMissao = (combate.numeroMobsDerrotadosNaMissao || 0) + 1;
+            return {
+                sucesso: true,
+                mobDerrotado: true,
+                idCombate,
+                logTurnoAnterior: logDoTurno,
+                estadoCombate: getEstadoCombateParaRetorno(combate),
+                dadosParaFinalizar: {
+                    idJogador: combate.idJogador,
+                    mobInstancia: combate.mobInstancia,
+                    idMissaoVinculada: combate.idMissaoVinculada,
+                    idObjetivoVinculado: combate.idObjetivoVinculado,
+                    numeroMobsJaDerrotados: combate.numeroMobsDerrotadosNaMissao
+                }
+            };
+        }
+
+        // Mob ainda vivo, passa o turno para ele
+        combate.turnoDoJogador = false;
+        combate.log.push(...logDoTurno);
+        return {
+            sucesso: true,
+            idCombate,
+            logTurnoAnterior: logDoTurno,
+            proximoTurno: "mob",
+            estadoCombate: getEstadoCombateParaRetorno(combate)
+        };
     } 
-    
-else if (tipoAcao === "USAR_ITEM") {
+    else if (tipoAcao === "USAR_ITEM") {
     const nomeItem = detalhesAcao.nomeItem || combate.itemSelecionado;
     if (!nomeItem) {
         logDoTurno.push("Nenhum item foi especificado.");
