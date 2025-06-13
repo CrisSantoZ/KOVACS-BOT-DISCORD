@@ -189,7 +189,9 @@ async function processarAcaoJogadorCombate(idCombate, idJogadorAcao, tipoAcao = 
         logDoTurno.push(`🩸 ${mob.nome} agora tem ${mob.pvAtual}/${mob.atributos.pvMax} PV.`);
 
         // Verificar se o mob foi derrotado
+        console.log(`[DEBUG COMBATE] Verificando morte do mob: ${mob.nome}, PV atual: ${mob.pvAtual}, PV máximo: ${mob.atributos.pvMax}`);
         if (mob.pvAtual <= 0) {
+            console.log(`[DEBUG COMBATE] Mob ${mob.nome} foi derrotado! PV: ${mob.pvAtual}`);
             logDoTurno.push(`🏆 ${mob.nome} foi derrotado!`);
             combate.log.push(...logDoTurno);
             combate.numeroMobsDerrotadosNaMissao = (combate.numeroMobsDerrotadosNaMissao || 0) + 1;
@@ -208,6 +210,7 @@ async function processarAcaoJogadorCombate(idCombate, idJogadorAcao, tipoAcao = 
                 }
             };
         }
+        console.log(`[DEBUG COMBATE] Mob ${mob.nome} ainda vivo com ${mob.pvAtual} PV`);
 
         // Mob ainda vivo, passa o turno para ele
         combate.turnoDoJogador = false;
