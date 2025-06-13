@@ -195,6 +195,21 @@ async function processarAcaoJogadorCombate(idCombate, idJogadorAcao, tipoAcao = 
             logDoTurno.push(`🏆 ${mob.nome} foi derrotado!`);
             combate.log.push(...logDoTurno);
             combate.numeroMobsDerrotadosNaMissao = (combate.numeroMobsDerrotadosNaMissao || 0) + 1;
+            
+            // Finalizar combate imediatamente para dummies
+            if (mob.ehDummyTreino) {
+                console.log(`[DEBUG COMBATE] Dummy derrotado, finalizando combate...`);
+                const resultadoFinal = await finalizarCombate(idCombate, combate.idJogador, true);
+                return {
+                    sucesso: true,
+                    combateTerminou: true,
+                    vencedorFinal: "jogador",
+                    logCombateFinal: resultadoFinal.logCombateFinal || combate.log,
+                    recompensasTextoFinal: resultadoFinal.recompensasTextoFinal || [],
+                    mensagemFinal: resultadoFinal.mensagemFinal || `🏆 ${mob.nome} foi derrotado!`
+                };
+            }
+            
             return {
                 sucesso: true,
                 mobDerrotado: true,
