@@ -124,41 +124,79 @@ const FEITICOS_DUMMY = {
         }
 };
 
-// Função para gerar um dummy baseado no tipo
+// Função para gerar um dummy baseado no tipo (compatível com sistema de combate)
 function gerarDummy(nome, tipo = 'basico', configuracaoCustom = {}) {
     const tipoBase = TIPOS_DUMMIES[tipo] || TIPOS_DUMMIES.basico;
+    const nivel = configuracaoCustom.nivel || tipoBase.nivel;
+    
+    // Calcular atributos finais
+    const atributosFinal = { ...tipoBase.atributos, ...configuracaoCustom.atributos };
+    const pvMax = configuracaoCustom.pv || tipoBase.pvBase;
+    const pmMax = configuracaoCustom.pm || tipoBase.pmBase;
     
     const dummy = {
         _id: `dummy_${nome.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`,
         nome: configuracaoCustom.nome || nome,
-        tipo: tipo,
-        nivel: configuracaoCustom.nivel || tipoBase.nivel,
-        atributos: { ...tipoBase.atributos, ...configuracaoCustom.atributos },
-        pvMaximo: configuracaoCustom.pv || tipoBase.pvBase,
-        pvAtual: configuracaoCustom.pv || tipoBase.pvBase,
-        pmMaximo: configuracaoCustom.pm || tipoBase.pmBase,
-        pmAtual: configuracaoCustom.pm || tipoBase.pmBase,
-        defesa: tipoBase.atributos.vitalidade + (configuracaoCustom.nivel || tipoBase.nivel),
-        resistenciaMagica: tipoBase.atributos.intelecto + (configuracaoCustom.nivel || tipoBase.nivel) * 0.5,
-        agilidade: tipoBase.atributos.agilidade,
+        tipo: "dummy", // Tipo de criatura
+        subtipo: tipo, // Subtipo do dummy (basico, resistente, etc)
+        nivel: nivel,
+        
+        // Estrutura compatível com sistema de combate
+        atributos: {
+            ...atributosFinal,
+            pvMax: pvMax,
+            pmMax: pmMax,
+            defesa: atributosFinal.vitalidade + nivel,
+            resistenciaMagica: atributosFinal.intelecto + (nivel * 0.5)
+        },
+        
+        // Status atual
+        pvAtual: pvMax,
+        pmAtual: pmMax,
+        pvMaximo: pvMax, // Para compatibilidade
+        pmMaximo: pmMax, // Para compatibilidade
+        
+        // Propriedades de combate
+        defesa: atributosFinal.vitalidade + nivel,
+        resistenciaMagica: atributosFinal.intelecto + (nivel * 0.5),
+        agilidade: atributosFinal.agilidade,
         contraataca: configuracaoCustom.contraataca !== undefined ? configuracaoCustom.contraataca : tipoBase.contraataca,
+        
+        // Resistências e vulnerabilidades
         resistencias: { ...tipoBase.resistencias, ...configuracaoCustom.resistencias },
+        
+        // Feitiços e habilidades
+        feiticosDisponiveis: tipoBase.contraataca ? ["contra_ataque_basico", "rajada_magica"] : [],
+        habilidadesEspeciais: [],
+        
+        // Comportamento de IA
+        comportamento: {
+            agressividade: tipo === 'agil' ? 'alta' : (tipo === 'resistente' ? 'baixa' : 'media'),
+            usaCuraQuandoPVBaixo: tipo === 'magico',
+            percentualPVParaCura: 30,
+            chanceContraAtaque: tipo === 'agil' ? 0.7 : (tipo === 'magico' ? 0.5 : 0.3),
+            prefereFeiticos: tipo === 'magico',
+            chanceUsarFeitico: tipo === 'magico' ? 0.8 : 0.3
+        },
+        
+        // Drops e recompensas (para dummies de treino, sem drops valiosos)
+        drops: {
+            xp: Math.floor(nivel * 2), // XP reduzido para treino
+            florins: 0, // Sem florins para treino
+            itens: [] // Sem itens para treino
+        },
+        
+        // Metadados
         descricao: configuracaoCustom.descricao || tipoBase.descricao,
         criadoEm: new Date(),
         criadoPor: configuracaoCustom.criadoPor || "admin",
         ativo: true,
-        // Feitiços que o dummy pode usar (se contraataca)
-        feiticosDisponiveis: tipoBase.contraataca ? ["contra_ataque_basico", "rajada_magica"] : [],
-        // Comportamento de IA simples
-        comportamento: {
-            usaCuraQuandoPVBaixo: tipo === 'magico',
-            percentualPVParaCura: 30,
-            chanceContraAtaque: tipo === 'agil' ? 0.7 : (tipo === 'magico' ? 0.5 : 0.3)
-        }
+        ehDummyTreino: true // Flag para identificar como dummy de treino
     };
 
     return dummy;
 }
+=======
 
 // Função para calcular dano baseado em fórmula
 function calcularDanoDummy(formula, atributosDummy) {

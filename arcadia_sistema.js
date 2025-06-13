@@ -2290,7 +2290,7 @@ async function processarAdminExcluirFicha(idAlvoDiscord, confirmacao, adminNome,
 // FUNÇÕES DE ADMIN PARA SACOS DE PANCADA (DUMMIES)
 // =====================================================================================
 
-async function processarAdminCriarDummy(nomeDummy, nivel, pv, pm, contraataca, tipo, adminNome) {
+async function processarAdminCriarDummy(nomeDummy, nivel, pv, pm, contraataca, tipo, adminNome, jogadorId) {
     if (!dummiesCollection) {
         console.error("Coleção de dummies não inicializada.");
         await conectarMongoDB();
@@ -2299,11 +2299,29 @@ async function processarAdminCriarDummy(nomeDummy, nivel, pv, pm, contraataca, t
         }
     }
 
+    if (!mobsCollection) {
+        console.error("Coleção de mobs não inicializada.");
+        await conectarMongoDB();
+        if (!mobsCollection) {
+            return gerarEmbedErro("Erro do Sistema", "Sistema de combate indisponível.");
+        }
+    }
+
     try {
         // Verificar se já existe um dummy com esse nome
         const dummyExistente = await dummiesCollection.findOne({ nome: nomeDummy });
         if (dummyExistente) {
             return gerarEmbedAviso("Dummy Já Existe", `Já existe um saco de pancada chamado "${nomeDummy}". Use um nome diferente ou remova o existente primeiro.`);
+        }
+
+        // Verificar se o jogador tem uma ficha
+        const ficha = await getFichaOuCarregar(jogadorId);
+        if (!ficha) {
+            return gerarEmbedErro("Ficha Não Encontrada", "Você precisa ter uma ficha criada para lutar contra dummies.");
+        }
+
+        if (ficha.pvAtual <= 0) {
+            return gerarEmbedErro("Personagem Incapacitado", `${ficha.nomePersonagem} está incapacitado e não pode iniciar combate.`);
         }
 
         // Configuração personalizada baseada nos parâmetros
@@ -2319,26 +2337,53 @@ async function processarAdminCriarDummy(nomeDummy, nivel, pv, pm, contraataca, t
         // Gerar o dummy usando o sistema de dados
         const novoDummy = dummies.gerarDummy(nomeDummy, tipo || 'basico', configuracaoCustom);
 
-        // Salvar no banco de dados
-        await dummiesCollection.insertOne(novoDummy);
+        // Salvar como mob temporário para combate
+        await mobsCollection.insertOne(novoDummy);
         
-        // Adicionar ao cache
+        // Adicionar ao cache de dummies
         dummiesAtivos[novoDummy._id] = novoDummy;
 
-        console.log(`[ADMIN] Dummy "${nomeDummy}" criado por ${adminNome}`);
+        console.log(`[ADMIN] Dummy "${nomeDummy}" criado por ${adminNome} e combate iniciado com ${ficha.nomePersonagem}`);
 
-        const embed = gerarEmbedSucesso("🎯 Saco de Pancada Criado", 
-            `**${novoDummy.nome}** foi criado com sucesso!\n\n` +
-            `**Tipo:** ${tipo || 'básico'}\n` +
-            `**Nível:** ${novoDummy.nivel}\n` +
-            `**PV:** ${novoDummy.pvAtual}/${novoDummy.pvMaximo}\n` +
-            `**PM:** ${novoDummy.pmAtual}/${novoDummy.pmMaximo}\n` +
-            `**Contra-ataca:** ${novoDummy.contraataca ? 'Sim' : 'Não'}\n` +
-            `**ID:** \`${novoDummy._id}\`\n\n` +
-            `*Criado por ${adminNome}*`
+        // Iniciar combate automaticamente
+        const resultadoCombate = await iniciarCombatePvE(jogadorId, novoDummy._id);
+        
+        if (resultadoCombate.erro) {
+            return gerarEmbedErro("Erro ao Iniciar Combate", resultadoCombate.erro);
+        }
+
+        const embed = gerarEmbedSucesso("⚔️ Dummy Criado e Combate Iniciado!", 
+            `**${novoDummy.nome}** foi criado e o combate começou!
+
+` +
+            `**Tipo:** ${tipo || 'básico'}
+` +
+            `**Nível:** ${novoDummy.nivel}
+` +
+            `**PV:** ${novoDummy.pvAtual}/${novoDummy.atributos.pvMax}
+` +
+            `**PM:** ${novoDummy.pmAtual}/${novoDummy.atributos.pmMax}
+` +
+            `**Contra-ataca:** ${novoDummy.contraataca ? 'Sim' : 'Não'}
+
+` +
+            `🎯 **${ficha.nomePersonagem}** vs **${novoDummy.nome}**
+` +
+            `${resultadoCombate.mensagemInicial}
+
+` +
+            `*Use seus feitiços e habilidades para testar contra este dummy!*
+` +
+            `*ID do Combate: \`${resultadoCombate.idCombate}\`*`
         );
 
-        return embed;
+        // Retornar embed com informações do combate
+        return {
+            embed: embed,
+            combateIniciado: true,
+            idCombate: resultadoCombate.idCombate,
+            estadoCombate: resultadoCombate.estadoCombate
+        };
 
     } catch (error) {
         console.error("Erro ao criar dummy:", error);
