@@ -2530,13 +2530,19 @@ async function processarAdminCriarDummy(nomeDummy, nivel, pv, pm, contraataca, t
         // Gerar o dummy usando o sistema de dados
         const novoDummy = dummies.gerarDummy(nomeDummy, tipo || 'basico', configuracaoCustom);
 
-        // Salvar como mob temporário para combate
+        // Verificar se já existe no mobsCollection e remover se existir
+        await mobsCollection.deleteOne({ _id: novoDummy._id });
+        
+        // Salvar como mob para combate
         await mobsCollection.insertOne(novoDummy);
+        
+        // Salvar também na coleção de dummies
+        await dummiesCollection.insertOne({...novoDummy, criadoEm: new Date()});
         
         // Adicionar ao cache de dummies
         dummiesAtivos[novoDummy._id] = novoDummy;
 
-        console.log(`[ADMIN] Dummy "${nomeDummy}" criado por ${adminNome} e combate iniciado com ${ficha.nomePersonagem}`);
+        console.log(`[ADMIN] Dummy "${nomoDummy}" criado por ${adminNome} e combate iniciado com ${ficha.nomePersonagem}`);
 
         // Iniciar combate automaticamente
         const resultadoCombate = await iniciarCombatePvE(jogadorId, novoDummy._id);
@@ -2566,6 +2572,8 @@ async function processarAdminCriarDummy(nomeDummy, nivel, pv, pm, contraataca, t
 
 ` +
             `*Use seus feitiços e habilidades para testar contra este dummy!*
+` +
+            `*ID do Dummy: \`${novoDummy.nome}\`*
 ` +
             `*ID do Combate: \`${resultadoCombate.idCombate}\`*`
         );
@@ -2656,29 +2664,35 @@ async function processarAdminListarDummies() {
     }
 
     try {
-        const dummiesAtivos = await dummiesCollection.find({ ativo: { $ne: false } }).toArray();
+        const dummiesList = await dummiesCollection.find({ ativo: { $ne: false } }).toArray();
         
-        if (dummiesAtivos.length === 0) {
+        if (dummiesList.length === 0) {
             return gerarEmbedAviso("Nenhum Dummy Ativo", "Não há sacos de pancada ativos no momento.");
         }
 
         const embed = new EmbedBuilder()
             .setColor(0x4A90E2)
             .setTitle("🎯 Sacos de Pancada Ativos")
-            .setDescription(`Total: ${dummiesAtivos.length} dummy(s) ativo(s)`)
+            .setDescription(`Total: ${dummiesList.length} dummy(s) ativo(s)`)
             .setTimestamp();
 
         let descricao = "";
-        dummiesAtivos.forEach((dummy, index) => {
+        dummiesList.forEach((dummy, index) => {
             const statusPV = `${dummy.pvAtual}/${dummy.pvMaximo}`;
             const statusPM = `${dummy.pmAtual}/${dummy.pmMaximo}`;
             const contraataca = dummy.contraataca ? "✅" : "❌";
-            
-            descricao += `**${index + 1}. ${dummy.nome}**\n`;
-            descricao += `• Nível: ${dummy.nivel} | PV: ${statusPV} | PM: ${statusPM}\n`;
-            descricao += `• Contra-ataca: ${contraataca} | Tipo: ${dummy.tipo || 'básico'}\n`;
-            descricao += `• ID: \`${dummy._id}\`\n`;
-            descricao += `• Criado por: ${dummy.criadoPor || 'N/A'}\n\n`;
+
+            descricao += `**${index + 1}. ${dummy.nome}**
+`;
+            descricao += `• Nível: ${dummy.nivel} | PV: ${statusPV} | PM: ${statusPM}
+`;
+            descricao += `• Contra-ataca: ${contraataca} | Tipo: ${dummy.subtipo || 'básico'}
+`;
+            descricao += `• Nome para comandos: \`${dummy.nome}\`
+`;
+            descricao += `• Criado por: ${dummy.criadoPor || 'N/A'}
+
+`;
         });
 
         // Dividir em campos se a descrição for muito longa

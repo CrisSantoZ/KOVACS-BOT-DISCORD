@@ -135,7 +135,7 @@ function gerarDummy(nome, tipo = 'basico', configuracaoCustom = {}) {
     const pmMax = configuracaoCustom.pm || tipoBase.pmBase;
     
     const dummy = {
-        _id: `dummy_${nome.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`,
+        _id: `dummy_${nome.toLowerCase().replace(/\s+/g, '_')}`,
         nome: configuracaoCustom.nome || nome,
         tipo: "dummy", // Tipo de criatura
         subtipo: tipo, // Subtipo do dummy (basico, resistente, etc)
@@ -146,7 +146,8 @@ function gerarDummy(nome, tipo = 'basico', configuracaoCustom = {}) {
             ...atributosFinal,
             pvMax: pvMax,
             pmMax: pmMax,
-            defesa: atributosFinal.vitalidade + nivel,
+            defesaBase: atributosFinal.vitalidade + nivel,
+            ataqueBase: atributosFinal.forca + Math.floor(nivel * 0.5),
             resistenciaMagica: atributosFinal.intelecto + (nivel * 0.5)
         },
         
