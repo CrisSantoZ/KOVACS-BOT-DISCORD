@@ -1578,6 +1578,24 @@ async function handleSlashCommand(interaction) {
                 payload.embeds = [respostaParaEnviar.embed];
                 if (respostaParaEnviar.combateIniciado) {
                     console.log(`[COMBATE] Dummy criado e combate iniciado: ${respostaParaEnviar.idCombate}`);
+                    
+                    // Adicionar botões de combate para dummies
+                    const combatActionRow = new ActionRowBuilder()
+                        .addComponents(
+                            new ButtonBuilder()
+                                .setCustomId(`combate_ATAQUEBASICO_${respostaParaEnviar.idCombate}`)
+                                .setLabel("⚔️ Ataque Básico")
+                                .setStyle(ButtonStyle.Danger),
+                            new ButtonBuilder()
+                                .setCustomId(`combate_USARFEITICO_${respostaParaEnviar.idCombate}`)
+                                .setLabel("🔮 Usar Feitiço")
+                                .setStyle(ButtonStyle.Primary),
+                            new ButtonBuilder()
+                                .setCustomId(`combate_USARITEM_${respostaParaEnviar.idCombate}`)
+                                .setLabel("🎒 Usar Item")
+                                .setStyle(ButtonStyle.Success)
+                        );
+                    payload.components = [combatActionRow];
                 }
             } else if (respostaParaEnviar && typeof respostaParaEnviar.setTitle === 'function' && respostaParaEnviar.data) {
                 payload.embeds = [respostaParaEnviar];
