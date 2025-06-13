@@ -342,7 +342,9 @@ async function processarResultadoCombate(interaction, resultado, idCombate, send
     }
 
     // Vitória do jogador
+    console.log(`[DEBUG INDEX] Verificando mobDerrotado: ${resultado.mobDerrotado}, PV do mob: ${mobEstado?.pvAtual}`);
     if (resultado.mobDerrotado) {
+        console.log(`[DEBUG INDEX] Mob foi derrotado, finalizando combate...`);
         const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true, resultado.dadosParaFinalizar?.eUltimoMobDaMissao);
         
         embedCombate.setTitle("🏆 VITÓRIA! 🏆")
