@@ -3,6 +3,10 @@ const combatesAtivos = {}; // Cache local de combates ativos
 let mobsCollection = null; // Deve ser setada na inicialização do módulo
 let getFichaOuCarregar, atualizarFichaNoCacheEDb, adicionarXPELevelUp, adicionarItemAoInventario, processarUsarItem, ITENS_BASE_ARCADIA, FEITICOS_BASE_ARCADIA, atualizarProgressoMissao, calcularValorDaFormula;
 
+// Importar o sistema completo de feitiços
+const SistemaFeiticos = require('./sistema_feiticos.js');
+const sistemaFeiticos = new SistemaFeiticos();
+
 function setupCombate(deps) {
   getFichaOuCarregar = deps.getFichaOuCarregar;
   atualizarFichaNoCacheEDb = deps.atualizarFichaNoCacheEDb;
@@ -80,6 +84,39 @@ async function processarTurnoMobCombate(idCombate) {
     const mob = combate.mobInstancia;
     let logDoTurno = [];
 
+    // Processar efeitos por turno no início do turno do mob
+    const efeitosMob = sistemaFeiticos.processarEfeitosPorTurno(mob);
+    const efeitosJogador = sistemaFeiticos.processarEfeitosPorTurno(fichaJogador);
+    
+    if (efeitosMob.length > 0) {
+        logDoTurno.push(...efeitosMob);
+    }
+    if (efeitosJogador.length > 0) {
+        logDoTurno.push(...efeitosJogador);
+    }
+
+    // Verificar se o mob morreu por efeitos
+    if (mob.pvAtual <= 0) {
+        logDoTurno.push(`💀 ${mob.nome} sucumbiu aos efeitos mágicos!`);
+        combate.log.push(...logDoTurno);
+        const resultadoFinal = await finalizarCombate(idCombate, combate.idJogador, true); // true = jogador venceu
+        return { 
+            ...resultadoFinal, 
+            log: [...combate.log] 
+        };
+    }
+
+    // Verificar se o jogador morreu por efeitos
+    if (fichaJogador.pvAtual <= 0) {
+        logDoTurno.push(`💀 ${fichaJogador.nomePersonagem} sucumbiu aos efeitos mágicos!`);
+        combate.log.push(...logDoTurno);
+        const resultadoFinal = await finalizarCombate(idCombate, combate.idJogador, false); // false = jogador perdeu
+        return { 
+            ...resultadoFinal, 
+            log: [...combate.log] 
+        };
+    }
+
     // Ação do Mob (Ataque Básico)
     const ataqueMob = mob.atributos.ataqueBase || 5;
     // Calcula defesa do jogador (considerando item equipado, se houver)
@@ -91,6 +128,14 @@ async function processarTurnoMobCombate(idCombate) {
             }
         }
     }
+
+    // Aplicar modificadores de efeitos temporários
+    const modificadoresJogador = sistemaFeiticos.obterModificadoresAtivos(fichaJogador);
+    if (modificadoresJogador.defesaBase) {
+        defesaJogador += modificadoresJogador.defesaBase.aditivo;
+        defesaJogador *= modificadoresJogador.defesaBase.multiplicativo;
+    }
+
     const danoCausadoAoJogador = Math.max(1, ataqueMob - defesaJogador);
 
     fichaJogador.pvAtual = Math.max(0, fichaJogador.pvAtual - danoCausadoAoJogador);
@@ -258,15 +303,24 @@ else if (tipoAcao === "USAR_FEITICO") {
         };
     }
 
-    // Carregar dados do feitiço e do jogador
+    // Usar o sistema completo de feitiços
     const fichaConjurador = combate.fichaJogador;
-    const feiticoBase = FEITICOS_BASE_ARCADIA[idFeitico];
-    if (!feiticoBase) {
-        logDoTurno.push("Feitiço não encontrado.");
+    const alvo = combate.mobInstancia; // Por enquanto, alvo é sempre o mob em combate PvE
+    
+    const resultadoFeitico = await sistemaFeiticos.processarFeitico(
+        fichaConjurador, 
+        idFeitico, 
+        alvo, 
+        combate, 
+        calcularValorDaFormula
+    );
+
+    if (!resultadoFeitico.sucesso) {
+        logDoTurno.push(resultadoFeitico.erro);
         combate.log.push(...logDoTurno);
         return {
             sucesso: false,
-            erro: "Feitiço não encontrado.",
+            erro: resultadoFeitico.erro,
             idCombate,
             logTurnoAnterior: logDoTurno,
             proximoTurno: "jogador",
@@ -274,242 +328,33 @@ else if (tipoAcao === "USAR_FEITICO") {
         };
     }
 
-    const magiaAprendida = fichaConjurador.magiasConhecidas.find(m => m.id === idFeitico);
-    if (!magiaAprendida) {
-        logDoTurno.push("Você não conhece este feitiço.");
-        combate.log.push(...logDoTurno);
-        return {
-            sucesso: false,
-            erro: "Você não conhece este feitiço.",
-            idCombate,
-            logTurnoAnterior: logDoTurno,
-            proximoTurno: "jogador",
-            estadoCombate: getEstadoCombateParaRetorno(combate)
-        };
-    }
+    // Processar efeitos por turno em entidades
+    const efeitosMob = sistemaFeiticos.processarEfeitosPorTurno(combate.mobInstancia);
+    const efeitosJogador = sistemaFeiticos.processarEfeitosPorTurno(fichaConjurador);
 
-    const nivelDoFeiticoNoJogador = magiaAprendida.nivel;
-    const detalhesDoNivelFeitico = feiticoBase.niveis.find(n => n.nivel === nivelDoFeiticoNoJogador);
-    if (!detalhesDoNivelFeitico) {
-        logDoTurno.push("Detalhes para este nível de feitiço não encontrados.");
-        combate.log.push(...logDoTurno);
-        return {
-            sucesso: false,
-            erro: "Detalhes para este nível de feitiço não encontrados.",
-            idCombate,
-            logTurnoAnterior: logDoTurno,
-            proximoTurno: "jogador",
-            estadoCombate: getEstadoCombateParaRetorno(combate)
-        };
-    }
-
-    if (fichaConjurador.pmAtual < detalhesDoNivelFeitico.custoPM) {
-        logDoTurno.push(`Mana insuficiente. Necessário: ${detalhesDoNivelFeitico.custoPM} PM.`);
-        combate.log.push(...logDoTurno);
-        return {
-            sucesso: false,
-            erro: `Mana insuficiente. Necessário: ${detalhesDoNivelFeitico.custoPM} PM.`,
-            idCombate,
-            logTurnoAnterior: logDoTurno,
-            proximoTurno: "jogador",
-            estadoCombate: getEstadoCombateParaRetorno(combate)
-        };
-    }
-
-    const cooldownKey = `${idFeitico}_${fichaConjurador._id || fichaConjurador.id || fichaConjurador.idJogador || idJogadorAcao}`;
-    if (fichaConjurador.cooldownsFeiticos && fichaConjurador.cooldownsFeiticos[cooldownKey] > Date.now()) {
-        const tempoRestante = Math.ceil((fichaConjurador.cooldownsFeiticos[cooldownKey] - Date.now()) / 1000);
-        logDoTurno.push(`Feitiço "${feiticoBase.nome}" em recarga. Aguarde ${tempoRestante}s.`);
-        combate.log.push(...logDoTurno);
-        return {
-            sucesso: false,
-            erro: `Feitiço "${feiticoBase.nome}" em recarga. Aguarde ${tempoRestante}s.`,
-            idCombate,
-            logTurnoAnterior: logDoTurno,
-            proximoTurno: "jogador",
-            estadoCombate: getEstadoCombateParaRetorno(combate)
-        };
-    }
-
-    // Consome PM
-    fichaConjurador.pmAtual -= detalhesDoNivelFeitico.custoPM;
-
-    // Aplica cooldown se houver
-    const cooldownBaseSegundos = feiticoBase.cooldownSegundos || 0;
-    const cooldownNivelSegundos = detalhesDoNivelFeitico.cooldownSegundos;
-    const cooldownFinalSegundos = typeof cooldownNivelSegundos === 'number' ? cooldownNivelSegundos : cooldownBaseSegundos;
-    if (cooldownFinalSegundos > 0) {
-        if (!fichaConjurador.cooldownsFeiticos) fichaConjurador.cooldownsFeiticos = {};
-        fichaConjurador.cooldownsFeiticos[cooldownKey] = Date.now() + (cooldownFinalSegundos * 1000);
-    }
-
-    const efeitoConfig = detalhesDoNivelFeitico.efeitoDetalhes;
-    let mensagemEfeito = `✨ ${fichaConjurador.nomePersonagem} usou **${feiticoBase.nome}** (Nível ${nivelDoFeiticoNoJogador})!\n`;
-
-    // ----------- Lógica de efeito no combate -----------
-    if (efeitoConfig && efeitoConfig.alvo === 'self') {
-        // Exemplo: cura/buff próprio
-        if (feiticoBase.tipo === "cura" && efeitoConfig.formulaCura) {
-            const cura = calcularValorDaFormula(efeitoConfig.formulaCura, fichaConjurador.atributos, fichaConjurador.atributos);
-            const pvAntes = fichaConjurador.pvAtual;
-            fichaConjurador.pvAtual = Math.min(fichaConjurador.pvMax, fichaConjurador.pvAtual + cura);
-            mensagemEfeito += `💖 Curou **${cura}** PV! (PV: ${pvAntes} → ${fichaConjurador.pvAtual}/${fichaConjurador.pvMax})`;
-        }
-        // Outros tipos: buffs, etc. (implemente conforme necessidade)
-    } else if (efeitoConfig && ["inimigo", "único", "unico"].includes(efeitoConfig.alvo)) {
-        // Feitiços de dano no mob
-        if (efeitoConfig.formulaDano) {
-            const dano = calcularValorDaFormula(efeitoConfig.formulaDano, fichaConjurador.atributos);
-            const pvAntes = combate.mobInstancia.pvAtual;
-            combate.mobInstancia.pvAtual = Math.max(0, combate.mobInstancia.pvAtual - dano);
-            const tipoDanoTexto = efeitoConfig.tipoDano ? ` de ${efeitoConfig.tipoDano}` : '';
-            mensagemEfeito += `💥 Causou **${dano}** de dano${tipoDanoTexto} em **${combate.mobInstancia.nome}**! (PV: ${pvAntes} → ${combate.mobInstancia.pvAtual}/${combate.mobInstancia.pvMax})`;
-        }
-        
-        // Processar condições aplicadas ao inimigo
-        if (efeitoConfig.condicao) {
-            mensagemEfeito += `
-🌪️ **${combate.mobInstancia.nome}** foi afetado por: ${efeitoConfig.condicao.nome}`;
-        }
-    // Implementar outros tipos de feitiços
-    } else if (efeitoConfig && (efeitoConfig.alvo === "aliado_unico" || efeitoConfig.alvo === "self")) {
-        // Feitiços de cura/buff no próprio jogador
-        if (efeitoConfig.tipoCura === "PV" && efeitoConfig.formulaCura) {
-            const valorCura = calcularValorDaFormula(efeitoConfig.formulaCura, fichaConjurador.atributos);
-            const pvAntes = fichaConjurador.pvAtual;
-            fichaConjurador.pvAtual = Math.min(fichaConjurador.pvMax, fichaConjurador.pvAtual + valorCura);
-            mensagemEfeito += `💚 **${fichaConjurador.nomePersonagem}** se curou em **${fichaConjurador.pvAtual - pvAntes}** PV! (${pvAntes} → ${fichaConjurador.pvAtual}/${fichaConjurador.pvMax})`;
-        } else if (efeitoConfig.tipoCura === "PM" && efeitoConfig.formulaCura) {
-            const valorCura = calcularValorDaFormula(efeitoConfig.formulaCura, fichaConjurador.atributos);
-            const pmAntes = fichaConjurador.pmAtual;
-            fichaConjurador.pmAtual = Math.min(fichaConjurador.pmMax, fichaConjurador.pmAtual + valorCura);
-            mensagemEfeito += `💙 **${fichaConjurador.nomePersonagem}** restaurou **${fichaConjurador.pmAtual - pmAntes}** PM! (${pmAntes} → ${fichaConjurador.pmAtual}/${fichaConjurador.pmMax})`;
-        }
-        
-        // Processar remoção de condições
-        if (efeitoConfig.removeCondicao) {
-            mensagemEfeito += `
-✨ Condições removidas: ${Array.isArray(efeitoConfig.removeCondicao.tipo) ? efeitoConfig.removeCondicao.tipo.join(', ') : efeitoConfig.removeCondicao.tipo}`;
-        }
-        
-        // Processar buffs adicionais
-        if (efeitoConfig.buffAdicional) {
-            mensagemEfeito += `
-🔮 Buff aplicado: ${efeitoConfig.buffAdicional.nome}`;
-        }
-    } else if (efeitoConfig && (efeitoConfig.alvo === "area" || efeitoConfig.alvo === "multi_proximo_opcional")) {
-        // Feitiços de área (por enquanto afeta apenas o mob principal)
-        if (efeitoConfig.formulaDano) {
-            const dano = calcularValorDaFormula(efeitoConfig.formulaDano, fichaConjurador.atributos);
-            const pvAntes = combate.mobInstancia.pvAtual;
-            combate.mobInstancia.pvAtual = Math.max(0, combate.mobInstancia.pvAtual - dano);
-            const tipoDanoTexto = efeitoConfig.tipoDano ? ` de ${efeitoConfig.tipoDano}` : '';
-            mensagemEfeito += `💥 **${feiticoBase.nome}** causou **${dano}** de dano${tipoDanoTexto} em **${combate.mobInstancia.nome}**! (PV: ${pvAntes} → ${combate.mobInstancia.pvAtual}/${combate.mobInstancia.pvMax})`;
-        }
-        
-        // Processar condições de área
-        if (efeitoConfig.condicao) {
-            mensagemEfeito += `
-🌪️ **${combate.mobInstancia.nome}** foi afetado por: ${efeitoConfig.condicao.nome}`;
-        }
-    } else if (efeitoConfig && efeitoConfig.tipoEfeito === "esquiva_ataque_fisico") {
-        // Feitiços defensivos/passivos
-        mensagemEfeito += `🛡️ **${fichaConjurador.nomePersonagem}** ativou uma defesa especial!`;
-        if (efeitoConfig.chanceEsquiva) {
-            mensagemEfeito += ` (${Math.round(efeitoConfig.chanceEsquiva * 100)}% chance de esquiva)`;
-        }
-    } else if (efeitoConfig && efeitoConfig.tipoEfeito === "resistencia_elemental_passiva") {
-        // Feitiços de resistência
-        mensagemEfeito += `🔥❄️⚡ **${fichaConjurador.nomePersonagem}** ganhou resistências elementais!`;
-        if (efeitoConfig.resistencias) {
-            const resistenciasTexto = efeitoConfig.resistencias.map(r => `${r.elemento}: +${Math.round(r.percentual * 100)}%`).join(', ');
-            mensagemEfeito += ` (${resistenciasTexto})`;
-        }
-    } else if (efeitoConfig && efeitoConfig.tipoEfeito === "buff_atributo") {
-        // Buffs de atributos
-        mensagemEfeito += `📈 **${fichaConjurador.nomePersonagem}** ganhou um bônus em ${efeitoConfig.atributo}!`;
-        if (efeitoConfig.valorBuff) {
-            mensagemEfeito += ` (+${efeitoConfig.valorBuff} em ${efeitoConfig.atributo})`;
-        }
-    } else if (efeitoConfig && efeitoConfig.tipoInvocacao) {
-        // Feitiços de invocação
-        mensagemEfeito += `🐉 **${fichaConjurador.nomePersonagem}** invocou: ${efeitoConfig.nomeCriatura || efeitoConfig.nomeCriaturaBase || 'uma criatura mágica'}!`;
-        if (efeitoConfig.duracaoMinutos) {
-            mensagemEfeito += ` (Duração: ${efeitoConfig.duracaoMinutos} min)`;
-        }
-    } else if (efeitoConfig && (efeitoConfig.tipoEfeito === "visao_premonitoria_basica" || 
-                                efeitoConfig.tipoEfeito === "visao_premonitoria_focada" || 
-                                efeitoConfig.tipoEfeito === "visao_premonitoria_detalhada" ||
-                                efeitoConfig.tipoEfeito === "visao_futuros_possiveis" ||
-                                efeitoConfig.tipoEfeito === "comunhao_onirica")) {
-        // Feitiços de visão/premonição
-        const chanceBase = efeitoConfig.chanceSucessoVisaoMod ? calcularValorDaFormula(efeitoConfig.chanceSucessoVisaoMod, fichaConjurador.atributos) / 100 : 0.5;
-        const sucessoVisao = Math.random() < chanceBase;
-        
-        if (sucessoVisao) {
-            mensagemEfeito += `🔮 **${fichaConjurador.nomePersonagem}** teve uma visão clara! `;
-            if (efeitoConfig.tipoEfeito === "visao_premonitoria_basica") {
-                mensagemEfeito += `Você sente que o próximo ataque do inimigo será mais previsível. (+10% esquiva no próximo turno)`;
-            } else if (efeitoConfig.tipoEfeito === "visao_futuros_possiveis") {
-                mensagemEfeito += `Você vislumbra possíveis movimentos futuros do inimigo. (+15% chance crítica e +5% esquiva por 2 turnos)`;
-            } else {
-                mensagemEfeito += `Você obtém insights valiosos sobre a situação atual.`;
-            }
-        } else {
-            mensagemEfeito += `🌫️ **${fichaConjurador.nomePersonagem}** tentou ter uma visão, mas as imagens estão nebulosas...`;
-        }
-    } else if (efeitoConfig && (efeitoConfig.tipoEfeito === "forma_eterea_parcial" || 
-                                efeitoConfig.tipoEfeito === "forma_sombria_movimento" ||
-                                efeitoConfig.tipoEfeito === "mestre_forma_sombria")) {
-        // Feitiços de forma/mobilidade
-        mensagemEfeito += `👻 **${fichaConjurador.nomePersonagem}** assume uma forma etérea! `;
-        if (efeitoConfig.bonusFurtividadeEscuridao) {
-            mensagemEfeito += `(+${efeitoConfig.bonusFurtividadeEscuridao} Furtividade, `;
-        }
-        if (efeitoConfig.duracaoTurnos) {
-            mensagemEfeito += `Duração: ${efeitoConfig.duracaoTurnos} turnos)`;
-        }
-        if (efeitoConfig.resistenciaDanoNaoMagicoPercent) {
-            mensagemEfeito += ` Resistência a dano físico: +${Math.round(efeitoConfig.resistenciaDanoNaoMagicoPercent * 100)}%`;
-        }
-    } else if (efeitoConfig && efeitoConfig.tipoEfeito === "penetracao_armadura_passiva_cac") {
-        // Feitiços passivos de penetração
-        mensagemEfeito += `⚔️ **${fichaConjurador.nomePersonagem}** fortalece seus ataques! `;
-        if (efeitoConfig.percentualIgnorado) {
-            mensagemEfeito += `(Ignora ${Math.round(efeitoConfig.percentualIgnorado * 100)}% da defesa inimiga)`;
-        }
-    } else if (efeitoConfig && efeitoConfig.passivo) {
-        // Feitiços com efeitos passivos
-        mensagemEfeito += `🌟 **${fichaConjurador.nomePersonagem}** ativa um poder passivo! `;
-        if (efeitoConfig.passivo.regeneracaoPVPMporMinuto) {
-            mensagemEfeito += `(Regeneração: +${efeitoConfig.passivo.regeneracaoPVPMporMinuto} PV/PM por minuto)`;
-        }
-        if (efeitoConfig.passivo.chanceAlertaPerigo) {
-            mensagemEfeito += `(Alerta de perigo: ${Math.round(efeitoConfig.passivo.chanceAlertaPerigo * 100)}%)`;
-        }
-    } else if (efeitoConfig && efeitoConfig.posturas) {
-        // Feitiços de postura (como Dualidade Lunar)
-        mensagemEfeito += `🌗 **${fichaConjurador.nomePersonagem}** pode alternar entre posturas! `;
-        const posturas = Object.keys(efeitoConfig.posturas);
-        mensagemEfeito += `(Posturas disponíveis: ${posturas.join(', ')})`;
-    } else {
-        // Fallback para feitiços sem configuração específica
-        mensagemEfeito += `🔮 O feitiço foi conjurado, mas seus efeitos específicos ainda não foram implementados.`;
-    }
-
-    // Atualiza ficha do jogador no combate e salva no banco
+    // Atualizar ficha do jogador no combate
     combate.fichaJogador = fichaConjurador;
     
-    // Salva a ficha atualizada no banco de dados
+    // Salvar a ficha atualizada no banco de dados
     try {
         await atualizarFichaNoCacheEDb(idJogadorAcao, fichaConjurador);
     } catch (saveError) {
         console.error("[COMBATE] Erro ao salvar ficha após usar feitiço:", saveError);
     }
 
-    // Verifica vitória do jogador
+    // Adicionar mensagem do feitiço ao log
+    logDoTurno.push(resultadoFeitico.resultado.mensagem);
+    
+    // Adicionar efeitos por turno ao log
+    if (efeitosMob.length > 0) {
+        logDoTurno.push(...efeitosMob);
+    }
+    if (efeitosJogador.length > 0) {
+        logDoTurno.push(...efeitosJogador);
+    }
+
+    // Verificar vitória do jogador
     if (combate.mobInstancia.pvAtual <= 0) {
-        logDoTurno.push(mensagemEfeito);
         logDoTurno.push(`🏆 ${combate.mobInstancia.nome} foi derrotado!`);
         combate.log.push(...logDoTurno);
         combate.numeroMobsDerrotadosNaMissao = (combate.numeroMobsDerrotadosNaMissao || 0) + 1;
@@ -530,7 +375,6 @@ else if (tipoAcao === "USAR_FEITICO") {
     }
 
     combate.turnoDoJogador = false;
-    logDoTurno.push(mensagemEfeito);
     combate.log.push(...logDoTurno);
     return {
         sucesso: true,

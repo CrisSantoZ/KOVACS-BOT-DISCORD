@@ -80,25 +80,7 @@ const commands = [
     new SlashCommandBuilder().setName('listareinos').setDescription('Lista os reinos de origem em Arcádia.'),
 new SlashCommandBuilder().setName('meusfeiticos')
     .setDescription('Exibe seus feitiços conhecidos, seus níveis e informações relevantes.'),
-new SlashCommandBuilder().setName('listarfeiticos')
-    .setDescription('Lista feitiços disponíveis por categoria.')
-    .addStringOption(option =>
-        option.setName('categoria')
-            .setDescription('Categoria de feitiços para listar.')
-            .setRequired(false)
-            .addChoices(
-                { name: '🧬 Feitiços de Raça', value: 'raca' },
-                { name: '⚔️ Feitiços de Classe', value: 'classe' },
-                { name: '✨ Feitiços Especiais', value: 'especial' },
-                { name: '📚 Feitiços Conhecidos', value: 'conhecidos' }
-            )
-    )
-    .addStringOption(option =>
-        option.setName('feitico')
-            .setDescription('ID do feitiço para informações detalhadas.')
-            .setRequired(false)
-            .setAutocomplete(true)
-    ),
+
 new SlashCommandBuilder().setName('uparfeitico')
     .setDescription('Usa Pontos de Feitiço para evoluir um feitiço conhecido.')
     .addStringOption(option =>

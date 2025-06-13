@@ -53,8 +53,10 @@ function calcularValorDaFormula(formula, atributosConjurador, atributosAlvo = {}
     // Substituir cada atributo na expressão
     for (const atributo of atributosValidos) {
         if (todosAtributos[atributo] !== undefined) {
-            const regex = new RegExp(`\b${atributo}\b`, 'g');
-            expressao = expressao.replace(regex, String(todosAtributos[atributo] || 0));
+            // Usar replace simples para garantir que funcione
+            while (expressao.includes(atributo)) {
+                expressao = expressao.replace(atributo, String(todosAtributos[atributo] || 0));
+            }
         }
     }
 
@@ -65,9 +67,11 @@ function calcularValorDaFormula(formula, atributosConjurador, atributosAlvo = {}
         // Verificar se a expressão contém apenas caracteres válidos para cálculo matemático
         if (!/^[0-9.+\-*/()]+$/.test(expressao)) {
             console.warn(`[Parser Fórmula] Expressão contém caracteres inválidos após substituição: ${expressao}`);
+            console.warn(`[Parser Fórmula] Fórmula original: ${formula}`);
+            console.warn(`[Parser Fórmula] Atributos disponíveis:`, todosAtributos);
             return 0;
         }
-        const resultado = Math.floor(new Function(`return ${expressao}`)());
+        const resultado = Math.floor(eval(expressao));
         return isNaN(resultado) ? 0 : resultado;
     } catch (e) {
         console.error(`[Parser Fórmula] Erro ao calcular fórmula "${formula}" (expressão resultante: "${expressao}"):`, e);
