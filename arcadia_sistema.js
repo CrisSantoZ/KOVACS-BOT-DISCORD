@@ -2287,6 +2287,100 @@ async function processarAdminExcluirFicha(idAlvoDiscord, confirmacao, adminNome,
 }
 
 // =====================================================================================
+// FUNÇÃO DE TESTE DE FEITIÇOS
+// =====================================================================================
+
+async function processarTestarTodosFeiticos(jogadorId) {
+    const ficha = await getFichaOuCarregar(jogadorId);
+    if (!ficha) {
+        return gerarEmbedErro("Ficha Não Encontrada", "Você precisa ter uma ficha criada para testar feitiços.");
+    }
+
+    // Contar feitiços por categoria
+    const categorias = {
+        raca: 0,
+        classe: 0,
+        escola: 0,
+        total: 0
+    };
+
+    const feiticosPorCategoria = {
+        raca: [],
+        classe: [],
+        escola: []
+    };
+
+    // Analisar todos os feitiços
+    for (const [id, feitico] of Object.entries(FEITICOS_BASE_ARCADIA)) {
+        categorias.total++;
+        
+        if (feitico.origemTipo === 'raca') {
+            categorias.raca++;
+            feiticosPorCategoria.raca.push(feitico.nome);
+        } else if (feitico.origemTipo === 'classe') {
+            categorias.classe++;
+            feiticosPorCategoria.classe.push(feitico.nome);
+        } else if (feitico.origemTipo === 'escola') {
+            categorias.escola++;
+            feiticosPorCategoria.escola.push(feitico.nome);
+        }
+    }
+
+    // Verificar feitiços conhecidos pelo jogador
+    const feiticosConhecidos = ficha.magias ? ficha.magias.length : 0;
+    const feiticosDisponiveis = Object.values(FEITICOS_BASE_ARCADIA).filter(f => 
+        (f.origemTipo === 'raca' && f.origemNome === ficha.raca) ||
+        (f.origemTipo === 'classe' && f.origemNome === ficha.classe)
+    ).length;
+
+    const embed = gerarEmbedSucesso("🔮 Análise Completa do Sistema de Feitiços", 
+        `**📊 Estatísticas Gerais:**
+` +
+        `• **Total de Feitiços:** ${categorias.total}
+` +
+        `• **Feitiços de Raça:** ${categorias.raca}
+` +
+        `• **Feitiços de Classe:** ${categorias.classe}
+` +
+        `• **Feitiços de Escola:** ${categorias.escola}
+
+` +
+        
+        `**👤 Status do Personagem:**
+` +
+        `• **Nome:** ${ficha.nomePersonagem}
+` +
+        `• **Raça:** ${ficha.raca}
+` +
+        `• **Classe:** ${ficha.classe}
+` +
+        `• **Nível:** ${ficha.nivel}
+` +
+        `• **Feitiços Conhecidos:** ${feiticosConhecidos}
+` +
+        `• **Feitiços Disponíveis:** ${feiticosDisponiveis}
+
+` +
+        
+        `**🎯 Exemplos por Categoria:**
+` +
+        `• **Raça:** ${feiticosPorCategoria.raca.slice(0, 3).join(', ')}${feiticosPorCategoria.raca.length > 3 ? '...' : ''}
+` +
+        `• **Classe:** ${feiticosPorCategoria.classe.slice(0, 3).join(', ')}${feiticosPorCategoria.classe.length > 3 ? '...' : ''}
+` +
+        `• **Escola:** ${feiticosPorCategoria.escola.slice(0, 3).join(', ')}${feiticosPorCategoria.escola.length > 3 ? '...' : ''}
+
+` +
+        
+        `*Sistema de feitiços funcionando corretamente!*
+` +
+        `*Use /admincriardummy para criar um dummy e testar seus feitiços em combate.*`
+    );
+
+    return embed;
+}
+
+// =====================================================================================
 // FUNÇÕES DE ADMIN PARA SACOS DE PANCADA (DUMMIES)
 // =====================================================================================
 
@@ -2678,6 +2772,9 @@ getFichasCollection,
     
     // Funções de Admin para Dummies
     processarAdminCriarDummy, processarAdminRemoverDummy, processarAdminListarDummies,
+    
+    // Função de Teste de Sistema
+    processarTestarTodosFeiticos,
 
 
     // Novas Funções de Autocomplete

@@ -1538,7 +1538,8 @@ async function handleSlashCommand(interaction) {
                         options.getInteger('pm'),
                         options.getBoolean('contraataca'),
                         options.getString('tipo'),
-                        senderUsername
+                        senderUsername,
+                        interaction.user.id
                     );
                     break;
                 case 'adminremoverdummy':
@@ -1571,6 +1572,12 @@ async function handleSlashCommand(interaction) {
                 payload.embeds = respostaParaEnviar.embeds;
                 if (respostaParaEnviar.content) { 
                     payload.content = respostaParaEnviar.content; 
+                }
+            } else if (respostaParaEnviar.embed && typeof respostaParaEnviar.embed.setTitle === 'function') {
+                // Caso especial para dummies que retornam objeto com embed e informações de combate
+                payload.embeds = [respostaParaEnviar.embed];
+                if (respostaParaEnviar.combateIniciado) {
+                    console.log(`[COMBATE] Dummy criado e combate iniciado: ${respostaParaEnviar.idCombate}`);
                 }
             } else if (respostaParaEnviar && typeof respostaParaEnviar.setTitle === 'function' && respostaParaEnviar.data) {
                 payload.embeds = [respostaParaEnviar];
