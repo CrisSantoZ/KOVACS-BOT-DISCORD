@@ -23,7 +23,7 @@ const COMANDOS_CANAL_ATUALIZACAO_FICHAS = ['ficha', 'distribuirpontos', 'comando
 const app = express();
 const port = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('Bot Arcádia (Discord) está online e operante!'));
-app.listen(port, () => console.log(`Servidor web de keep-alive rodando na porta ${port}.`));
+app.listen(port, '0.0.0.0', () => console.log(`Servidor web de keep-alive rodando na porta ${port}.`));
 
 // --- Inicialização do Cliente Discord ---
 const client = new Client({
