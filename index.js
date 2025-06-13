@@ -2,6 +2,7 @@ const { Client, GatewayIntentBits, Partials, ActivityType, EmbedBuilder, ActionR
 const express = require('express');
 require('dotenv').config();
 const Arcadia = require('./arcadia_sistema.js');
+const { listarFeiticos } = require('./comandos/listar_feiticos.js');
 
 process.on('unhandledRejection', error => {
     console.error('GRAVE: Unhandled promise rejection:', error);
@@ -14,7 +15,7 @@ process.on('uncaughtException', error => {
 
 // --- CONSTANTES DE RESTRIÇÃO DE CANAL ---
 const COMANDOS_CANAL_BEMVINDO = ['historia', 'listaracas', 'listaclasses', 'listareinos', 'comandos', 'ping', 'oi', 'arcadia', 'bemvindo'];
-const COMANDOS_GERAIS_PERMITIDOS_EM_OUTROS_CANAIS = ['comandos', 'ficha', 'distribuirpontos', 'jackpot', 'usaritem', 'usarfeitico', 'aprenderfeitico', 'ping', 'historia', 'interagir'];
+const COMANDOS_GERAIS_PERMITIDOS_EM_OUTROS_CANAIS = ['comandos', 'ficha', 'distribuirpontos', 'jackpot', 'usaritem', 'usarfeitico', 'aprenderfeitico', 'listarfeiticos', 'meusfeiticos', 'ping', 'historia', 'interagir'];
 const COMANDOS_CANAL_RECRUTAMENTO = ['criar', 'ficha', 'comandos', 'ping', 'listaracas', 'listaclasses', 'listareinos'];
 const COMANDOS_CANAL_ATUALIZACAO_FICHAS = ['ficha', 'distribuirpontos', 'comandos', 'ping'];
 
@@ -157,6 +158,16 @@ async function handleAutocomplete(interaction) {
                     .filter(npc => npc.name.toLowerCase().includes(focusedOption.value.toLowerCase()))
                     .map(npc => ({ name: npc.name, value: npc.value }));
             }
+        } else if (commandName === 'listarfeiticos' && focusedOption.name === 'feitico') {
+            // Para listar feitiços, vamos mostrar todos os feitiços disponíveis
+            const FEITICOS_BASE_ARCADIA = require('./dados/feiticos.js');
+            const feiticosDisponiveis = Object.values(FEITICOS_BASE_ARCADIA)
+                .filter(feitico => feitico.nome.toLowerCase().includes(focusedOption.value.toLowerCase()))
+                .map(feitico => ({ 
+                    name: `${feitico.nome} (${feitico.id})`, 
+                    value: feitico.id 
+                }));
+            choices = feiticosDisponiveis.slice(0, 25);
         }
 
         if (!interaction.responded) {
@@ -1217,6 +1228,31 @@ async function handleSlashCommand(interaction) {
                 case 'meusfeiticos':
                     respostaParaEnviar = await Arcadia.processarMeusFeiticos(senderId);
                     break;
+                case 'listarfeiticos': {
+                    const categoria = options.getString('categoria');
+                    const idFeitico = options.getString('feitico');
+                    
+                    // Criar um objeto mock de message para compatibilidade
+                    const mockMessage = {
+                        author: { id: senderId },
+                        reply: async (content) => {
+                            if (typeof content === 'string') {
+                                return { embeds: [Arcadia.gerarEmbedInfo("Feitiços", content)] };
+                            }
+                            return content;
+                        }
+                    };
+                    
+                    let args = [];
+                    if (categoria) args.push(categoria);
+                    if (idFeitico) {
+                        args = ['info', idFeitico];
+                    }
+                    
+                    const resultado = await listarFeiticos(mockMessage, args, Arcadia.getFichaOuCarregar);
+                    respostaParaEnviar = resultado;
+                    break;
+                }
                 case 'uparfeitico': {
                     const idFeiticoParaUpar = options.getString('feitico');
                     if (!idFeiticoParaUpar || idFeiticoParaUpar === "sem_feiticos_upar" || idFeiticoParaUpar === "max_nivel_todos") {
