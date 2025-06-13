@@ -196,7 +196,6 @@ function gerarDummy(nome, tipo = 'basico', configuracaoCustom = {}) {
 
     return dummy;
 }
-=======
 
 // Função para calcular dano baseado em fórmula
 function calcularDanoDummy(formula, atributosDummy) {
