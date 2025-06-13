@@ -196,21 +196,7 @@ async function processarAcaoJogadorCombate(idCombate, idJogadorAcao, tipoAcao = 
             combate.log.push(...logDoTurno);
             combate.numeroMobsDerrotadosNaMissao = (combate.numeroMobsDerrotadosNaMissao || 0) + 1;
             
-            // Finalizar combate imediatamente para dummies
-            if (mob.ehDummyTreino) {
-                console.log(`[DEBUG COMBATE] Dummy derrotado, finalizando combate...`);
-                const resultadoFinal = await finalizarCombate(idCombate, combate.idJogador, true);
-                return {
-                    sucesso: true,
-                    combateTerminou: true,
-                    vencedorFinal: "jogador",
-                    logCombateFinal: resultadoFinal.logCombateFinal || combate.log,
-                    recompensasTextoFinal: resultadoFinal.recompensasTextoFinal || [],
-                    mensagemFinal: resultadoFinal.mensagemFinal || `🏆 ${mob.nome} foi derrotado!`
-                };
-            }
-            
-            return {
+
                 sucesso: true,
                 mobDerrotado: true,
                 idCombate,
@@ -376,20 +362,20 @@ else if (tipoAcao === "USAR_FEITICO") {
         logDoTurno.push(`🏆 ${combate.mobInstancia.nome} foi derrotado!`);
         combate.log.push(...logDoTurno);
         combate.numeroMobsDerrotadosNaMissao = (combate.numeroMobsDerrotadosNaMissao || 0) + 1;
-        return {
-            sucesso: true,
-            mobDerrotado: true,
-            idCombate,
-            logTurnoAnterior: logDoTurno,
-            estadoCombate: getEstadoCombateParaRetorno(combate),
-            dadosParaFinalizar: {
-                idJogador: combate.idJogador,
-                mobInstancia: combate.mobInstancia,
-                idMissaoVinculada: combate.idMissaoVinculada,
-                idObjetivoVinculado: combate.idObjetivoVinculado,
-                numeroMobsJaDerrotados: combate.numeroMobsDerrotadosNaMissao
-            }
-        };
+            return {
+                sucesso: true,
+                mobDerrotado: true,
+                idCombate,
+                logTurnoAnterior: logDoTurno,
+                estadoCombate: getEstadoCombateParaRetorno(combate),
+                dadosParaFinalizar: {
+                    idJogador: combate.idJogador,
+                    mobInstancia: combate.mobInstancia,
+                    idMissaoVinculada: combate.idMissaoVinculada,
+                    idObjetivoVinculado: combate.idObjetivoVinculado,
+                    numeroMobsJaDerrotados: combate.numeroMobsDerrotadosNaMissao
+                }
+            };
     }
 
     combate.turnoDoJogador = false;
