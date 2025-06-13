@@ -1136,6 +1136,188 @@ async function processarUparFeitico(idJogador, idFeiticoAlvo) {
 }
 
 
+// Função para processar efeitos de feitiços de forma robusta
+function processarEfeitoFeitico(feiticoBase, efeitoConfig, fichaConjurador, fichaAlvo) {
+    let mensagem = "";
+    
+    // Processar dano
+    if (efeitoConfig.formulaDano) {
+        const danoCalculado = calcularValorDaFormula(efeitoConfig.formulaDano, fichaConjurador.atributos, fichaAlvo.atributos);
+        if (danoCalculado > 0) {
+            const pvAntes = fichaAlvo.pvAtual;
+            fichaAlvo.pvAtual = Math.max(0, pvAntes - danoCalculado);
+            mensagem += `⚔️ Causou **${danoCalculado}** de dano ${efeitoConfig.tipoDano || 'Mágico'} a **${fichaAlvo.nomePersonagem}**! (PV: ${pvAntes} → ${fichaAlvo.pvAtual}/${fichaAlvo.pvMax})
+`;
+            
+            // Drenagem de vida
+            if (efeitoConfig.curaPropriaPercentDano || efeitoConfig.drenagemVidaPercent) {
+                const percentDrenagem = efeitoConfig.curaPropriaPercentDano || efeitoConfig.drenagemVidaPercent;
+                const curaRealizada = Math.floor(danoCalculado * percentDrenagem);
+                if (curaRealizada > 0) {
+                    const pvConjuradorAntes = fichaConjurador.pvAtual;
+                    fichaConjurador.pvAtual = Math.min(fichaConjurador.pvMax, pvConjuradorAntes + curaRealizada);
+                    mensagem += `🩸 **${fichaConjurador.nomePersonagem}** drenou **${curaRealizada}** PV! (PV: ${pvConjuradorAntes} → ${fichaConjurador.pvAtual}/${fichaConjurador.pvMax})
+`;
+                }
+            }
+            
+            // Drenagem de PM
+            if (efeitoConfig.drenagemPMPercent) {
+                const drenagemPM = Math.floor(danoCalculado * efeitoConfig.drenagemPMPercent);
+                if (drenagemPM > 0 && fichaAlvo.pmAtual > 0) {
+                    const pmAntes = fichaAlvo.pmAtual;
+                    fichaAlvo.pmAtual = Math.max(0, pmAntes - drenagemPM);
+                    fichaConjurador.pmAtual = Math.min(fichaConjurador.pmMax, fichaConjurador.pmAtual + drenagemPM);
+                    mensagem += `🔮 Drenou **${drenagemPM}** PM de **${fichaAlvo.nomePersonagem}**! (PM: ${pmAntes} → ${fichaAlvo.pmAtual}/${fichaAlvo.pmMax})
+`;
+                }
+            }
+        }
+    }
+    
+    // Processar cura
+    if (efeitoConfig.formulaCura) {
+        const curaCalculada = calcularValorDaFormula(efeitoConfig.formulaCura, fichaConjurador.atributos, fichaAlvo.atributos);
+        if (curaCalculada > 0) {
+            const pvAntes = fichaAlvo.pvAtual;
+            fichaAlvo.pvAtual = Math.min(fichaAlvo.pvMax, pvAntes + curaCalculada);
+            mensagem += `💖 Curou **${curaCalculada}** ${efeitoConfig.tipoCura || 'PV'} de **${fichaAlvo.nomePersonagem}**! (PV: ${pvAntes} → ${fichaAlvo.pvAtual}/${fichaAlvo.pvMax})
+`;
+        }
+    }
+    
+    // Processar condições e efeitos especiais
+    if (efeitoConfig.condicao && Math.random() <= (efeitoConfig.condicao.chance || 1)) {
+        if (!fichaAlvo.condicoes) fichaAlvo.condicoes = [];
+        fichaAlvo.condicoes.push({ 
+            nome: efeitoConfig.condicao.nome, 
+            duracaoTurnos: efeitoConfig.condicao.duracaoTurnos, 
+            origem: feiticoBase.nome 
+        });
+        mensagem += `✨ Aplicou condição: **${efeitoConfig.condicao.nome}** por ${efeitoConfig.condicao.duracaoTurnos} turno(s).
+`;
+    }
+    
+    // Processar maldições
+    if (efeitoConfig.maldicao) {
+        if (!fichaAlvo.condicoes) fichaAlvo.condicoes = [];
+        fichaAlvo.condicoes.push({
+            nome: efeitoConfig.maldicao.nome,
+            tipo: "MALDICAO",
+            duracaoTurnos: efeitoConfig.maldicao.duracaoTurnos || 999,
+            efeito: efeitoConfig.maldicao.efeitoDesc,
+            origem: feiticoBase.nome
+        });
+        mensagem += `💀 Aplicou maldição: **${efeitoConfig.maldicao.nome}**!
+`;
+    }
+    
+    // Processar buffs
+    if (efeitoConfig.buff || efeitoConfig.buffAdicional) {
+        const buff = efeitoConfig.buff || efeitoConfig.buffAdicional;
+        if (!fichaAlvo.condicoes) fichaAlvo.condicoes = [];
+        
+        let valorBuff = 0;
+        if (buff.formulaValor) {
+            valorBuff = calcularValorDaFormula(buff.formulaValor, fichaConjurador.atributos, fichaAlvo.atributos);
+        } else if (buff.valor) {
+            valorBuff = buff.valor;
+        }
+        
+        fichaAlvo.condicoes.push({
+            nome: buff.nome || `Buff: ${feiticoBase.nome}`,
+            tipo: "BUFF",
+            atributo: buff.atributo,
+            valor: valorBuff,
+            duracaoTurnos: buff.duracaoTurnos,
+            origem: feiticoBase.nome
+        });
+        mensagem += `✨ Aplicou buff: **${buff.nome || feiticoBase.nome}** (+${valorBuff} ${buff.atributo}) por ${buff.duracaoTurnos} turnos.
+`;
+    }
+    
+    // Processar remoção de condições
+    if (efeitoConfig.removeCondicao) {
+        const tipos = Array.isArray(efeitoConfig.removeCondicao.tipo) ? efeitoConfig.removeCondicao.tipo : [efeitoConfig.removeCondicao.tipo];
+        let removidas = 0;
+        
+        if (fichaAlvo.condicoes) {
+            for (const tipo of tipos) {
+                const index = fichaAlvo.condicoes.findIndex(c => c.nome.toLowerCase().includes(tipo.toLowerCase()));
+                if (index !== -1) {
+                    const condicaoRemovida = fichaAlvo.condicoes.splice(index, 1)[0];
+                    removidas++;
+                    mensagem += `🌿 Removeu condição: **${condicaoRemovida.nome}**.
+`;
+                }
+            }
+        }
+        
+        if (removidas === 0) {
+            mensagem += `🌿 Purificou **${fichaAlvo.nomePersonagem}** (nenhuma condição negativa encontrada).
+`;
+        }
+    }
+    
+    // Processar escudos
+    if (efeitoConfig.tipoBuff === "escudoHP" || efeitoConfig.formulaValor) {
+        const valorEscudo = calcularValorDaFormula(efeitoConfig.formulaValor, fichaConjurador.atributos, fichaAlvo.atributos);
+        if (!fichaAlvo.condicoes) fichaAlvo.condicoes = [];
+        fichaAlvo.condicoes.push({
+            nome: `Escudo: ${feiticoBase.nome}`,
+            tipo: "ESCUDO",
+            valor: valorEscudo,
+            duracaoTurnos: efeitoConfig.duracaoTurnos,
+            origem: feiticoBase.nome
+        });
+        mensagem += `🛡️ **${fichaAlvo.nomePersonagem}** recebe um escudo de **${valorEscudo}** por ${efeitoConfig.duracaoTurnos} turnos.
+`;
+    }
+    
+    // Processar invocações
+    if (efeitoConfig.tipoInvocacao || efeitoConfig.tipoEfeito?.includes("invocar") || efeitoConfig.tipoEfeito?.includes("convocar")) {
+        mensagem += `🌟 **${fichaConjurador.nomePersonagem}** invocou criaturas mágicas!
+`;
+        if (efeitoConfig.unidades) {
+            for (const unidade of efeitoConfig.unidades) {
+                mensagem += `   • ${unidade.quantidade}x ${unidade.nome}
+`;
+            }
+        }
+    }
+    
+    // Processar transformações
+    if (efeitoConfig.tipoEfeito?.includes("transformacao")) {
+        mensagem += `🔄 **${fichaConjurador.nomePersonagem}** se transformou!
+`;
+        if (efeitoConfig.buffs) {
+            for (const buff of efeitoConfig.buffs) {
+                const valor = calcularValorDaFormula(buff.formulaValor, fichaConjurador.atributos);
+                mensagem += `   • +${valor} ${buff.atributo}
+`;
+            }
+        }
+    }
+    
+    // Processar efeitos de área
+    if (efeitoConfig.alvo === "area" || efeitoConfig.raioMetros) {
+        mensagem += `💥 Efeito em área (raio: ${efeitoConfig.raioMetros || 3}m)!
+`;
+    }
+    
+    // Caso genérico para tipos não implementados
+    if (mensagem === "") {
+        mensagem = `✨ **${fichaConjurador.nomePersonagem}** usou **${feiticoBase.nome}** com sucesso!
+`;
+        if (efeitoConfig.efeitoDesc || feiticoBase.descricao) {
+            mensagem += `📜 ${efeitoConfig.efeitoDesc || feiticoBase.descricao}
+`;
+        }
+    }
+    
+    return mensagem;
+}
+
 async function usarFeitico(idJogador, idFeitico, idAlvo = null) {
     const fichaConjurador = await getFichaOuCarregar(idJogador);
     if (!fichaConjurador || fichaConjurador.nomePersonagem === "N/A") {
@@ -1195,98 +1377,15 @@ async function usarFeitico(idJogador, idFeitico, idAlvo = null) {
     }
 
     if (efeitoConfig.alvo === 'área') {
-        mensagemEfeitoEspecifico = `(Efeito em área ativado - lógica de múltiplos alvos a ser implementada).\n`;
-        // Lógica de dano em área (exemplo simplificado, aplicar a todos os inimigos em um futuro sistema de combate)
-        if (feiticoBase.tipo === "ataque" && efeitoConfig.formulaDano) {
-             const danoCalculado = calcularValorDaFormula(efeitoConfig.formulaDano, fichaConjurador.atributos); // Sem atributos de alvo específico para área por enquanto
-             mensagemEfeitoEspecifico += `💥 Causou **${danoCalculado}** de dano ${efeitoConfig.tipoDano || 'mágico'} em área!\n`;
-        }
+        mensagemEfeitoEspecifico = `(Efeito em área ativado - lógica de múltiplos alvos a ser implementada).
+`;
+        // 
     } else if (fichaAlvo) {
-        switch (feiticoBase.tipo) {
-            case "ataque":
-                if (efeitoConfig.formulaDano) {
-                    const danoCalculado = calcularValorDaFormula(efeitoConfig.formulaDano, fichaConjurador.atributos, fichaAlvo.atributos);
-                    if (danoCalculado > 0) {
-                        const pvAntes = fichaAlvo.pvAtual;
-                        fichaAlvo.pvAtual = Math.max(0, pvAntes - danoCalculado);
-                        mensagemEfeitoEspecifico += `💥 Causou **${danoCalculado}** de dano ${efeitoConfig.tipoDano || 'mágico'} a **${fichaAlvo.nomePersonagem}**! (PV: ${pvAntes} → ${fichaAlvo.pvAtual}/${fichaAlvo.pvMax})\n`;
-                        if (efeitoConfig.debuff) {
-                            // Adicionar à lista de condições do alvo
-                            if (!fichaAlvo.condicoes) fichaAlvo.condicoes = [];
-                            fichaAlvo.condicoes.push({ nome: `Debuff: ${feiticoBase.nome}`, atributo: efeitoConfig.debuff.atributo, modificador: efeitoConfig.debuff.modificador, valor: efeitoConfig.debuff.valor, duracaoTurnos: efeitoConfig.debuff.duracaoTurnos, origem: feiticoBase.nome });
-                            mensagemEfeitoEspecifico += `✨ Aplicou debuff: ${efeitoConfig.debuff.atributo} afetado por ${efeitoConfig.debuff.duracaoTurnos} turno(s).\n`;
-                        }
-                        if (efeitoConfig.condicao) {
-                             if (Math.random() < (efeitoConfig.condicao.chance || 1)) { // Aplica se chance for 1 ou sortear
-                                if (!fichaAlvo.condicoes) fichaAlvo.condicoes = [];
-                                fichaAlvo.condicoes.push({ nome: efeitoConfig.condicao.nome, duracaoTurnos: efeitoConfig.condicao.duracaoTurnos, origem: feiticoBase.nome });
-                                mensagemEfeitoEspecifico += `✨ Aplicou condição: ${efeitoConfig.condicao.nome} por ${efeitoConfig.condicao.duracaoTurnos} turno(s).\n`;
-                            }
-                        }
-                        if (efeitoConfig.curaPropriaPercentDano) {
-                            const curaRealizada = Math.floor(danoCalculado * efeitoConfig.curaPropriaPercentDano);
-                            if (curaRealizada > 0) {
-                                const pvConjuradorAntes = fichaConjurador.pvAtual;
-                                fichaConjurador.pvAtual = Math.min(fichaConjurador.pvMax, pvConjuradorAntes + curaRealizada);
-                                mensagemEfeitoEspecifico += `🩸 **${fichaConjurador.nomePersonagem}** drenou **${curaRealizada}** PV de **${fichaAlvo.nomePersonagem}**! (PV: ${pvConjuradorAntes} → ${fichaConjurador.pvAtual}/${fichaConjurador.pvMax})\n`;
-                            }
-                        }
-
-                    } else {
-                        mensagemEfeitoEspecifico += `🛡️ O ataque não causou dano efetivo a **${fichaAlvo.nomePersonagem}**.\n`;
-                    }
-                } else {
-                    mensagemEfeitoEspecifico += `❓ Efeito de ataque não detalhado.\n`;
-                }
-                break;
-            case "cura":
-                if (efeitoConfig.formulaCura) {
-                    const curaCalculada = calcularValorDaFormula(efeitoConfig.formulaCura, fichaConjurador.atributos, fichaAlvo.atributos);
-                    if (curaCalculada > 0) {
-                        const pvAntes = fichaAlvo.pvAtual;
-                        fichaAlvo.pvAtual = Math.min(fichaAlvo.pvMax, pvAntes + curaCalculada);
-                        mensagemEfeitoEspecifico += `💖 Curou **${curaCalculada}** ${efeitoConfig.tipoCura || 'PV'} de **${fichaAlvo.nomePersonagem}**! (PV: ${pvAntes} → ${fichaAlvo.pvAtual}/${fichaAlvo.pvMax})\n`;
-                    } else {
-                        mensagemEfeitoEspecifico += `🌿 A cura não teve efeito significativo em **${fichaAlvo.nomePersonagem}**.\n`;
-                    }
-                } else if (efeitoConfig.formulaCuraPorTurno) { // Para HoT
-                    // Lógica de aplicar HoT (adicionar à lista de condições/buffs do alvo)
-                    if (!fichaAlvo.condicoes) fichaAlvo.condicoes = [];
-                     const curaPorTurno = calcularValorDaFormula(efeitoConfig.formulaCuraPorTurno, fichaConjurador.atributos, fichaAlvo.atributos);
-                    fichaAlvo.condicoes.push({
-                        nome: `Cura Contínua: ${feiticoBase.nome}`,
-                        tipo: "CURA_HOT",
-                        valorPorTurno: curaPorTurno,
-                        duracaoTurnos: efeitoConfig.duracaoTurnos,
-                        origem: feiticoBase.nome
-                    });
-                    mensagemEfeitoEspecifico += `🌿 **${fichaAlvo.nomePersonagem}** recebe uma cura contínua de **${curaPorTurno} PV/turno** por ${efeitoConfig.duracaoTurnos} turnos.\n`;
-                } else {
-                    mensagemEfeitoEspecifico += `❓ Efeito de cura não detalhado.\n`;
-                }
-                break;
-            case "defesa": // Buffs e escudos
-                 if (efeitoConfig.tipoBuff === "escudoHP") {
-                    const valorEscudo = calcularValorDaFormula(efeitoConfig.formulaValor, fichaConjurador.atributos, fichaAlvo.atributos);
-                    // Adicionar lógica para PV temporário ou escudo
-                    mensagemEfeitoEspecifico += `🛡️ **${fichaAlvo.nomePersonagem}** recebe um escudo de **${valorEscudo}** por ${efeitoConfig.duracaoTurnos} turnos.\n`;
-                } else if (efeitoConfig.tipoBuff === "atributo" && efeitoConfig.buff) { // Correção aqui: era efeitoConfig.buff.formulaValor e efeitoConfig.buff.valor
-                    const valorBuff = calcularValorDaFormula(efeitoConfig.buff.formulaValor || String(efeitoConfig.buff.valor || 0), fichaConjurador.atributos, fichaAlvo.atributos);
-                    // Adicionar à lista de condições/buffs
-                    mensagemEfeitoEspecifico += `✨ **${fichaAlvo.nomePersonagem}** recebe buff em ${efeitoConfig.buff.atributo} de **${valorBuff}** por ${efeitoConfig.buff.duracaoTurnos} turnos.\n`;
-                } else if (efeitoConfig.tipoBuff === "resistenciaMagicaPercent" && efeitoConfig.formulaValor) { // Exemplo para Runa de Proteção
-                    const valorBuff = calcularValorDaFormula(efeitoConfig.formulaValor, fichaConjurador.atributos, fichaAlvo.atributos);
-                     mensagemEfeitoEspecifico += `✨ **${fichaAlvo.nomePersonagem}** aumenta sua Resistência Mágica em **${valorBuff}%** por ${efeitoConfig.duracaoTurnos} turnos.\n`;
-                    // Implementar a lógica de buff de resistência mágica na ficha do alvo
-                }
-                // Adicionar mais lógicas de defesa/buff aqui
-                break;
-            default:
-                mensagemEfeitoEspecifico += `❓ Tipo de feitiço "${feiticoBase.tipo}" com efeito em alvo único não implementado totalmente.\n`;
-                break;
-        }
+        // Sistema robusto de processamento de efeitos de feitiços
+        mensagemEfeitoEspecifico += processarEfeitoFeitico(feiticoBase, efeitoConfig, fichaConjurador, fichaAlvo);
     } else if (!['área'].includes(efeitoConfig.alvo)) {
-        mensagemEfeitoEspecifico = `⚠️ Não foi possível determinar o alvo para o efeito do feitiço.\n`;
+        mensagemEfeitoEspecifico = `⚠️ Não foi possível determinar o alvo para o efeito do feitiço.
+`;
     }
 
     await atualizarFichaNoCacheEDb(idJogador, fichaConjurador);
