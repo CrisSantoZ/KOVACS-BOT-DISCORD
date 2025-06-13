@@ -1,5 +1,6 @@
 //Combates Lógica
-const combatesAtivos = {}; // Cache local de combates ativos
+// Importar o cache de combates do index.js
+let combatesAtivos = {};
 let mobsCollection = null; // Deve ser setada na inicialização do módulo
 let getFichaOuCarregar, atualizarFichaNoCacheEDb, adicionarXPELevelUp, adicionarItemAoInventario, processarUsarItem, ITENS_BASE_ARCADIA, FEITICOS_BASE_ARCADIA, atualizarProgressoMissao, calcularValorDaFormula;
 
@@ -18,6 +19,12 @@ function setupCombate(deps) {
   atualizarProgressoMissao = deps.atualizarProgressoMissao;
   conectarMongoDB = deps.conectarMongoDB;
   calcularValorDaFormula = deps.calcularValorDaFormula;
+  
+  // Configurar o cache de combates compartilhado
+  if (deps.combatesAtivos) {
+    combatesAtivos = deps.combatesAtivos;
+    console.log('[COMBATE] Cache de combates compartilhado configurado');
+  }
 }
 
 

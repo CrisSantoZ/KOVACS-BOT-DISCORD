@@ -82,6 +82,30 @@ function calcularValorDaFormula(formula, atributosConjurador, atributosAlvo = {}
 
 const combates = require('./sistemas/combates');
 
+// Importar o cache de combates do index.js
+let combatesAtivosCompartilhado = null;
+
+function setCombatesAtivos(cache) {
+  combatesAtivosCompartilhado = cache;
+  console.log('[ARCADIA] Cache de combates compartilhado configurado');
+  
+  // Reconfigurar o sistema de combate com o cache correto
+  combates.setupCombate({
+    getFichaOuCarregar,
+    atualizarFichaNoCacheEDb,
+    adicionarXPELevelUp,
+    adicionarItemAoInventario,
+    ITENS_BASE_ARCADIA,
+    FEITICOS_BASE_ARCADIA,
+    conectarMongoDB,
+    atualizarProgressoMissao,
+    processarUsarItem,
+    calcularValorDaFormula,
+    combatesAtivos: combatesAtivosCompartilhado,
+  });
+}
+
+// Setup inicial sem o cache (será reconfigurado quando setCombatesAtivos for chamado)
 combates.setupCombate({
   getFichaOuCarregar,
   atualizarFichaNoCacheEDb,
@@ -93,6 +117,7 @@ combates.setupCombate({
   atualizarProgressoMissao,
   processarUsarItem,
   calcularValorDaFormula,
+  combatesAtivos: combatesAtivosCompartilhado,
 });
 
 const { 
@@ -2898,4 +2923,7 @@ getFichasCollection,
     getFeiticosUparaveisParaAutocomplete,
     getTodosFeiticosBaseParaAutocomplete,
     getTodosNPCsParaAutocomplete,
+    
+    // Função para configurar cache de combates
+    setCombatesAtivos,
 };

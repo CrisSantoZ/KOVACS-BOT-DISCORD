@@ -44,6 +44,9 @@ const combatesAtivos = {};
 // Exportar para que arcadia_sistema.js possa acessar
 module.exports = { combatesAtivos };
 
+// Configurar o cache compartilhado no sistema Arcadia
+Arcadia.setCombatesAtivos(combatesAtivos);
+
 // --- Evento: Bot Pronto ---
 client.on('ready', async () => {
     console.log(`Logado no Discord como ${client.user.tag}!`);
