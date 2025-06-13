@@ -237,7 +237,32 @@ new SlashCommandBuilder().setName('interagir')
     new SlashCommandBuilder().setName('adminexcluirficha')
         .setDescription('[Admin] EXCLUI PERMANENTEMENTE a ficha de um jogador.')
         .addUserOption(o => o.setName('jogador').setDescription('O jogador cuja ficha será excluída.').setRequired(true))
-        .addStringOption(o => o.setName('confirmacao').setDescription('Digite "CONFIRMAR EXCLUSAO" para prosseguir.').setRequired(true))
+        .addStringOption(o => o.setName('confirmacao').setDescription('Digite "CONFIRMAR EXCLUSAO" para prosseguir.').setRequired(true)),
+
+    // --- Comandos de Admin para Sacos de Pancada ---
+    new SlashCommandBuilder().setName('admincriardummy')
+        .setDescription('[Admin] Cria um saco de pancada para testes de combate.')
+        .addStringOption(o => o.setName('nome').setDescription('Nome do saco de pancada.').setRequired(true))
+        .addIntegerOption(o => o.setName('nivel').setDescription('Nível do dummy (1-100).').setRequired(false).setMinValue(1).setMaxValue(100))
+        .addIntegerOption(o => o.setName('pv').setDescription('PV máximo do dummy.').setRequired(false).setMinValue(1))
+        .addIntegerOption(o => o.setName('pm').setDescription('PM máximo do dummy.').setRequired(false).setMinValue(0))
+        .addBooleanOption(o => o.setName('contraataca').setDescription('Se o dummy deve contra-atacar.').setRequired(false))
+        .addStringOption(o => o.setName('tipo').setDescription('Tipo do dummy.').setRequired(false)
+            .addChoices(
+                { name: 'Básico', value: 'basico' },
+                { name: 'Resistente', value: 'resistente' },
+                { name: 'Mágico', value: 'magico' },
+                { name: 'Ágil', value: 'agil' },
+                { name: 'Personalizado', value: 'personalizado' }
+            )),
+
+    new SlashCommandBuilder().setName('adminremoverdummy')
+        .setDescription('[Admin] Remove ou reseta um saco de pancada.')
+        .addStringOption(o => o.setName('nome').setDescription('Nome do dummy a remover/resetar.').setRequired(true))
+        .addBooleanOption(o => o.setName('resetar').setDescription('Resetar ao invés de remover (restaura PV/PM).').setRequired(false)),
+
+    new SlashCommandBuilder().setName('adminlistardummies')
+        .setDescription('[Admin] Lista todos os sacos de pancada ativos.')
 
 ].map(command => command.toJSON());
 

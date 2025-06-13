@@ -1530,6 +1530,27 @@ async function handleSlashCommand(interaction) {
                     const membroAlvo = interaction.guild ? interaction.guild.members.cache.get(alvoExcluir.id) : null;
                     respostaParaEnviar = await Arcadia.processarAdminExcluirFicha(alvoExcluir.id, options.getString('confirmacao'), senderUsername, membroAlvo);
                     break;
+                case 'admincriardummy':
+                    respostaParaEnviar = await Arcadia.processarAdminCriarDummy(
+                        options.getString('nome'),
+                        options.getInteger('nivel'),
+                        options.getInteger('pv'),
+                        options.getInteger('pm'),
+                        options.getBoolean('contraataca'),
+                        options.getString('tipo'),
+                        senderUsername
+                    );
+                    break;
+                case 'adminremoverdummy':
+                    respostaParaEnviar = await Arcadia.processarAdminRemoverDummy(
+                        options.getString('nome'),
+                        options.getBoolean('resetar'),
+                        senderUsername
+                    );
+                    break;
+                case 'adminlistardummies':
+                    respostaParaEnviar = await Arcadia.processarAdminListarDummies();
+                    break;
                 default:
                     if (commandName) {
                         respostaParaEnviar = Arcadia.gerarEmbedAviso("Comando Desconhecido", `O comando \`/${commandName}\` não foi reconhecido ou não está implementado no switch principal.`);

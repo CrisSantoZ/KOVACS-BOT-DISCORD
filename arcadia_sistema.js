@@ -28,6 +28,7 @@ const classesEspeciais = require('./dados/classesEspeciais');
 const reinos = require('./dados/reinos');
 const itens = require('./dados/itens');
 const feiticos = require('./dados/feiticos');
+const dummies = require('./dados/dummies');
 
 // Criando aliases para compatibilidade com código existente
 const RACAS_ARCADIA = racas;
@@ -265,7 +266,9 @@ let dbClient;
 let fichasCollection;
 let npcsCollection; // Declarada aqui, no escopo do módulo
 let missoesCollection; // Adicionando para futuras missões
+let dummiesCollection; // Coleção para sacos de pancada
 let todasAsFichas = {}; // Cache local das fichas
+let dummiesAtivos = {}; // Cache de dummies ativos em memória
 
 
 
@@ -287,11 +290,12 @@ let todasAsFichas = {}; // Cache local das fichas
         fichasCollection = db.collection(MONGODB_FICHAS_COLLECTION);
         npcsCollection = db.collection("npcs_arcadia"); 
         missoesCollection = db.collection("missoes_arcadia");
+        dummiesCollection = db.collection("dummies_arcadia");
 console.log(">>> [arcadia_sistema.js | conectarMongoDB] missoesCollection foi atribuída:", typeof missoesCollection, !!missoesCollection);
         mobsCollection = db.collection("mobs_arcadia");
         combates.setMobsCollection(mobsCollection);
 
-        console.log("Conectado com sucesso ao MongoDB Atlas e às coleções:", MONGODB_FICHAS_COLLECTION, ", npcs_arcadia, missoes_arcadia, e mobs_arcadia");
+        console.log("Conectado com sucesso ao MongoDB Atlas e às coleções:", MONGODB_FICHAS_COLLECTION, ", npcs_arcadia, missoes_arcadia, mobs_arcadia, e dummies_arcadia");
 
     } catch (error) {
         console.error("ERRO CRÍTICO ao conectar ao MongoDB:", error);
@@ -2282,6 +2286,201 @@ async function processarAdminExcluirFicha(idAlvoDiscord, confirmacao, adminNome,
     }
 }
 
+// =====================================================================================
+// FUNÇÕES DE ADMIN PARA SACOS DE PANCADA (DUMMIES)
+// =====================================================================================
+
+async function processarAdminCriarDummy(nomeDummy, nivel, pv, pm, contraataca, tipo, adminNome) {
+    if (!dummiesCollection) {
+        console.error("Coleção de dummies não inicializada.");
+        await conectarMongoDB();
+        if (!dummiesCollection) {
+            return gerarEmbedErro("Erro do Sistema", "Sistema de dummies indisponível.");
+        }
+    }
+
+    try {
+        // Verificar se já existe um dummy com esse nome
+        const dummyExistente = await dummiesCollection.findOne({ nome: nomeDummy });
+        if (dummyExistente) {
+            return gerarEmbedAviso("Dummy Já Existe", `Já existe um saco de pancada chamado "${nomeDummy}". Use um nome diferente ou remova o existente primeiro.`);
+        }
+
+        // Configuração personalizada baseada nos parâmetros
+        const configuracaoCustom = {
+            criadoPor: adminNome
+        };
+
+        if (nivel !== null) configuracaoCustom.nivel = nivel;
+        if (pv !== null) configuracaoCustom.pv = pv;
+        if (pm !== null) configuracaoCustom.pm = pm;
+        if (contraataca !== null) configuracaoCustom.contraataca = contraataca;
+
+        // Gerar o dummy usando o sistema de dados
+        const novoDummy = dummies.gerarDummy(nomeDummy, tipo || 'basico', configuracaoCustom);
+
+        // Salvar no banco de dados
+        await dummiesCollection.insertOne(novoDummy);
+        
+        // Adicionar ao cache
+        dummiesAtivos[novoDummy._id] = novoDummy;
+
+        console.log(`[ADMIN] Dummy "${nomeDummy}" criado por ${adminNome}`);
+
+        const embed = gerarEmbedSucesso("🎯 Saco de Pancada Criado", 
+            `**${novoDummy.nome}** foi criado com sucesso!\n\n` +
+            `**Tipo:** ${tipo || 'básico'}\n` +
+            `**Nível:** ${novoDummy.nivel}\n` +
+            `**PV:** ${novoDummy.pvAtual}/${novoDummy.pvMaximo}\n` +
+            `**PM:** ${novoDummy.pmAtual}/${novoDummy.pmMaximo}\n` +
+            `**Contra-ataca:** ${novoDummy.contraataca ? 'Sim' : 'Não'}\n` +
+            `**ID:** \`${novoDummy._id}\`\n\n` +
+            `*Criado por ${adminNome}*`
+        );
+
+        return embed;
+
+    } catch (error) {
+        console.error("Erro ao criar dummy:", error);
+        return gerarEmbedErro("Erro ao Criar Dummy", "Ocorreu um erro interno ao criar o saco de pancada.");
+    }
+}
+
+async function processarAdminRemoverDummy(nomeDummy, resetar, adminNome) {
+    if (!dummiesCollection) {
+        console.error("Coleção de dummies não inicializada.");
+        await conectarMongoDB();
+        if (!dummiesCollection) {
+            return gerarEmbedErro("Erro do Sistema", "Sistema de dummies indisponível.");
+        }
+    }
+
+    try {
+        // Buscar o dummy pelo nome
+        const dummy = await dummiesCollection.findOne({ nome: nomeDummy });
+        if (!dummy) {
+            return gerarEmbedAviso("Dummy Não Encontrado", `Nenhum saco de pancada chamado "${nomeDummy}" foi encontrado.`);
+        }
+
+        if (resetar) {
+            // Resetar o dummy (restaurar PV/PM)
+            const atualizacao = {
+                pvAtual: dummy.pvMaximo,
+                pmAtual: dummy.pmMaximo,
+                ativo: true,
+                ultimoReset: new Date()
+            };
+
+            await dummiesCollection.updateOne({ _id: dummy._id }, { $set: atualizacao });
+            
+            // Atualizar cache
+            if (dummiesAtivos[dummy._id]) {
+                Object.assign(dummiesAtivos[dummy._id], atualizacao);
+            }
+
+            console.log(`[ADMIN] Dummy "${nomeDummy}" resetado por ${adminNome}`);
+            
+            return gerarEmbedSucesso("🔄 Dummy Resetado", 
+                `**${dummy.nome}** foi resetado com sucesso!\n\n` +
+                `**PV:** ${dummy.pvMaximo}/${dummy.pvMaximo}\n` +
+                `**PM:** ${dummy.pmMaximo}/${dummy.pmMaximo}\n` +
+                `**Status:** Ativo\n\n` +
+                `*Resetado por ${adminNome}*`
+            );
+        } else {
+            // Remover o dummy permanentemente
+            await dummiesCollection.deleteOne({ _id: dummy._id });
+            
+            // Remover do cache
+            delete dummiesAtivos[dummy._id];
+
+            console.log(`[ADMIN] Dummy "${nomeDummy}" removido por ${adminNome}`);
+            
+            return gerarEmbedSucesso("🗑️ Dummy Removido", 
+                `**${dummy.nome}** foi removido permanentemente.\n\n` +
+                `*Removido por ${adminNome}*`
+            );
+        }
+
+    } catch (error) {
+        console.error("Erro ao remover/resetar dummy:", error);
+        return gerarEmbedErro("Erro ao Processar Dummy", "Ocorreu um erro interno ao processar o saco de pancada.");
+    }
+}
+
+async function processarAdminListarDummies() {
+    if (!dummiesCollection) {
+        console.error("Coleção de dummies não inicializada.");
+        await conectarMongoDB();
+        if (!dummiesCollection) {
+            return gerarEmbedErro("Erro do Sistema", "Sistema de dummies indisponível.");
+        }
+    }
+
+    try {
+        const dummiesAtivos = await dummiesCollection.find({ ativo: { $ne: false } }).toArray();
+        
+        if (dummiesAtivos.length === 0) {
+            return gerarEmbedAviso("Nenhum Dummy Ativo", "Não há sacos de pancada ativos no momento.");
+        }
+
+        const embed = new EmbedBuilder()
+            .setColor(0x4A90E2)
+            .setTitle("🎯 Sacos de Pancada Ativos")
+            .setDescription(`Total: ${dummiesAtivos.length} dummy(s) ativo(s)`)
+            .setTimestamp();
+
+        let descricao = "";
+        dummiesAtivos.forEach((dummy, index) => {
+            const statusPV = `${dummy.pvAtual}/${dummy.pvMaximo}`;
+            const statusPM = `${dummy.pmAtual}/${dummy.pmMaximo}`;
+            const contraataca = dummy.contraataca ? "✅" : "❌";
+            
+            descricao += `**${index + 1}. ${dummy.nome}**\n`;
+            descricao += `• Nível: ${dummy.nivel} | PV: ${statusPV} | PM: ${statusPM}\n`;
+            descricao += `• Contra-ataca: ${contraataca} | Tipo: ${dummy.tipo || 'básico'}\n`;
+            descricao += `• ID: \`${dummy._id}\`\n`;
+            descricao += `• Criado por: ${dummy.criadoPor || 'N/A'}\n\n`;
+        });
+
+        // Dividir em campos se a descrição for muito longa
+        if (descricao.length > 4000) {
+            const campos = [];
+            let campoAtual = "";
+            const linhas = descricao.split('\n');
+            
+            for (const linha of linhas) {
+                if ((campoAtual + linha + '\n').length > 1000) {
+                    if (campoAtual) campos.push(campoAtual);
+                    campoAtual = linha + '\n';
+                } else {
+                    campoAtual += linha + '\n';
+                }
+            }
+            if (campoAtual) campos.push(campoAtual);
+            
+            campos.forEach((campo, index) => {
+                embed.addFields({
+                    name: index === 0 ? "Lista de Dummies" : `Continuação ${index + 1}`,
+                    value: campo,
+                    inline: false
+                });
+            });
+        } else {
+            embed.addFields({
+                name: "Lista de Dummies",
+                value: descricao,
+                inline: false
+            });
+        }
+
+        return embed;
+
+    } catch (error) {
+        console.error("Erro ao listar dummies:", error);
+        return gerarEmbedErro("Erro ao Listar Dummies", "Ocorreu um erro interno ao listar os sacos de pancada.");
+    }
+}
 
 function gerarListaComandos(isOwner) {
     let embed = new EmbedBuilder().setColor(0x4A90E2).setTitle("📜 Comandos de Arcádia (Discord)")
@@ -2305,7 +2504,11 @@ function gerarListaComandos(isOwner) {
         adminCommandsDescription += "`/admindelitem jogador:<@jogador> item:<nome> [quantidade:val]`\n*Remove item.*\n\n";
         adminCommandsDescription += "`/adminsetattr jogador:<@jogador> atributo:<atr> valor:<val>`\n*Define um atributo.*\n\n";
         adminCommandsDescription += "`/adminaddpontosattr jogador:<@jogador> quantidade:<val>`\n*Adiciona/remove pontos para distribuir.*\n\n";
-        adminCommandsDescription += "`/adminexcluirficha jogador:<@jogador> confirmacao:CONFIRMAR EXCLUSAO`\n*EXCLUI PERMANENTEMENTE uma ficha.*";
+        adminCommandsDescription += "`/adminexcluirficha jogador:<@jogador> confirmacao:CONFIRMAR EXCLUSAO`\n*EXCLUI PERMANENTEMENTE uma ficha.*\n\n";
+        adminCommandsDescription += "**🎯 Comandos de Sacos de Pancada:**\n";
+        adminCommandsDescription += "`/admincriardummy nome:<nome> [nivel:val] [pv:val] [pm:val] [contraataca:bool] [tipo:tipo]`\n*Cria um saco de pancada.*\n\n";
+        adminCommandsDescription += "`/adminremoverdummy nome:<nome> [resetar:bool]`\n*Remove/reseta um saco de pancada.*\n\n";
+        adminCommandsDescription += "`/adminlistardummies`\n*Lista todos os sacos de pancada ativos.*";
 
         embed.addFields(
             {
@@ -2427,6 +2630,9 @@ getFichasCollection,
     processarAdminAddMoedas, processarAdminAddItem, processarAdminDelItem,
     processarAdminSetAtributo, processarAdminAddPontosAtributo, processarAdminExcluirFicha,
     processarUparFeitico,processarInteracaoComNPC,
+    
+    // Funções de Admin para Dummies
+    processarAdminCriarDummy, processarAdminRemoverDummy, processarAdminListarDummies,
 
 
     // Novas Funções de Autocomplete
