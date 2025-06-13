@@ -1,7 +1,7 @@
 // Sistema de Sacos de Pancada (Dummies) para Testes
-module.exports = {
-    // Configurações padrão para diferentes tipos de dummies
-    tiposDummy: {
+
+// Configurações padrão para diferentes tipos de dummies
+const TIPOS_DUMMIES = {
         basico: {
             nome: "Saco de Pancada Básico",
             nivel: 10,
@@ -97,10 +97,10 @@ module.exports = {
             resistencias: {},
             descricao: "Um saco de pancada com configurações personalizáveis."
         }
-    },
+};
 
-    // Feitiços simples que dummies mágicos podem usar
-    feiticosDummy: {
+// Feitiços simples que dummies mágicos podem usar
+const FEITICOS_DUMMY = {
         "contra_ataque_basico": {
             nome: "Contra-ataque Básico",
             tipo: "ataque_fisico",
@@ -122,57 +122,66 @@ module.exports = {
             cura: "intelecto * 0.5 + carisma * 0.3",
             descricao: "Uma cura automática quando PV fica baixo."
         }
-    },
+};
 
-    // Função para gerar um dummy baseado no tipo
-    gerarDummy: function(nome, tipo = 'basico', configuracaoCustom = {}) {
-        const tipoBase = this.tiposDummy[tipo] || this.tiposDummy.basico;
-        
-        const dummy = {
-            _id: `dummy_${nome.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`,
-            nome: configuracaoCustom.nome || nome,
-            tipo: "dummy",
-            nivel: configuracaoCustom.nivel || tipoBase.nivel,
-            atributos: { ...tipoBase.atributos, ...configuracaoCustom.atributos },
-            pvMaximo: configuracaoCustom.pv || tipoBase.pvBase,
-            pvAtual: configuracaoCustom.pv || tipoBase.pvBase,
-            pmMaximo: configuracaoCustom.pm || tipoBase.pmBase,
-            pmAtual: configuracaoCustom.pm || tipoBase.pmBase,
-            contraataca: configuracaoCustom.contraataca !== undefined ? configuracaoCustom.contraataca : tipoBase.contraataca,
-            resistencias: { ...tipoBase.resistencias, ...configuracaoCustom.resistencias },
-            descricao: configuracaoCustom.descricao || tipoBase.descricao,
-            criadoEm: new Date(),
-            criadoPor: configuracaoCustom.criadoPor || "admin",
-            ativo: true,
-            // Feitiços que o dummy pode usar (se contraataca)
-            feiticosDisponiveis: tipoBase.contraataca ? ["contra_ataque_basico", "rajada_magica"] : [],
-            // Comportamento de IA simples
-            comportamento: {
-                usaCuraQuandoPVBaixo: tipo === 'magico',
-                percentualPVParaCura: 30,
-                chanceContraAtaque: tipo === 'agil' ? 0.7 : (tipo === 'magico' ? 0.5 : 0.3)
-            }
-        };
-
-        return dummy;
-    },
-
-    // Função para calcular dano baseado em fórmula
-    calcularDanoDummy: function(formula, atributosDummy) {
-        try {
-            let expressao = formula.toLowerCase();
-            
-            // Substituir atributos na fórmula
-            Object.keys(atributosDummy).forEach(attr => {
-                const regex = new RegExp(attr, 'g');
-                expressao = expressao.replace(regex, atributosDummy[attr]);
-            });
-            
-            // Avaliar a expressão matematicamente (básico)
-            return Math.floor(eval(expressao)) || 0;
-        } catch (error) {
-            console.error("[DUMMY] Erro ao calcular fórmula:", error);
-            return 0;
+// Função para gerar um dummy baseado no tipo
+function gerarDummy(nome, tipo = 'basico', configuracaoCustom = {}) {
+    const tipoBase = TIPOS_DUMMIES[tipo] || TIPOS_DUMMIES.basico;
+    
+    const dummy = {
+        _id: `dummy_${nome.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`,
+        nome: configuracaoCustom.nome || nome,
+        tipo: tipo,
+        nivel: configuracaoCustom.nivel || tipoBase.nivel,
+        atributos: { ...tipoBase.atributos, ...configuracaoCustom.atributos },
+        pvMaximo: configuracaoCustom.pv || tipoBase.pvBase,
+        pvAtual: configuracaoCustom.pv || tipoBase.pvBase,
+        pmMaximo: configuracaoCustom.pm || tipoBase.pmBase,
+        pmAtual: configuracaoCustom.pm || tipoBase.pmBase,
+        defesa: tipoBase.atributos.vitalidade + (configuracaoCustom.nivel || tipoBase.nivel),
+        resistenciaMagica: tipoBase.atributos.intelecto + (configuracaoCustom.nivel || tipoBase.nivel) * 0.5,
+        agilidade: tipoBase.atributos.agilidade,
+        contraataca: configuracaoCustom.contraataca !== undefined ? configuracaoCustom.contraataca : tipoBase.contraataca,
+        resistencias: { ...tipoBase.resistencias, ...configuracaoCustom.resistencias },
+        descricao: configuracaoCustom.descricao || tipoBase.descricao,
+        criadoEm: new Date(),
+        criadoPor: configuracaoCustom.criadoPor || "admin",
+        ativo: true,
+        // Feitiços que o dummy pode usar (se contraataca)
+        feiticosDisponiveis: tipoBase.contraataca ? ["contra_ataque_basico", "rajada_magica"] : [],
+        // Comportamento de IA simples
+        comportamento: {
+            usaCuraQuandoPVBaixo: tipo === 'magico',
+            percentualPVParaCura: 30,
+            chanceContraAtaque: tipo === 'agil' ? 0.7 : (tipo === 'magico' ? 0.5 : 0.3)
         }
+    };
+
+    return dummy;
+}
+
+// Função para calcular dano baseado em fórmula
+function calcularDanoDummy(formula, atributosDummy) {
+    try {
+        let expressao = formula.toLowerCase();
+        
+        // Substituir atributos na fórmula
+        Object.keys(atributosDummy).forEach(attr => {
+            const regex = new RegExp(attr, 'g');
+            expressao = expressao.replace(regex, atributosDummy[attr]);
+        });
+        
+        // Avaliar a expressão matematicamente (básico)
+        return Math.floor(eval(expressao)) || 0;
+    } catch (error) {
+        console.error("[DUMMY] Erro ao calcular fórmula:", error);
+        return 0;
     }
+}
+
+module.exports = {
+    TIPOS_DUMMIES,
+    FEITICOS_DUMMY,
+    gerarDummy,
+    calcularDanoDummy
 };
