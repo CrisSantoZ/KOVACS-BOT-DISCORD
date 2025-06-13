@@ -2542,7 +2542,7 @@ async function processarAdminCriarDummy(nomeDummy, nivel, pv, pm, contraataca, t
         // Adicionar ao cache de dummies
         dummiesAtivos[novoDummy._id] = novoDummy;
 
-        console.log(`[ADMIN] Dummy "${nomoDummy}" criado por ${adminNome} e combate iniciado com ${ficha.nomePersonagem}`);
+        console.log(`[ADMIN] Dummy "${nomeDummy}" criado por ${adminNome} e combate iniciado com ${ficha.nomePersonagem}`);
 
         // Iniciar combate automaticamente
         const resultadoCombate = await iniciarCombatePvE(jogadorId, novoDummy._id);
