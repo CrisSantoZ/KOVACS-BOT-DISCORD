@@ -196,7 +196,7 @@ async function processarAcaoJogadorCombate(idCombate, idJogadorAcao, tipoAcao = 
             combate.log.push(...logDoTurno);
             combate.numeroMobsDerrotadosNaMissao = (combate.numeroMobsDerrotadosNaMissao || 0) + 1;
             
-
+            return {
                 sucesso: true,
                 mobDerrotado: true,
                 idCombate,
