@@ -225,6 +225,7 @@ async function processarAcaoJogadorCombate(idCombate, idJogadorAcao, tipoAcao = 
         combate.log.push(...logDoTurno);
         return {
             sucesso: true,
+            mobDerrotado: false,
             idCombate,
             logTurnoAnterior: logDoTurno,
             proximoTurno: "mob",
@@ -275,6 +276,7 @@ async function processarAcaoJogadorCombate(idCombate, idJogadorAcao, tipoAcao = 
 
         return {
             sucesso: true,
+            mobDerrotado: false,
             idCombate,
             logTurnoAnterior: logDoTurno,
             proximoTurno: "mob",
@@ -389,6 +391,7 @@ else if (tipoAcao === "USAR_FEITICO") {
     combate.log.push(...logDoTurno);
     return {
         sucesso: true,
+        mobDerrotado: false,
         idCombate,
         logTurnoAnterior: logDoTurno,
         proximoTurno: "mob",
