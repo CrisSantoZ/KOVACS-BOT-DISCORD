@@ -103,7 +103,9 @@ async function processarTurnoMobCombate(idCombate) {
     }
 
     // Verificar se o mob morreu por efeitos
+    console.log(`[DEBUG TURNO MOB] Verificando PV do mob após efeitos: ${mob.nome} tem ${mob.pvAtual} PV`);
     if (mob.pvAtual <= 0) {
+        console.log(`[DEBUG TURNO MOB] Mob ${mob.nome} morreu por efeitos! PV: ${mob.pvAtual}`);
         logDoTurno.push(`💀 ${mob.nome} sucumbiu aos efeitos mágicos!`);
         combate.log.push(...logDoTurno);
         const resultadoFinal = await finalizarCombate(idCombate, combate.idJogador, true); // true = jogador venceu
@@ -112,6 +114,7 @@ async function processarTurnoMobCombate(idCombate) {
             log: [...combate.log] 
         };
     }
+    console.log(`[DEBUG TURNO MOB] Mob ${mob.nome} ainda vivo após efeitos com ${mob.pvAtual} PV`);
 
     // Verificar se o jogador morreu por efeitos
     if (fichaJogador.pvAtual <= 0) {
