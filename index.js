@@ -682,6 +682,19 @@ async function handleAtaqueBasico(interaction, idCombate, senderIdButton) {
         await interaction.deferUpdate();
     }
 
+    // Verificação crítica do cache antes de processar
+    if (!combatesAtivos[idCombate]) {
+        console.error(`[ATAQUE BÁSICO] Combate ${idCombate} não encontrado no cache!`);
+        await interaction.editReply({ 
+            content: "❌ Esse combate não está mais ativo!", 
+            components: [], 
+            embeds: [] 
+        });
+        return;
+    }
+
+    console.log(`[ATAQUE BÁSICO] Combate ${idCombate} encontrado no cache, processando...`);
+
     try {
         const resultado = await Arcadia.processarAcaoJogadorCombate(idCombate, senderIdButton, "ATAQUE_BASICO");
         
@@ -716,6 +729,26 @@ async function handleAtaqueBasico(interaction, idCombate, senderIdButton) {
 
 // Handler específico para usar feitiço
 async function handleUsarFeitico(interaction, idCombate, senderIdButton) {
+    // Verificação crítica do cache antes de processar
+    if (!combatesAtivos[idCombate]) {
+        console.error(`[USAR FEITIÇO] Combate ${idCombate} não encontrado no cache!`);
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ 
+                content: "❌ Esse combate não está mais ativo!", 
+                ephemeral: true 
+            });
+        } else {
+            await interaction.editReply({ 
+                content: "❌ Esse combate não está mais ativo!", 
+                components: [], 
+                embeds: [] 
+            });
+        }
+        return;
+    }
+
+    console.log(`[USAR FEITIÇO] Combate ${idCombate} encontrado no cache, processando...`);
+
     try {
         const magiasConhecidas = await Arcadia.getMagiasConhecidasParaAutocomplete(senderIdButton);
 
@@ -807,6 +840,26 @@ async function handleUsarFeitico(interaction, idCombate, senderIdButton) {
 
 // Handler específico para usar item
 async function handleUsarItem(interaction, idCombate, senderIdButton) {
+    // Verificação crítica do cache antes de processar
+    if (!combatesAtivos[idCombate]) {
+        console.error(`[USAR ITEM] Combate ${idCombate} não encontrado no cache!`);
+        if (!interaction.replied && !interaction.deferred) {
+            await interaction.reply({ 
+                content: "❌ Esse combate não está mais ativo!", 
+                ephemeral: true 
+            });
+        } else {
+            await interaction.editReply({ 
+                content: "❌ Esse combate não está mais ativo!", 
+                components: [], 
+                embeds: [] 
+            });
+        }
+        return;
+    }
+
+    console.log(`[USAR ITEM] Combate ${idCombate} encontrado no cache, processando...`);
+
     try {
         const ITENS_BASE_ARCADIA = Arcadia.ITENS_BASE_ARCADIA;
         const ficha = await Arcadia.getFichaOuCarregar(senderIdButton);
