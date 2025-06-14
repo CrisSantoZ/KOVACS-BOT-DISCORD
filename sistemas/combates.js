@@ -91,6 +91,19 @@ async function processarTurnoMobCombate(idCombate) {
     const mob = combate.mobInstancia;
     let logDoTurno = [];
 
+    // Verificar se é um dummy que não contra-ataca
+    if (mob.ehDummyTreino && !mob.contraataca) {
+        console.log(`[DEBUG TURNO MOB] Dummy ${mob.nome} não contra-ataca, pulando turno do mob`);
+        combate.turnoDoJogador = true; // Passa o turno de volta para o jogador
+        return { 
+            sucesso: true, 
+            idCombate: idCombate,
+            logTurnoAnterior: [`🎯 ${mob.nome} não reage ao ataque (dummy de treino).`],
+            proximoTurno: "jogador",
+            estadoCombate: getEstadoCombateParaRetorno(combate)
+        };
+    }
+
     // Processar efeitos por turno no início do turno do mob
     const efeitosMob = sistemaFeiticos.processarEfeitosPorTurno(mob);
     const efeitosJogador = sistemaFeiticos.processarEfeitosPorTurno(fichaJogador);
