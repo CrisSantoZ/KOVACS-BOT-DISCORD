@@ -348,16 +348,20 @@ async function processarResultadoCombate(interaction, resultado, idCombate, send
     console.log(`[DEBUG INDEX] Verificando mobDerrotado: ${resultado.mobDerrotado}, PV do mob: ${mobEstado?.pvAtual}`);
     if (resultado.mobDerrotado === true) {
         console.log(`[DEBUG INDEX] Mob foi derrotado, finalizando combate...`);
+        
+        // CRÍTICO: Finalizar combate APENAS quando o mob foi realmente derrotado
         const resultadoFinal = await Arcadia.finalizarCombate(idCombate, senderIdButton, true, resultado.dadosParaFinalizar?.eUltimoMobDaMissao);
         
         embedCombate.setTitle("🏆 VITÓRIA! 🏆")
             .setColor(0x00FF00)
-            .setDescription((resultadoFinal.logCombateFinal || resultado.logTurnoAnterior).join('\n'));
+            .setDescription((resultadoFinal.logCombateFinal || resultado.logTurnoAnterior).join('
+'));
 
         if (resultadoFinal.recompensasTextoFinal && resultadoFinal.recompensasTextoFinal.length > 0) {
             embedCombate.addFields({
                 name: "🎁 Recompensas Obtidas",
-                value: resultadoFinal.recompensasTextoFinal.join('\n')
+                value: resultadoFinal.recompensasTextoFinal.join('
+')
             });
         }
 
@@ -367,6 +371,18 @@ async function processarResultadoCombate(interaction, resultado, idCombate, send
 
     // Turno do mob
     if (resultado.proximoTurno === 'mob') {
+        // VERIFICAÇÃO CRÍTICA: Garantir que o combate ainda existe antes do turno do mob
+        if (!combatesAtivos[idCombate]) {
+            console.error(`[CRÍTICO] Combate ${idCombate} não encontrado no cache antes do turno do mob!`);
+            await interaction.editReply({ 
+                content: "❌ Erro crítico: combate não encontrado!", 
+                components: [],
+                embeds: []
+            });
+            return;
+        }
+        
+        console.log(`[TURNO MOB] Combate ${idCombate} encontrado no cache, processando turno do mob...`);
         const resultadoTurnoMob = await Arcadia.processarTurnoMobCombate(idCombate);
         
         if (!resultadoTurnoMob || typeof resultadoTurnoMob !== 'object') {
@@ -435,7 +451,19 @@ async function processarResultadoCombate(interaction, resultado, idCombate, send
         }
     }
 
+    // VERIFICAÇÃO FINAL: Garantir que o combate ainda existe antes de mostrar botões
+    if (!combatesAtivos[idCombate]) {
+        console.error(`[CRÍTICO] Combate ${idCombate} não encontrado no cache antes de mostrar botões!`);
+        await interaction.editReply({ 
+            content: "❌ Erro crítico: combate não encontrado!", 
+            components: [],
+            embeds: []
+        });
+        return;
+    }
+
     // Se o combate continua, mostra os botões de ação novamente
+    console.log(`[BOTÕES COMBATE] Combate ${idCombate} ativo, mostrando botões de ação...`);
     const combatActionRow = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
