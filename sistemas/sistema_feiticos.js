@@ -126,13 +126,12 @@ class SistemaFeiticos {
         let mensagem = `✨ **${conjurador.nomePersonagem}** usou **${feiticoBase.nome}** (Nível ${detalhesNivel.nivel})!\n`;
         let resultados = [];
 
-        // Processar diferentes tipos de feitiços
+        // Processar tipo principal
         switch (feiticoBase.tipo) {
             case 'cura_unico_purificacao':
             case 'cura':
                 resultados.push(await this.processarCura(efeitoConfig, conjurador, alvo, calcularValorDaFormula));
                 break;
-
             case 'dano_unico':
             case 'dano_area':
             case 'ataque_magico_unico':
@@ -141,67 +140,109 @@ class SistemaFeiticos {
             case 'dano_area_natureza':
                 resultados.push(await this.processarDano(efeitoConfig, conjurador, alvo, combate, calcularValorDaFormula));
                 break;
-
             case 'controle_unico_imobilizar':
             case 'controle_area':
             case 'controle_area_natureza':
                 resultados.push(await this.processarControle(efeitoConfig, conjurador, alvo, combate));
                 break;
-
             case 'buff_pessoal':
             case 'buff_aliado':
             case 'buff_area_natureza':
                 resultados.push(await this.processarBuff(efeitoConfig, conjurador, alvo));
                 break;
-
             case 'debuff_unico':
             case 'debuff_area':
             case 'debuff_area_natureza':
                 resultados.push(await this.processarDebuff(efeitoConfig, conjurador, alvo, combate));
                 break;
-
             case 'invocacao_temporaria':
             case 'invocacao_temporaria_natureza':
             case 'invocacao_temporaria_buff_sabedoria':
                 resultados.push(await this.processarInvocacao(efeitoConfig, conjurador, combate));
                 break;
-
             case 'utilidade_deteccao_buff_pessoal':
             case 'utilidade_area_ocultacao':
                 resultados.push(await this.processarUtilidade(efeitoConfig, conjurador, combate));
                 break;
-
             case 'regeneracao_passiva_ativa_condicional_ambiente':
                 resultados.push(await this.processarRegeneracao(efeitoConfig, conjurador));
                 break;
-
             case 'ultimate_reviver_area_buff_poderoso':
                 resultados.push(await this.processarUltimate(efeitoConfig, conjurador, combate));
                 break;
-
             default:
                 resultados.push(await this.processarEfeitoGenerico(efeitoConfig, conjurador, alvo, combate, calcularValorDaFormula));
                 break;
         }
 
-        // Processar efeitos adicionais
-        if (efeitoConfig.removeCondicao) {
-            resultados.push(this.processarRemocaoCondicoes(efeitoConfig.removeCondicao, alvo || conjurador));
+        // Processar buffs múltiplos
+        if (efeitoConfig.buffs && Array.isArray(efeitoConfig.buffs)) {
+            for (const buff of efeitoConfig.buffs) {
+                resultados.push(await this.processarBuff({ buffs: [buff] }, conjurador, alvo));
+            }
         }
-
+        // Processar debuffs múltiplos
+        if (efeitoConfig.debuffs && Array.isArray(efeitoConfig.debuffs)) {
+            for (const debuff of efeitoConfig.debuffs) {
+                resultados.push(await this.processarDebuff({ debuff: debuff }, conjurador, alvo, combate));
+            }
+        }
+        // Processar cura inicial
+        if (efeitoConfig.curaInicial) {
+            resultados.push(await this.processarCura(efeitoConfig.curaInicial, conjurador, alvo, calcularValorDaFormula));
+        }
+        // Processar condicao
+        if (efeitoConfig.condicao) {
+            resultados.push(await this.processarControle({ condicao: efeitoConfig.condicao }, conjurador, alvo, combate));
+        }
+        // Processar condicaoAtaque
+        if (efeitoConfig.condicaoAtaque) {
+            resultados.push(await this.processarControle({ condicao: efeitoConfig.condicaoAtaque }, conjurador, alvo, combate));
+        }
+        // Processar buff adicional
         if (efeitoConfig.buffAdicional) {
             resultados.push(this.processarBuffAdicional(efeitoConfig.buffAdicional, alvo || conjurador));
         }
-
-        if (efeitoConfig.debuff) {
-            resultados.push(this.processarDebuffAdicional(efeitoConfig.debuff, alvo, combate));
+        // Processar debuff adicional
+        if (efeitoConfig.debuffAdicional) {
+            resultados.push(this.processarDebuffAdicional(efeitoConfig.debuffAdicional, alvo, combate));
+        }
+        // Processar debuffsAdicionais (array)
+        if (efeitoConfig.debuffsAdicionais && Array.isArray(efeitoConfig.debuffsAdicionais)) {
+            efeitoConfig.debuffsAdicionais.forEach(debuff => {
+                resultados.push(this.processarDebuffAdicional(debuff, alvo, combate));
+            });
+        }
+        // Processar retaliacao
+        if (efeitoConfig.retaliacaoDanoCaC) {
+            resultados.push({ mensagem: `🛡️ Retaliação: ataques corpo-a-corpo contra o alvo causam ${efeitoConfig.retaliacaoDanoCaC.formulaDano} de dano de ${efeitoConfig.retaliacaoDanoCaC.tipoDano || 'Físico'} enquanto durar o efeito.` });
+        }
+        // Processar aura/imunidades/resistencias
+        if (efeitoConfig.imunidades) {
+            resultados.push({ mensagem: `🛡️ Imunidades concedidas: ${efeitoConfig.imunidades.join(', ')}` });
+        }
+        if (efeitoConfig.resistencias) {
+            resultados.push({ mensagem: `🛡️ Resistências concedidas: ${efeitoConfig.resistencias.map(r => r.elemento + ' +' + Math.round(r.percentual*100) + '%').join(', ')}` });
+        }
+        if (efeitoConfig.aura) {
+            resultados.push({ mensagem: `✨ Aura ativada: ${efeitoConfig.aura}` });
+        }
+        // Processar efeitos passivos/gatilhos
+        if (efeitoConfig.passivo) {
+            resultados.push({ mensagem: `🔄 Efeito passivo ativado: ${JSON.stringify(efeitoConfig.passivo)}` });
+        }
+        if (efeitoConfig.ativo) {
+            resultados.push({ mensagem: `⚡ Efeito ativo disponível: ${JSON.stringify(efeitoConfig.ativo)}` });
+        }
+        // Processar remoção de condições
+        if (efeitoConfig.removeCondicao) {
+            resultados.push(this.processarRemocaoCondicoes(efeitoConfig.removeCondicao, alvo || conjurador));
         }
 
         // Compilar mensagem final
         const mensagensValidas = resultados
             .filter(r => r && r.mensagem)
             .map(r => r.mensagem);
-        
         mensagem += mensagensValidas.join('\n');
 
         return {
@@ -244,21 +285,32 @@ class SistemaFeiticos {
         let danoTotal = 0;
 
         if (efeitoConfig.formulaDano) {
-            const dano = calcularValorDaFormula(efeitoConfig.formulaDano, conjurador.atributos);
-            
+            let dano = calcularValorDaFormula(efeitoConfig.formulaDano, conjurador.atributos);
+            if (typeof dano !== 'number' || isNaN(dano) || dano < 0) {
+                dano = 0;
+            }
+
             if (efeitoConfig.alvo === 'area' || efeitoConfig.alvo === 'multi_proximo_opcional') {
                 // Dano em área (por enquanto só no mob principal)
                 if (combate && combate.mobInstancia) {
-                    const pvAntes = combate.mobInstancia.pvAtual;
-                    combate.mobInstancia.pvAtual = Math.max(0, combate.mobInstancia.pvAtual - dano);
+                    let pvAntes = combate.mobInstancia.pvAtual;
+                    if (typeof pvAntes !== 'number' || isNaN(pvAntes) || pvAntes < 0) {
+                        pvAntes = combate.mobInstancia.atributos?.pvMax || 0;
+                        combate.mobInstancia.pvAtual = pvAntes;
+                    }
+                    combate.mobInstancia.pvAtual = Math.max(0, pvAntes - dano);
                     danoTotal += dano;
                     const tipoDanoTexto = efeitoConfig.tipoDano ? ` de ${efeitoConfig.tipoDano}` : '';
                     mensagem += `💥 Causou **${dano}** de dano${tipoDanoTexto} em **${combate.mobInstancia.nome}**! (PV: ${pvAntes} → ${combate.mobInstancia.pvAtual}/${combate.mobInstancia.atributos.pvMax})`;
                 }
             } else if (alvo) {
                 // Dano em alvo único
-                const pvAntes = alvo.pvAtual;
-                alvo.pvAtual = Math.max(0, alvo.pvAtual - dano);
+                let pvAntes = alvo.pvAtual;
+                if (typeof pvAntes !== 'number' || isNaN(pvAntes) || pvAntes < 0) {
+                    pvAntes = alvo.pvMax || alvo.atributos?.pvMax || 0;
+                    alvo.pvAtual = pvAntes;
+                }
+                alvo.pvAtual = Math.max(0, pvAntes - dano);
                 danoTotal += dano;
                 const tipoDanoTexto = efeitoConfig.tipoDano ? ` de ${efeitoConfig.tipoDano}` : '';
                 mensagem += `💥 Causou **${dano}** de dano${tipoDanoTexto} em **${alvo.nome || alvo.nomePersonagem}**! (PV: ${pvAntes} → ${alvo.pvAtual}/${alvo.pvMax || alvo.atributos?.pvMax})`;
@@ -267,10 +319,12 @@ class SistemaFeiticos {
 
         // Processar dano por turno (DoT)
         if (efeitoConfig.formulaDanoPorTurno) {
-            const danoPorTurno = calcularValorDaFormula(efeitoConfig.formulaDanoPorTurno, conjurador.atributos);
+            let danoPorTurno = calcularValorDaFormula(efeitoConfig.formulaDanoPorTurno, conjurador.atributos);
+            if (typeof danoPorTurno !== 'number' || isNaN(danoPorTurno) || danoPorTurno < 0) {
+                danoPorTurno = 0;
+            }
             const duracaoTurnos = efeitoConfig.duracaoTurnosDoT || 1;
             mensagem += `\n🔥 Aplicou efeito de **${danoPorTurno}** de dano por turno por **${duracaoTurnos}** turnos!`;
-            
             // Aplicar efeito DoT
             this.aplicarEfeitoTemporario(alvo || combate?.mobInstancia, {
                 tipo: 'dano_por_turno',
