@@ -137,26 +137,32 @@ class SistemaFeiticos {
             case 'dano_area':
             case 'ataque_magico_unico':
             case 'ataque_magico_area':
+            case 'ataque_area_natureza':
+            case 'dano_area_natureza':
                 resultados.push(await this.processarDano(efeitoConfig, conjurador, alvo, combate, calcularValorDaFormula));
                 break;
 
             case 'controle_unico_imobilizar':
             case 'controle_area':
+            case 'controle_area_natureza':
                 resultados.push(await this.processarControle(efeitoConfig, conjurador, alvo, combate));
                 break;
 
             case 'buff_pessoal':
             case 'buff_aliado':
+            case 'buff_area_natureza':
                 resultados.push(await this.processarBuff(efeitoConfig, conjurador, alvo));
                 break;
 
             case 'debuff_unico':
             case 'debuff_area':
+            case 'debuff_area_natureza':
                 resultados.push(await this.processarDebuff(efeitoConfig, conjurador, alvo, combate));
                 break;
 
             case 'invocacao_temporaria':
             case 'invocacao_temporaria_natureza':
+            case 'invocacao_temporaria_buff_sabedoria':
                 resultados.push(await this.processarInvocacao(efeitoConfig, conjurador, combate));
                 break;
 
